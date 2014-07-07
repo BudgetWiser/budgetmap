@@ -8,11 +8,19 @@ var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
+// mongodb settings
+var mongo = require('mongoskin');
+var db = mongo.db("mongodb://localhost:27017/budgetmap_proto", {native_parser: true});
+
 var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.set('view engine', 'html');
+
+// hogan-express settings
+app.enable('view cache');
+app.engine('html', require('hogan-express'));
 
 app.use(favicon());
 app.use(logger('dev'));
@@ -20,6 +28,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// db settings
+app.use(function(req, res, next){
+    req.db = db;
+    next();
+});
 
 app.use('/', routes);
 app.use('/users', users);
