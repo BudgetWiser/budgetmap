@@ -5,6 +5,9 @@ var router = express.Router();
 router.get('/', function(req, res) {
   res.render('index', { title: 'Express' });
 });
+router.get('/budget-vis', function(req, res) {
+  res.render('budget-vis', { title: 'Budget-Vis Test' });
+});
 
 router.get('/data', function(req, res) {
     var db = req.db;
