@@ -29,6 +29,7 @@ BudgetVis.prototype.generate = function(settings){
 
 	this.node = this.root = data;
 	this.selected = null;
+	this.selected_data = null;
 
 	var self = this;
 
@@ -46,12 +47,16 @@ BudgetVis.prototype.generate = function(settings){
 		//currently only the leaf node can be selected
 		if (d.children==undefined){
 			if (self.selected ){//deselect
-				d3.select(self.selected).attr("fill", color(d.rate));
+				d3.select(self.selected).attr("fill", color(self.selected_data.rate));
+				settings.onDeselect(self.selected_data);
 			}
+
 			if (self.selected == this){
-				self.selected = null;
+				self.selected 		= null;
+				self.selected_data 	= null;
 			}else{
-				self.selected = this;
+				self.selected 		= this;
+				self.selected_data 	= d;
 				d3.select(self.selected).attr("fill", "Chartreuse");
 				settings.onSelect(d); // call selection callback
 			}

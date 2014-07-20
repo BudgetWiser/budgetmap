@@ -10,7 +10,7 @@ var users = require('./routes/users');
 
 // mongodb settings
 var mongo = require('mongoskin');
-var db = mongo.db("mongodb://143.248.234.88:17027/budgetmap_proto", {native_parser: true});
+var db = mongo.db("mongodb://localhost:27017/budgetmap_proto", {native_parser: true});
 
 var app = express();
 
@@ -32,6 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // db settings
 app.use(function(req, res, next){
     req.db = db;
+    req.toObjectID = mongo.helper.toObjectID;
     next();
 });
 

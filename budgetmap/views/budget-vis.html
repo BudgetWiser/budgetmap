@@ -11,7 +11,7 @@
         var container = d3.select("body").append("xhtml:div")
         .attr("id", "budget-vis");
 
-        $.getJSON('/data', function(data){
+        $.getJSON('/budget-data', function(data){
             console.log(data);
             var vis = new BudgetVis();
             vis.generate({
