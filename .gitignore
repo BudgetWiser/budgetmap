@@ -1,3 +1,6 @@
+# VIM
+*.sw[op]
+
 # Logs
 logs
 *.log
