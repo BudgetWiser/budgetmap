@@ -5,34 +5,59 @@ var router = express.Router();
 router.get('/', function(req, res) {
   res.render('index', { title: 'Express' });
 });
+
 router.get('/budget-vis', function(req, res) {
   res.render('budget-vis', { title: 'Budget-Vis Test' });
 });
-router.get('/issues/:id', function(req, res){
+
+router.get('/issue/:id', function(req, res){
     var db = req.db;
-    console.log(req.toObjectID(req.params.id));
-    db.collection("issues").find({_budget_id:req.toObjectID(req.params.id)}).toArray(function(err, items){
-        var result = [];
-        //console.log(items);
-        res.json(items);
-    });
+    if (req.params.id === 'list') {
+        db.collection("issue").find().toArray(function(err, items) {
+            var result = [];
+            for (var i in items) {
+                var budget_ids = items[i]._budget_id || null;
+                result.push({
+                    _id: items[i]._id,
+                    name: items[i].name,
+                    _budget_ids: budget_ids
+                });
+            }
+            res.json(result.sort());
+        });
+    } else {
+        db.collection("issue").find({
+            _budget_id: {$in: [req.toObjectID(req.params.id)]}
+        }).toArray(function(err, items){
+            var result = [];
+            for (i in items) {
+                var budget_ids = items[i]._budget_id || null;
+                result.push({
+                    _id: items[i]._id,
+                    name: items[i].name,
+                    _budget_ids: budget_ids
+                });
+            }
+            res.json(result);
+        });
+    }
 });
-router.get('/issue-categories', function(req, res){
+
+router.get('/budget/kvpairs', function(req, res) {
     var db = req.db;
-    db.collection("issue_categories").find().toArray(function(err, items){
-        var result = [];
-        for (var i in items){
-            var issue = items[i];
-            result.push({
-                id: issue._id,
-                name: issue.name,
-                desc: issue.desc
-            });
+    
+    db.collection("seoul_budget").find().toArray(function(err, items) {
+        var result = {};
+        for (var i in items) {
+            result[items[i]._id] = items[i].name;
         }
+        console.log(result);
         res.json(result);
     });
 });
-router.get('/budget-data', function(req, res){
+
+
+router.get('/budget/data', function(req, res){
     var db = req.db;
 
     db.collection("seoul_budget").find().toArray(function(err, items){
@@ -53,7 +78,6 @@ router.get('/budget-data', function(req, res){
             id_map[budget._id] = items[i];
             yr_code_map[budget.year.toString() + budget.code.toString()] = items[i];
         }
-        console.log(yr_code_map)
         //construct nodes
         var node_map = {};
         var rel_map = {};
@@ -91,55 +115,6 @@ router.get('/budget-data', function(req, res){
     })
 
 });
-router.get('/data', function(req, res) {
-    var db = req.db;
-
-    var result = {
-        "name": "budgetdata",
-        "children": [] 
-    };
-    db.collection('seoul_functional').find().toArray(function(err, items) {
-        for (var i in items) {
-            var doc = items[i];
-
-            var exist = false;
-            var child = null;
-            for (var j in result.children){
-                var item = result.children[j];
-
-                if (item.name == doc.level1){
-                    exist = true;
-                    child = item;
-                    break;
-                }
-            }
-            if (exist == false){
-                child = {};
-                child.name = doc.level1;
-                child.children = [];
-                result.children.push(child);
-            }
-            
-            var new_obj = {};
-            new_obj.name = doc.level2;
-            new_obj.size = doc.yr_2014;
-
-            var yr_2014 = parseInt(doc.yr_2014);
-            var yr_2013 = parseInt(doc.yr_2013);
-
-
-            if (yr_2013 == 0) {
-                new_obj.rate = 0;
-            }
-            else {
-                new_obj.rate = (yr_2014 - yr_2013) / yr_2013;
-            }
-            
-            child.children.push(new_obj);
-        }
-        res.json(result);
-    });
-});
 
 router.get('/budgetmap', function(req, res){
     res.render('index', {
@@ -148,24 +123,60 @@ router.get('/budgetmap', function(req, res){
 });
 
 /* GET home page. */
-router.post('/add-issue', function(req, res){
+router.post('/issue/add', function(req, res){
     var db = req.db;
     var data = req.body;
-    db.collection("issues").insert({
-        _budget_id      : req.toObjectID(data.issue_budget_id),
-        _issue_category_id  : req.toObjectID(data.issue_category_id),
-        type: 0, //0: article, 1: ??? 
-        link: data.issue_link,
-        title: data.issue_title,
-        desc: data.issue_desc,
-        reason: data.issue_reason
-    }, function(err, result){
-        if (err){
-            res.json({ ret_code: 1, msg: 'Issue Insertion Failed!', data: result});
-        }else{
-            res.json({ ret_code: 0, msg: 'Issue Insertion Success!', data: result});
-        }
-
-    });
+    if (data.issue == null || data.issue == '') {
+        console.log("ERROR /issue/add: no issue entered");
+        res.json({success: 0, errcode: "No issue entered / How did you get here?"});
+    } else {
+        db.collection("issue").findOne({name: data.issue}, function(err, result) {
+            if (err) {
+                console.log("ERROR /issue/add: error querying issue from DB");
+                res.json({success: 0, errcode: "Internal DB errorr"});
+            } else if (!result) {
+                var insert_query = {};
+                if (data.budget_id == '') {
+                    insert_query = {
+                        name: data.issue
+                    }
+                } else {
+                    insert_query = {
+                        name: data.issue,
+                        _budget_id: [req.toObjectID(data.budget_id)]
+                    }
+                }
+                db.collection("issue").insert(insert_query, function(err, result) {
+                    if (err) {
+                        console.log("ERROR /issue/add: failed logging issue to DB: " + data.issue);
+                        res.json({success: 0, errcode: "DB insert error"});
+                    } else {
+                        console.log("/issue/add: Logged new issue_names entry: " + result.name);
+                        res.json({success: 1, errcode: "DB insert success"});
+                    }
+                });
+            } else {
+                if (data.budget_id == '' || result._budget_id.toString().indexOf(req.toObjectID(data.budget_id)) > -1) {
+                    console.log("ERROR /issue/add: issue-budget relation already exists");
+                    res.json({success: 0, errcode: "Budget-Issue relation already exists"});
+                } else {
+                    db.collection("issue").update({
+                        name: data.issue,
+                    }, {'$push': {
+                        _budget_id: req.toObjectID(data.budget_id)
+                    }}, function(err) {
+                       if (err) {
+                           console.log("ERROR /issue/add: failed updating budget_id to DB");
+                           res.json({success: 0, errcode: "DB update error"});
+                       } else {
+                           console.log("/issue/add: Appended new budget_id: " + data.budget_id);
+                           res.json({success: 1, errcode: "Db update success"});
+                       }
+                    });
+                }
+            } 
+        });
+    }
 });
+
 module.exports = router;

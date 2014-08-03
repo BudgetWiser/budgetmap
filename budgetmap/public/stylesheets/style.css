@@ -1,99 +1,117 @@
 @import url(http://fonts.googleapis.com/css?family=Lobster);
 body {
-	font: 12px "Helvetica Neue", Helvetica, sans-serif;
-	color: #555753;
-	margin: 0px;
+    font: 12px "Helvetica Neue", Helvetica, "Noto Sans Korean", "Nanum Gothic", sans-serif;
+    color: #555753;
+    margin: 0px;
 }
 
 
 a:hover{
-	text-decoration: underline;
+    text-decoration: underline;
 }
 a{
-	color:steelblue;
-	text-decoration: none;
+    color:steelblue;
+    text-decoration: none;
 }
 
 #container{
-	margin: 0 auto;
-	width: 100%;
-	background: #fff;
+    margin: 0 auto;
+    width: 100%;
+    background: #fff;
 }
 
 #header{
-	background: DarkSlateGray;
-	height: 45px;
+    background: DarkSlateGray;
+    height: 45px;
 }
 #site_name{
-	float:left;
-	padding: 10px 10px;
-	font: 18px 'Lobster', cursive;
-	color: AliceBlue;
+    float:left;
+    padding: 10px 10px;
+    font: 18px 'Lobster', cursive;
+    color: AliceBlue;
 }
 #navigation{
-	float:right;
-	padding:0px;
-	margin: 0px;
+    float:right;
+    padding:0px;
+    margin: 0px;
 }
 #navigation ul{
-	list-style-type: none;
+    list-style-type: none;
 }
 #navigation ul li
 {
-	list-style-type: none;
-	display: inline;
+    list-style-type: none;
+    display: inline;
 }
 #navigation li a
 {
-	display: block;
-	float: right;
-	text-decoration: none;
-	padding: 15px 10px;
-	/*border-left: 3px solid Gainsboro;*/
-	font-size:12px;
-	color: AliceBlue;
+    display: block;
+    float: right;
+    text-decoration: none;
+    padding: 15px 10px;
+    /*border-left: 3px solid Gainsboro;*/
+    font-size:12px;
+    color: AliceBlue;
 }
 #navigation li a:hover { 
-	text-decoration: underline; 
+    text-decoration: underline; 
 }
 
 #content-container{
-	clear: both;
-	float:left;
-	width:100%;
+    clear: both;
+    float:left;
+    width:100%;
 }
 #content{
-	float:left;
-	width:100%;
+    float:left;
+    width:100%;
 }
 #left-content{
-	float:left;
-	width: 16%;
-	padding: 20px 0;
-	margin: 0 2%;
-	display: inline;
-	height: 800px;
+    float:left;
+    width: 16%;
+    padding: 20px 0;
+    margin: 0 2%;
+    display: inline;
+    height: 800px;
 }
 #center-content{
-	float:left;
-	width: 56%;
-	padding: 20px 0;
-	margin: 0 0 0 2%;
+    float:left;
+    width: 56%;
+    padding: 20px 0;
+    margin: 0 0 0 2%;
 }
 #right-content{
-	float:right;
-	width: 16%;
-	padding: 20px 0;
-	margin: 0 2% 0 0;
-	display: inline;
+    float:right;
+    width: 16%;
+    padding: 20px 0;
+    margin: 0 2% 0 0;
+    display: inline;
 }
 #footer
 {
-	clear: both;
-	background: #ccc;
-	text-align: center;
-	height: 20px;
+    clear: both;
+    background: #ccc;
+    text-align: center;
+    height: 20px;
 }
-.issue_title{
-	font-weight: bold;
+.issue-title {
+    display: inline-block;
+    background-color: #E6E6E6;
+    border: 1px solid;
+    border-radius: 5px;
+    border-color: #A4A4A4;
+    cursor: pointer;
+    padding: 1px 3px;
+    margin: 2px 1px;
+    line-height: 120%;
+}
+.issue-title:hover {
+    background-color: #81DAF5;
+}
+.issue-title:active {
+    background-color: #58ACFA;
+}
+.budget-title {
+    display: block;
+    font: 14px;
 }

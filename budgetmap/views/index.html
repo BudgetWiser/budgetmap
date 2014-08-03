@@ -9,101 +9,40 @@
     <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script src="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.js"></script>    
     <script type="text/javascript" src="/javascripts/budget-vis.js"></script>
-
-
+    <script type="text/javascript" src="/javascripts/issue.js"></script>
     <script type="text/javascript">
-        var issues = {};
         var selected_budget = null;
         $(document).ready(function(){
             var container = d3.select("#center-content").append("xhtml:div")
             .attr("id", "budget-vis");
 
-            // Populate Select Box
-            $.getJSON('/issue-categories', function(data){
-                console.log(data);
-                for (var i in data){                    
-                    $('#issue_category_id').append($('<option>', {
-                        value : data[i].id,
-                        text : data[i].name
-                    }))                        
-                }                       
-            })
-
-            $( "#accordion" ).hide();
-            $( "#add_issue").submit(addIssue);
-            $.getJSON('/budget-data', function(data){
-                console.log(data);
+            $.getJSON('/budget/data', function(data){
                 var vis = new BudgetVis();
+                var issues = $.getJSON('/issue/list');
                 vis.generate({
                     container : container,
                     size : { width: 600, height: 600, radius : 600},
                     data : data,
                     onSelect: function(d){
-                        //console.log(d);
-                        $("#issue_budget_id").val(d._id);
-                        $( "#accordion" ).accordion({
-                           collapsible: true,
-                           heightStyle: "content"
+                        $("#budget_id").val(d._id);
+                        $("#budget_selected").html('<span class="budget_selected">'+d.name+'</span>');
+                        $("#accordion").accordion("option", "active", 0);
+                        // TODO: Change this part
+                        $.getJSON('/issue/'+d._id, function(data){
+                            issues[d._id] = data.reverse();
+                            Issue.listIssues(d);
                         });
-                        $( "#accordion" ).show();
-                        if (issues[d._id]==null){
-                            $.getJSON('/issues/'+d._id, function(data){
-                                issues[d._id] = data.reverse();
-                                showIssues(d, issues[d._id]);
-                            });             
-                        }else{
-                            showIssues(d, issues[d._id]);
-                        }
                         selected_budget = d;
                     },
                     onDeselect: function(d){
-                        $('#accordion').hide();
-                        $('#right-content').empty();    
+                        $('#accordion').accordion("option", "active", false);
+                        $("#budget_selected").html('없음');
+                        Issue.listIssues();
                         selected_budget = null;                    
                     }           
                 });
             });    
         });  
-        
-        function showIssues(d, issues){     
-            $('#right-content').empty();       
-            var issue_list = "<h3>"+ d.name + "</h3>";
-            for (var i in issues){
-                var issue = issues[i];
-                issue_list += "<div>";
-                issue_list += "<div class='issue_title'>" + issue.title.slice(0, 20) + "...</div>";
-                issue_list += "<p>" + issue.desc.slice(0, 256) + "...</p>";
-                issue_list += "</div>";
-            }
-            $('#right-content').append(issue_list).hide().fadeIn(200);;
-
-        }
-
-        function addIssue(event){
-            event.preventDefault(); //
-            //input validation
-            if ($('#issue_desc').val()=='' || $('#issue_link').val()=='' || $('#issue_title').val()=='' || $('#issue_reason').val()==''){
-                alert('all the fields must be filled!');
-                return;
-            }
-            //console.log($("#add_issue").serialize());
-            $.post(
-                $("#add_issue").attr("action"),
-                $("#add_issue").serialize(),
-                function(res){
-                    $('#add_issue')[0].reset();
-                    if(res.ret_code){
-                        $('#add_issue_falied').show().delay(1000).fadeOut();
-                    }else{
-                        $('#add_issue_success').show().delay(1000).fadeOut();
-                        var issue_list = issues[$("#issue_budget_id").val()];
-                        issue_list.unshift(res.data[0]);
-                        showIssues(selected_budget, issue_list);
-                    }                        
-                }
-            );        
-        }
-
     </script>
 </head>
 <body>
@@ -122,17 +61,14 @@
                     <div id="accordion">
                         <h3>Add Issue</h3>
                         <div>
-                            <form id="add_issue" action="/add-issue" method="post">
-                                <input id="issue_budget_id" name="issue_budget_id" type="hidden">
-                                Type: <select id="issue_category_id" name="issue_category_id"></select> <br>
-                                Link: <input id="issue_link" name="issue_link" type="text"><br>
-                                Title: <input id="issue_link" name="issue_title" type="text" ><br>
-                                Desc: <textarea id="issue_link" name="issue_desc" form="add_issue" rows="4"></textarea><br>
-                                Reason: <textarea id="issue_reason" name="issue_reason" form="add_issue", row="3"></textarea><br>
+                            <form id="add_issue" action="/issue/add" method="post">
+                                <input id="budget_id" name="budget_id" type="hidden"><br>
+                                선택된 예산 항목:<br><div id="budget_selected"></div><br>
+                                Type: <input id="issue" name="issue"></input> <br>
                                 <span id="add_issue_success" style="display:none;color:green">Successfully added!</span>
                                 <span id="add_issue_failed" style="display:none;color:red">Internal Error Occured!</span>
-                                <button form="add_issue" type="submit">Add</button>
-                                <button form="add_issue" type="reset">Reset</button>
+                                <button form="add_issue" type="submit" id="btn-add-issue">Add</button>
+                                <button form="add_issue" type="reset" id="btn-reset-issue">Reset</button>
                             </form>
                         </div>
                         <h3>Evaluate Budget</h3>
@@ -141,6 +77,7 @@
                 <div id="center-content">
                 </div>
                 <div id="right-content">                    
+                    <div id="budget-issue-relation"></div>
                 </div>
             </div>
         </div>
@@ -149,6 +86,6 @@
         </div>
     </div>
 </div>
-
+htmhtmll
 </body>
 </html>
