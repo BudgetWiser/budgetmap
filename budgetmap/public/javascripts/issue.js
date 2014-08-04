@@ -27,10 +27,14 @@ Issue.listIssues = function(budget_item) {
                 }
             } else {
                 issue_html += '<span>아직 연결된 이슈가 없습니다.</span><br />'
-                    + '<button>이슈 연결하기</button>';
+                    + '<button id="relate-issue">이슈 추가하기</button>';
             }
             issue_html += '<div id="budget-issue-relation"></div></div>';
-            $('#right-content').append(issue_html).hide().fadeIn(200);
+            $("#right-content").append(issue_html).hide().fadeIn(200);
+            $("#relate-issue").bind('click', function() {
+                $("#accordion").accordion("option", "active", 0);
+                $("#issue").focus();
+            });
             Issue.relateBudget(issues);
         });
     }
@@ -45,14 +49,19 @@ Issue.relateBudget = function(issues) {
                 var budget_id_list = issues[$(this).text()];
                 if (!budget_id_list) {
                     relation_html += '<span>아직 연결된 예산이 없습니다.</span><br />'
-                        + '<button>예산 연결하기</buttom>';
+                        + '<button id="relate-budget">예산 연결하기</button>';
                 } else {
                     for (var i in budget_id_list) {
                         relation_html += '<span class="budget-title">'
-                            + Budget.list[budget_id_list[i]] + '</span>'
+                            + Budget.list[budget_id_list[i]] + '</span>';
                     }
                 }
                 $("#budget-issue-relation").hide().append(relation_html).fadeIn(200);
+                    + '<button>이슈 연결하기</button>';
+                $("#relate-budget").bind('click', function() {
+                    $("#accordion").accordion("option", "active", 0);
+                    $("#issue").focus();
+                });
             } else {
                 alert("페이지 로딩이 완료되지 않았습니다 ㅜㅜ. 조금만 기다려주세요");
             }
