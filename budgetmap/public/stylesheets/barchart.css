@@ -1,0 +1,25 @@
+svg {
+  font: 10px sans-serif;
+}
+
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.rect {
+	fill:steelblue;
+	opacity: 0.8;
+}
+.brush .extent {
+  stroke: #fff;
+  fill-opacity: .125;
+  shape-rendering: crispEdges;
+}
+.text{
+	font-size: 12px;
+  	fill:"#2e3436";
+}

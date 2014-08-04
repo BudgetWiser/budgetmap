@@ -10,6 +10,10 @@ router.get('/budget-vis', function(req, res) {
   res.render('budget-vis', { title: 'Budget-Vis Test' });
 });
 
+router.get('/treemap', function(req, res) {
+  res.render('treemap', { title: 'Budget-Vis Test' });
+});
+
 router.get('/issue/:id', function(req, res){
     var db = req.db;
     if (req.params.id === 'list') {
@@ -59,59 +63,133 @@ router.get('/budget/kvpairs', function(req, res) {
 
 router.get('/budget/data', function(req, res){
     var db = req.db;
-
-    db.collection("seoul_budget").find().toArray(function(err, items){
-        //console.log(items.length);
+    var date = new Date();
+    var currYear = date.getFullYear();
+    var prevYear = currYear-1;
+    currYear = currYear.toString();
+    prevYear = prevYear.toString();
+    db.collection('budgetspider').find({ year: { $in: [ prevYear, currYear ] } }).toArray(function(err, items){
+        console.log(items.length + ' budget records returned');
         
-        var result = {
-            name: "seoul-budget",
+        var seoulBudget = {
+            name: "seoul-budget-"+currYear,
+            size: 0,
             children: []
         };
-        // preprocessing
-        var id_map = {};
-        var yr_code_map = {};
-        var date = new Date();
-        var curYear = date.getFullYear();
+        //
 
-        for (var i in items){
+        //aggregate by category_three 
+        var cat3 = {};
+        var svmap = {};
+        for (var i in items){ 
             var budget = items[i];
-            id_map[budget._id] = items[i];
-            yr_code_map[budget.year.toString() + budget.code.toString()] = items[i];
-        }
-        //construct nodes
-        var node_map = {};
-        var rel_map = {};
-        for (var id in id_map){
-            if (id_map[id].year!=curYear) continue;
 
-            var budget = id_map[id];
-            var lastYrBudget = yr_code_map[(curYear-1).toString()+budget.code.toString()].budget;
-            var node = {
-                _id  : budget._id,
-                name : budget.name,
-                size : budget.budget,
-                rate : lastYrBudget==0? 0.0 : (budget.budget - lastYrBudget)/lastYrBudget,
-                children: []
-            };
-            node_map[budget._id] = node;
-            if (budget._parent_id !=null){
-                if (rel_map[budget._parent_id] == null){
-                    rel_map[budget._parent_id] = [];
-                }
-                rel_map[budget._parent_id].push(node);
-            }else{
-                result.children.push(node);
+            // category 3
+            var node = cat3[budget.year + budget.category_three]
+            if (node==null){
+                node = cat3[budget.year + budget.category_three] = {
+                    category1: budget.category_one,
+                    category2: budget.category_two,
+                    name: budget.category_three,
+                    year: budget.year,
+                    size: 0
+                };
             }
+            node.size += budget.budget_assigned;
+
+            // service map by year (used later)
+            svmap[budget.year + budget.service] = budget;
         }
-        
-        // construct parent-child relationships
-        for (var id in node_map){
-            var node = node_map[id];
-            node.children = rel_map[id]
+        /* SKIP CATEGORY TWO
+        // aggregate by category two
+        var cat2 = {};
+        for (var name in cat3){
+            var cat3node = cat3[name];
+
+            //category 2
+            var node = cat2[cat3node.year + cat3node.category2];
+            if (node==null){
+                node = cat2[cat3node.year + cat3node.category2] = {
+                    category1: cat3node.category1,
+                    name: cat3node.category2,
+                    year: cat3node.year,
+                    size: 0,
+                    children: []
+                }
+            }
+            node.size += cat3node.size;
+            node.children.push(cat3node);
         }
+        */
+        //aggregate by category one
+        var cat1 = {};
+        for (var name in cat3){
+            var cat3node = cat3[name];
+
+            //category 1
+            var node = cat1[cat3node.year + cat3node.category1];
+            if (node==null){
+                node = cat1[cat3node.year + cat3node.category1] = {
+                    name: cat3node.category1,
+                    year: cat3node.year,
+                    size: 0,
+                    children: []
+                }
+            }
+            node.size += cat3node.size;
+            node.children.push(cat3node);            
+        }
+        //aggregate all
+        var lastYearTotal = 0;
+        for (var name in cat1){
+            var cat1node = cat1[name];
+            if (cat1node.year != currYear)  {
+                lastYearTotal +=cat1node.size;
+                continue; 
+            }
+            seoulBudget.size += cat1node.size
+            seoulBudget.children.push(cat1node);
+        }
+      
+        //calculate budget-change ratios 
+        for (var key in cat1){
+            var node = cat1[key];
+            if (node.year!=currYear) continue;
+            var prevNode = cat1[prevYear+node.name];
+            node.rate = (prevNode==null || prevNode.size==0)? 0.0 : (node.size - prevNode.size)/prevNode.size;
+        }
+        /* SKIP CATEGORY TWO
+        for (var key in cat2){
+            var node = cat2[key];
+            if (node.year!=currYear) continue;
+            var prevNode = cat2[prevYear+node.name];
+            node.rate = (prevNode==null || prevNode.size==0)? 0.0 : (node.size - prevNode.size)/prevNode.size;
+        }
+        */
+        for (var key in cat3){
+            var node = cat3[key];
+            if (node.year!=currYear) continue;
+            var prevNode = cat3[prevYear+node.name];
+            node.rate = (prevNode==null || prevNode.size==0)? 0.0 : (node.size - prevNode.size)/prevNode.size;
+        }
+        seoulBudget.rate = lastYearTotal==null? 0.0 : (seoulBudget.size-lastYearTotal)/lastYearTotal;
+
+        // collect services by category 3
+        var services = {};
+        for (var i in items){ 
+            var budget = items[i];
+            if (budget.year!=currYear) continue;
+            var prevBudget = svmap[prevYear + budget.service];
+
+            if (services[budget.category_three]==null){
+                services[budget.category_three] = [];
+            }
+            budget.rate = (prevBudget==null || prevBudget.budget_assigned==0)? 0.0 : (budget.budget_assigned - prevBudget.budget_assigned)/prevBudget.budget_assigned;
+            services[budget.category_three].push(budget);
+        }
+        //console.log(services)
+        res.json({budget: seoulBudget, services: services});
         
-        //console.log(result);
-        res.json(result);
     })
 
 });
