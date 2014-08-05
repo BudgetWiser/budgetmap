@@ -1,0 +1,22 @@
+
+.treemap {
+  display: block;
+  margin: auto;
+  margin-top: 40px;
+}
+
+.treemap-text {
+  font-size: 12px;
+  fill:aliceblue;
+  
+}
+
+.treemap-rect {
+  fill: none;
+  stroke: none;
+  pointer-events: all;
+}
+.treemap-rect:hover {
+    stroke: steelblue;
+    stroke-width: 1px;
+}

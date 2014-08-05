@@ -1,0 +1,49 @@
+<html>
+<head>
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script src="/libraries/jquery-1.11.1.js"></script>
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
+    <title>{{title}}</title>
+    <script type="text/javascript">
+    $(document).ready(function(){        
+
+        $.getJSON('/budget/data', function(data){
+            console.log(data);
+            var vis = new TreeMap();
+            vis.generate({
+                container : "#budget-chart",
+                size :  { width: 700, height: 600},
+                margin : { top: 0, left: 0, bottom: 0, right: 0},
+                data : data.budget,
+                onSelect: function(d){
+                    $("#service-chart").empty();
+                    services = data.services[d.name];
+                    //console.log(services);
+                    var barchart = new BarChart();
+                    barchart.generate({
+                        container : "#service-chart",
+                        size :  { width: 300, height: 620},
+                        margin: {top: 40, right: 10, bottom: 0, left: 50},
+                        margin2: {top: 40, right: 10, bottom: 0, left: 280},
+                        data : services,
+                        onSelect: function(d){
+                            console.log(d);
+                        }
+                    });
+                }            
+            });
+        });
+    });
+    </script>
+
+</head>
+<body>
+    <div id="budget-chart" style="float:left"></div>
+    <div id="service-chart" style="float:left"></div>
+    
+</body>
+</html>
