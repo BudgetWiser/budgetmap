@@ -113,7 +113,6 @@ router.get('/budget/data', function(req, res){
         //console.log(result);
         res.json(result);
     })
-
 });
 
 router.get('/budgetmap', function(req, res){
@@ -174,7 +173,58 @@ router.post('/issue/add', function(req, res){
                        }
                     });
                 }
-            } 
+            }
+        });
+    }
+});
+
+router.post('/issue/search', function(req, res) {
+    var db = req.db;
+    var budgetspider = req.budgetspider;
+    var data = req.body;
+    
+    if (data.query == null || data.query == '') {
+        console.log("ERROR /issue/search: Invalid query");
+        res.json({success: 0, errcode: "Invalid query"});
+    } else {
+        db.collection("search_index").findOne({
+            query: data.query
+        }, function(err, result) {
+            if (err) {
+                console.log("ERROR /issue/search: Error querying search index from DB");
+                res.json({success: 0, errcode: "Internal DB error"});
+            } else if (!result) {
+                query = '/*' + data.query + '/*';
+
+                budgetspider.collection("budgetspider").find({
+                    service: {$regex: query}
+                }).toArray(function(err, items) {
+                    for (var i in items) {
+                        delete items.start_date;
+                        delete items[i].end_date;
+                        delete items[i].budget_summary;
+                        delete items[i].budget_current;
+                        delete items[i].budget_contract;
+                        delete items[i].budget_spent;
+                    }
+                    db.collection("search_index").insert({
+                        query: data.query,
+                        results: items
+                    }, function(err, newQuery) {
+                        if (err) {
+                            console.log("ERROR /issue/search inserting search index");
+                            res.json({succesS: 0, errcode: "DB insert error"});
+                        }
+                        else {
+                            console.log("/issue/search: Inserted new search index");
+                            res.json({success: 1, errcode: "DB insert success", result: items});
+                        }
+                    });
+                });
+            } else {
+                console.log("/issue/search: Previous search index found");
+                res.json({success: 1, errcode: "Search success", result: result});
+            }
         });
     }
 });

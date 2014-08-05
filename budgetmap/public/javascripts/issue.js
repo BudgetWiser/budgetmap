@@ -1,7 +1,7 @@
 Issue = {};
 
 Issue.listIssues = function(budget_item) {
-    $("#right-content").empty()
+    $("#issue-list").empty()
     if (!budget_item) {
         var issue_html = '<div id="issue-list"><h3>시민들이 생각하는 서울시 예산 이슈</h3>';
         $.getJSON("/issue/list", function(data) {
@@ -12,7 +12,7 @@ Issue.listIssues = function(budget_item) {
                     + '">' + data[i].name.slice(0, 20) + '</span>';
             }
             issue_html += '<div id="budget-issue-relation"></div></div>';
-            $("#right-content").append(issue_html).hide().fadeIn(200);
+            $("#issue-list").append(issue_html).hide().fadeIn(200);
             Issue.relateBudget(issues);
         });
     } else {
@@ -30,7 +30,7 @@ Issue.listIssues = function(budget_item) {
                     + '<button id="relate-issue">이슈 추가하기</button>';
             }
             issue_html += '<div id="budget-issue-relation"></div></div>';
-            $("#right-content").append(issue_html).hide().fadeIn(200);
+            $("#issue-list").append(issue_html).hide().fadeIn(200);
             $("#relate-issue").bind('click', function() {
                 $("#accordion").accordion("option", "active", 0);
                 $("#issue").focus();
@@ -38,7 +38,7 @@ Issue.listIssues = function(budget_item) {
             Issue.relateBudget(issues);
         });
     }
-}
+};
 
 Issue.relateBudget = function(issues) {
     $(".issue-title").each(function() {
@@ -94,10 +94,10 @@ Issue.addIssue = function(event){
     
     // Update issue autocomplete list
     Issue.autocomplete();
-}
+};
 
 Issue.autocomplete = function() {
-    var issue_list = $.getJSON("/issue/list", function(data) {
+    $.getJSON("/issue/list", function(data) {
         var issue_names = [];
         for (var i in data) {
             issue_names.push(data[i]['name']);
@@ -106,7 +106,13 @@ Issue.autocomplete = function() {
             source: issue_names
         });    
     });
-}
+};
+
+Issue.search = function() {
+    $.getJSON("issue/search", function(data) {
+        console.log(data);
+    });    
+};
 
 Budget = {};
 

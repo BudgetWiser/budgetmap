@@ -72,12 +72,22 @@
                             </form>
                         </div>
                         <h3>Evaluate Budget</h3>
+                        <div></div>
+                        <h3>Issue List</h3>
+                    </div>
+                    <div id="issue-accordion">
+                        <div id="issue-list"><div></div></div>
                     </div>
                 </div>
                 <div id="center-content">
                 </div>
                 <div id="right-content">                    
-                    <div id="budget-issue-relation"></div>
+                    <div id="search">
+                        <form id="search-issue" action="/issue/search" method="post">
+                            <span>검색어를 입력하세요:</span><br /><input id="query" name="query"><br />
+                            <button form="search-issue" type="submit" id="btn-search-issue">Search</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
