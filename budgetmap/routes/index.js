@@ -24,10 +24,11 @@ router.get('/issue/:id', function(req, res){
                 });
             }
             res.json(result.sort());
+            console.log("/issue/list: Generated new list");
         });
     } else {
         db.collection("issue").find({
-            _budget_id: {$in: [req.toObjectID(req.params.id)]}
+            _budget_id: {$in: [req.params.id]}
         }).toArray(function(err, items){
             var result = [];
             for (i in items) {
@@ -51,7 +52,7 @@ router.get('/budget/kvpairs', function(req, res) {
         for (var i in items) {
             result[items[i]._id] = items[i].name;
         }
-        console.log(result);
+        //console.log(result);
         res.json(result);
     });
 });
@@ -65,7 +66,7 @@ router.get('/budget/data', function(req, res){
     currYear = currYear.toString();
     prevYear = prevYear.toString();
     db.collection('budgetspider').find({ year: { $in: [ prevYear, currYear ] } }).toArray(function(err, items){
-        console.log(items.length + ' budget records returned');
+        //console.log(items.length + ' budget records returned');
         
         var seoulBudget = {
             name: "seoul-budget-"+currYear,
@@ -286,11 +287,15 @@ router.post('/issue/search', function(req, res) {
                     }, function(err, newQuery) {
                         if (err) {
                             console.log("ERROR /issue/search inserting search index");
-                            res.json({succesS: 0, errcode: "DB insert error"});
+                            res.json({success: 0, errcode: "DB insert error"});
                         }
                         else {
                             console.log("/issue/search: Inserted new search index");
-                            res.json({success: 1, errcode: "DB insert success", result: items});
+                            var result = {
+                                query: data.query,
+                                result: newQuery
+                            };
+                            res.json({success: 1, errcode: "DB insert success", result: newQuery[0]});
                         }
                     });
                 });
