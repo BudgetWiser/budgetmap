@@ -187,6 +187,12 @@ router.get('/budget/data', function(req, res){
             budget.rate = (prevBudget==null || prevBudget.budget_assigned==0)? 0.0 : (budget.budget_assigned - prevBudget.budget_assigned)/prevBudget.budget_assigned;
             services[budget.category_three].push(budget);
         }
+        //sorting
+        for (var name in services){
+            services[name].sort(function(a, b){
+                return b.budget_assigned - a.budget_assigned;
+            });
+        }
         //console.log(services)
         res.json({budget: seoulBudget, services: services});
         

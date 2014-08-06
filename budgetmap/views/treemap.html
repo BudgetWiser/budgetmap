@@ -1,12 +1,16 @@
 <html>
 <head>
     <script src="http://d3js.org/d3.v3.js"></script>
+    <script src="/libraries/jquery-1.11.1.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script type="text/javascript" src="/libraries/colorbrewer.js"></script>
     <script type="text/javascript" src="/javascripts/barchart.js"></script>
     <script type="text/javascript" src="/javascripts/treemap.js"></script>
-    <script src="/libraries/jquery-1.11.1.js"></script>
+    
     <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
     <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
     <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
+    <!--<link rel="stylesheet" href="//rawgithub.com/Caged/d3-tip/master/examples/example-styles.css">-->
     <title>{{title}}</title>
     <script type="text/javascript">
     $(document).ready(function(){        
@@ -17,7 +21,7 @@
             vis.generate({
                 container : "#budget-chart",
                 size :  { width: 700, height: 600},
-                margin : { top: 0, left: 0, bottom: 0, right: 0},
+                margin : { top: 5, left: 5, bottom: 5, right: 5},
                 data : data.budget,
                 onSelect: function(d){
                     $("#service-chart").empty();
@@ -27,13 +31,20 @@
                     barchart.generate({
                         container : "#service-chart",
                         size :  { width: 300, height: 620},
-                        margin: {top: 40, right: 10, bottom: 0, left: 50},
-                        margin2: {top: 40, right: 10, bottom: 0, left: 280},
+                        margin: {top: 40, right: 0, bottom: 0, left: 10},
+                        margin2: {top: 40, right: 10, bottom: 0, left: 0},
                         data : services,
                         onSelect: function(d){
                             console.log(d);
+                        },
+                        onDeselect: function(d){
+                            console.log(d);
                         }
                     });
+                },
+                onDeselect: function(d){
+                    $("#service-chart").empty();
+                    console.log(d);
                 }            
             });
         });
@@ -43,7 +54,7 @@
 </head>
 <body>
     <div id="budget-chart" style="float:left"></div>
-    <div id="service-chart" style="float:left"></div>
+    <div id="service-chart" style="float:left;width:350;height:620;overflow: auto;"></div>
     
 </body>
 </html>
