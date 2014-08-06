@@ -6,10 +6,6 @@ router.get('/', function(req, res) {
   res.render('index', { title: 'Express' });
 });
 
-router.get('/budget-vis', function(req, res) {
-  res.render('budget-vis', { title: 'Budget-Vis Test' });
-});
-
 router.get('/treemap', function(req, res) {
   res.render('treemap', { title: 'Budget-Vis Test' });
 });
@@ -62,7 +58,7 @@ router.get('/budget/kvpairs', function(req, res) {
 
 
 router.get('/budget/data', function(req, res){
-    var db = req.db;
+    var db = req.budgetspider;
     var date = new Date();
     var currYear = date.getFullYear();
     var prevYear = currYear-1;
@@ -76,7 +72,6 @@ router.get('/budget/data', function(req, res){
             size: 0,
             children: []
         };
-        //
 
         //aggregate by category_three 
         var cat3 = {};
