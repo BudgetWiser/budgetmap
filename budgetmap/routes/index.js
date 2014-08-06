@@ -66,7 +66,7 @@ router.get('/budget/data', function(req, res){
     currYear = currYear.toString();
     prevYear = prevYear.toString();
     db.collection('budgetspider').find({ year: { $in: [ prevYear, currYear ] } }).toArray(function(err, items){
-        //console.log(items.length + ' budget records returned');
+        console.log(items.length + ' budget records returned');
         
         var seoulBudget = {
             name: "seoul-budget-"+currYear,
