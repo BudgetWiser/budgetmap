@@ -1,7 +1,7 @@
 Issue = {};
 
 Issue.listIssues = function(budget_item) {
-    $("#right-content").empty()
+    $("#issue-list").empty()
     if (!budget_item) {
         var issue_html = '<div id="issue-list"><h3>시민들이 생각하는 서울시 예산 이슈</h3>';
         $.getJSON("/issue/list", function(data) {
@@ -12,12 +12,13 @@ Issue.listIssues = function(budget_item) {
                     + '">' + data[i].name.slice(0, 20) + '</span>';
             }
             issue_html += '<div id="budget-issue-relation"></div></div>';
-            $("#right-content").append(issue_html).hide().fadeIn(200);
+            $("#issue-list").append(issue_html).hide().fadeIn(200);
             Issue.relateBudget(issues);
         });
     } else {
+        var issue_query = budget_item.category1 + budget_item.category2 + budget_item.name + budget_item.year;
         var issue_html = '<div id="issue-list"><h3>' + budget_item.name + '</h3>';
-        $.getJSON("/issue/" + budget_item._id, function(data) {
+        $.getJSON("/issue/" + issue_query, function(data) {
             var issues = [];
             if (data.length) {
                 for (var i in data) {
@@ -30,7 +31,7 @@ Issue.listIssues = function(budget_item) {
                     + '<button id="relate-issue">이슈 추가하기</button>';
             }
             issue_html += '<div id="budget-issue-relation"></div></div>';
-            $("#right-content").append(issue_html).hide().fadeIn(200);
+            $("#issue-list").append(issue_html).hide().fadeIn(200);
             $("#relate-issue").bind('click', function() {
                 $("#accordion").accordion("option", "active", 0);
                 $("#issue").focus();
@@ -38,10 +39,15 @@ Issue.listIssues = function(budget_item) {
             Issue.relateBudget(issues);
         });
     }
-}
+};
 
 Issue.relateBudget = function(issues) {
     $(".issue-title").each(function() {
+        $(this).bind('click', function() {
+            document.getElementById("query").value = $(this).text();
+        });
+        /*
+         * TODO: Show other budget categories related to this issue.
         $(this).bind('click', function() {
             $("#budget-issue-relation").empty();
             if (Budget.list) {
@@ -66,6 +72,7 @@ Issue.relateBudget = function(issues) {
                 alert("페이지 로딩이 완료되지 않았습니다 ㅜㅜ. 조금만 기다려주세요");
             }
         });
+        */
     });
 };
 
@@ -92,12 +99,11 @@ Issue.addIssue = function(event){
         }
     );        
     
-    // Update issue autocomplete list
     Issue.autocomplete();
-}
+};
 
 Issue.autocomplete = function() {
-    var issue_list = $.getJSON("/issue/list", function(data) {
+    $.getJSON("/issue/list", function(data) {
         var issue_names = [];
         for (var i in data) {
             issue_names.push(data[i]['name']);
@@ -106,7 +112,64 @@ Issue.autocomplete = function() {
             source: issue_names
         });    
     });
-}
+};
+
+Issue.search = function(event, query) {
+    event.preventDefault();
+
+    if (query) {
+        $("#query").val(query);
+    }
+    if ($("#query").val() == '') {
+        alert("검색어를 입력해주세요!");
+        return;
+    }
+    $.post(
+        $("#search-issue").attr("action"),
+        $("#search-issue").serialize(),
+        function(res) {
+            if (res.success) {
+                $("#search-result").empty();
+                var result = res.result.results;
+                var search_result = '<span id="search-summary">"'+$("#query").val()+'"에 대한 '+result.length+'개의 검색 결과:</span><br />';
+                if (selected_budget) {
+                    var c_1 = selected_budget.category1;
+                    var c_2 = selected_budget.category2;
+                    var c_3 = selected_budget.name;
+                    var rel = [];
+                    for (var i in result) {
+                        if (result[i].category_one === c_1 && result[i].category_two === c_2 && result[i].category_three === c_3) {
+                            rel.push(result[i]);
+                            result.splice(i, 1);
+                        }
+                    }
+                    if (rel.length) {
+                        search_result += '<span>"'+c_1+' > '+c_2+' > '+name+'"에 관련된 '+rel.length+'개의 검색 결과:</span><br />'
+                            + '<div id="related-services">';
+                        for (var i in rel) {
+                            search_result += '<div class="search-result">'
+                                + '<span class="search-result-category">'+rel[i].category_one+' > '
+                                    + rel[i].category_two+' > '+rel[i].category_three+'</span><br />'
+                                + '<span class="search-result-service">'+rel[i].service+' ('+rel[i].year+')'+'</span>'
+                                + '</div>';
+                        }
+                        search_result += '</div><span>그 외 ' + (result.length-rel.length) + '개의 검색 결과:</span>';
+                    }
+                }
+                for (var i in result) {
+                    search_result += '<div class="search-result">'
+                        + '<span class="search-result-category">'+result[i].category_one+' > '
+                            + result[i].category_two+' > '+result[i].category_three+'</span><br />'
+                        + '<span class="search-result-service"> - '+result[i].service+' ('+result[i].year+')'+'</span>'
+                        + '</div>';
+                }
+                $("#search-result").append(search_result);
+            } else {
+                alert(res.errcode);
+            }
+        }
+    );    
+};
 
 Budget = {};
 
@@ -115,6 +178,8 @@ $(document).ready(function() {
     Issue.listIssues();
 
     $("#add_issue").submit(Issue.addIssue);
+    $("#search-issue").submit(Issue.search);
+
     $("#accordion").accordion({
         collapsible: true,
         heightStyle: "content",

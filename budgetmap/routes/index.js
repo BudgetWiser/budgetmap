@@ -6,10 +6,6 @@ router.get('/', function(req, res) {
   res.render('index', { title: 'Express' });
 });
 
-router.get('/budget-vis', function(req, res) {
-  res.render('budget-vis', { title: 'Budget-Vis Test' });
-});
-
 router.get('/treemap', function(req, res) {
   res.render('treemap', { title: 'Budget-Vis Test' });
 });
@@ -28,10 +24,11 @@ router.get('/issue/:id', function(req, res){
                 });
             }
             res.json(result.sort());
+            console.log("/issue/list: Generated new list");
         });
     } else {
         db.collection("issue").find({
-            _budget_id: {$in: [req.toObjectID(req.params.id)]}
+            _budget_id: {$in: [req.params.id]}
         }).toArray(function(err, items){
             var result = [];
             for (i in items) {
@@ -55,28 +52,27 @@ router.get('/budget/kvpairs', function(req, res) {
         for (var i in items) {
             result[items[i]._id] = items[i].name;
         }
-        console.log(result);
+        //console.log(result);
         res.json(result);
     });
 });
 
 
 router.get('/budget/data', function(req, res){
-    var db = req.db;
+    var db = req.budgetspider;
     var date = new Date();
     var currYear = date.getFullYear();
     var prevYear = currYear-1;
     currYear = currYear.toString();
     prevYear = prevYear.toString();
     db.collection('budgetspider').find({ year: { $in: [ prevYear, currYear ] } }).toArray(function(err, items){
-        console.log(items.length + ' budget records returned');
+        //console.log(items.length + ' budget records returned');
         
         var seoulBudget = {
             name: "seoul-budget-"+currYear,
             size: 0,
             children: []
         };
-        //
 
         //aggregate by category_three 
         var cat3 = {};
@@ -197,7 +193,6 @@ router.get('/budget/data', function(req, res){
         res.json({budget: seoulBudget, services: services});
         
     })
-
 });
 
 router.get('/budgetmap', function(req, res){
@@ -258,7 +253,62 @@ router.post('/issue/add', function(req, res){
                        }
                     });
                 }
-            } 
+            }
+        });
+    }
+});
+
+router.post('/issue/search', function(req, res) {
+    var db = req.db;
+    var budgetspider = req.budgetspider;
+    var data = req.body;
+    
+    if (data.query == null || data.query == '') {
+        console.log("ERROR /issue/search: Invalid query");
+        res.json({success: 0, errcode: "Invalid query"});
+    } else {
+        db.collection("search_index").findOne({
+            query: data.query
+        }, function(err, result) {
+            if (err) {
+                console.log("ERROR /issue/search: Error querying search index from DB");
+                res.json({success: 0, errcode: "Internal DB error"});
+            } else if (!result) {
+                query = '/*' + data.query + '/*';
+
+                budgetspider.collection("budgetspider").find({
+                    service: {$regex: query}
+                }).toArray(function(err, items) {
+                    for (var i in items) {
+                        delete items[i].start_date;
+                        delete items[i].end_date;
+                        delete items[i].budget_summary;
+                        delete items[i].budget_current;
+                        delete items[i].budget_contract;
+                        delete items[i].budget_spent;
+                    }
+                    db.collection("search_index").insert({
+                        query: data.query,
+                        results: items
+                    }, function(err, newQuery) {
+                        if (err) {
+                            console.log("ERROR /issue/search inserting search index");
+                            res.json({success: 0, errcode: "DB insert error"});
+                        }
+                        else {
+                            console.log("/issue/search: Inserted new search index");
+                            var result = {
+                                query: data.query,
+                                result: newQuery
+                            };
+                            res.json({success: 1, errcode: "DB insert success", result: newQuery[0]});
+                        }
+                    });
+                });
+            } else {
+                console.log("/issue/search: Previous search index found");
+                res.json({success: 1, errcode: "Search success", result: result});
+            }
         });
     }
 });
