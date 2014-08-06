@@ -274,7 +274,7 @@ router.post('/issue/search', function(req, res) {
                     service: {$regex: query}
                 }).toArray(function(err, items) {
                     for (var i in items) {
-                        delete items.start_date;
+                        delete items[i].start_date;
                         delete items[i].end_date;
                         delete items[i].budget_summary;
                         delete items[i].budget_current;

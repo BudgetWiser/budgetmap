@@ -76,12 +76,13 @@ a{
 }
 #center-content{
     float:left;
-    width: 700px;
+    width: 50%;
     padding: 20px 0;
     margin: 0 2%;
 }
 #right-content{
     float:left;
+    width: 22%;
     padding: 20px 0;
     margin: 0 2%;
     display: inline;
@@ -113,4 +114,20 @@ a{
 .budget-title {
     display: block;
     font: 14px;
+}
+#search-result>span {
+    font: 16px;
+    font-weight: bold;
+    line-height: 160%;
+    margin-bottom: 2px;
+}
+#search-summary {
+    font: 21px;
+}
+.search-result {
+    margin-left: 10px;
+    word-wrap: break-word;
+}
+.search-result-service {
+    margin-left: 10px;
 }

@@ -44,8 +44,8 @@ Issue.listIssues = function(budget_item) {
 Issue.relateBudget = function(issues) {
     $(".issue-title").each(function() {
         $(this).bind('click', function() {
-            
-        }
+            document.getElementById("query").value = $(this).text();
+        });
         /*
          * TODO: Show other budget categories related to this issue.
         $(this).bind('click', function() {
@@ -114,9 +114,12 @@ Issue.autocomplete = function() {
     });
 };
 
-Issue.search = function(event) {
+Issue.search = function(event, query) {
     event.preventDefault();
 
+    if (query) {
+        $("#query").val(query);
+    }
     if ($("#query").val() == '') {
         alert("검색어를 입력해주세요!");
         return;
@@ -127,30 +130,38 @@ Issue.search = function(event) {
         function(res) {
             if (res.success) {
                 $("#search-result").empty();
-                var result = res.result;
-                console.log(result);
-                var search_result = '<span>"'+$("#query").val()+'"에 대한 '+result.results.length+'개의 검색 결과:</span><br />';
+                var result = res.result.results;
+                var search_result = '<span id="search-summary">"'+$("#query").val()+'"에 대한 '+result.length+'개의 검색 결과:</span><br />';
                 if (selected_budget) {
-                    console.log(selected_budget);
                     var c_1 = selected_budget.category1;
                     var c_2 = selected_budget.category2;
                     var c_3 = selected_budget.name;
-                    var related_result = [];
-                    for (var i in result.results) {
-                        if (result.results[i].category_one === c_1 
-                            && result.results[i].category_two === c_2
-                            && result.results[i].category_three === c_3) {
-                            related_result.push(result.results[i]);
-                            result.results.splice(i, 1);
+                    var rel = [];
+                    for (var i in result) {
+                        if (result[i].category_one === c_1 && result[i].category_two === c_2 && result[i].category_three === c_3) {
+                            rel.push(result[i]);
+                            result.splice(i, 1);
                         }
                     }
-                    if (related_result.length) {
-                        search_result += '<div id="related-services">'
-                            + '<span>"'+c_1+' > '+c_2+' > '+name+'"에 관련된 '+related_result.length+'개의 검색 결과:</span><br />';
-                        for (var i in related_result) {
-
+                    if (rel.length) {
+                        search_result += '<span>"'+c_1+' > '+c_2+' > '+name+'"에 관련된 '+rel.length+'개의 검색 결과:</span><br />'
+                            + '<div id="related-services">';
+                        for (var i in rel) {
+                            search_result += '<div class="search-result">'
+                                + '<span class="search-result-category">'+rel[i].category_one+' > '
+                                    + rel[i].category_two+' > '+rel[i].category_three+'</span><br />'
+                                + '<span class="search-result-service">'+rel[i].service+' ('+rel[i].year+')'+'</span>'
+                                + '</div>';
                         }
+                        search_result += '</div><span>그 외 ' + (result.length-rel.length) + '개의 검색 결과:</span>';
                     }
+                }
+                for (var i in result) {
+                    search_result += '<div class="search-result">'
+                        + '<span class="search-result-category">'+result[i].category_one+' > '
+                            + result[i].category_two+' > '+result[i].category_three+'</span><br />'
+                        + '<span class="search-result-service"> - '+result[i].service+' ('+result[i].year+')'+'</span>'
+                        + '</div>';
                 }
                 $("#search-result").append(search_result);
             } else {
