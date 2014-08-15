@@ -1,11 +1,11 @@
 var TreeMap = function(){
 	
 };
-d3.selection.prototype.moveToFront = function() {
-  return this.each(function(){
-  this.parentNode.appendChild(this);
-  });
-};
+// d3.selection.prototype.TreeMapMoveToFront = function() {
+//   return this.each(function(){
+//   this.parentNode.appendChild(this);
+//   });
+// };
 TreeMap.prototype.generate = function(settings){
 	var legendSize = {width: settings.size.width, height: 70};
 	var margin = settings.margin,
@@ -209,7 +209,7 @@ TreeMap.prototype.enableHighlight = function(elem) {
 	//trs.select("rect").style("filter", "url(#drop-shadow)");
 	//trs.select("text").style("font-weight", "bold");
 	//trs.select("text").style("fill", "#2e3436");
-	d3.select(elem).moveToFront();	
+	// d3.select(elem).TreeMapMoveToFront();	
 }
 TreeMap.prototype.disableHighlight = function(elem) {
 	var g = d3.select(elem);
