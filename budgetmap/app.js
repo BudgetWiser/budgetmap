@@ -34,7 +34,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // db settings
 app.use(function(req, res, next){
     req.db = db;
-    req.budgetspider = budgetspider;
     req.toObjectID = mongo.helper.toObjectID;
     next();
 });

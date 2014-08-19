@@ -1,0 +1,117 @@
+<html>
+<head>
+    <title>{{title}}</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.css">
+    <script src="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.js"></script>    
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
+    <script type="text/javascript" src="/javascripts/issue.js"></script>
+    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript">
+        var selected_budget = null;
+        $(document).ready(function(){
+            $.getJSON('/budget/data', function(data){
+                var vis = new TreeMap();
+                vis.generate({
+                    container : "#budget-chart",
+                    size :  { width: 700, height: 600},
+                    margin : { top: 0, left: 0, bottom: 0, right: 0},
+                    data : data.budget,
+                    onSelect: function(d){
+                        $("#service-chart").empty();
+                        services = data.services[d.name];
+                        //console.log(services);
+                        var barchart = new BarChart();
+                        barchart.generate({
+                            container : "#service-chart",
+                            size :  { width: 300, height: 620},
+                            margin: {top: 40, right: 10, bottom: 0, left: 50},
+                            margin2: {top: 40, right: 10, bottom: 0, left: 280},
+                            data : services,
+                            onSelect: function(d){
+                            }
+                        });
+                        var d_id = d.category1 + d.category2 + d.name + d.year;
+                        $("#budget_id").val(d_id);
+                        $("#budget_selected").html('<span class="budget_selected">'+d.name+'</span>');
+                        $("#accordion").accordion("option", "active", 0);
+                        $.getJSON('/issue/'+d_id, function(data) {
+                            Issue.listIssues(d);
+                        });
+                        console.log(d);
+                        selected_budget = d;
+                    },
+                    onDeselect: function(d) {
+                        $("#accordion").accordion("option", "active", false);
+                        $("#budget_selected").html('없음');
+                        Issue.listIssues();
+                        selected_budget = null;
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <div id="site_name">BudgetMap</div>
+            <div id="navigation">
+                <ul id="navigation">
+                    <li><a href="#">Nam Wook Kim</a></li>
+                </ul>
+            </div>
+        </div>
+        <div id="content-container">
+            <div id="content">
+                <div id="left-content">
+                    <div id="accordion">
+                        <h3>Add Issue</h3>
+                        <div>
+                            <form id="add_issue" action="/issue/add" method="post">
+                                <input id="budget_id" name="budget_id" type="hidden"><br>
+                                선택된 예산 항목:<br><div id="budget_selected"></div><br>
+                                Type: <input id="issue" name="issue"></input> <br>
+                                <span id="add_issue_success" style="display:none;color:green">Successfully added!</span>
+                                <span id="add_issue_failed" style="display:none;color:red">Internal Error Occured!</span>
+                                <button form="add_issue" type="submit" id="btn-add-issue">Add</button>
+                                <button form="add_issue" type="reset" id="btn-reset-issue">Reset</button>
+                            </form>
+                        </div>
+                        <h3>Evaluate Budget</h3>
+                        <div></div>
+                        <h3>Issue List</h3>
+                    </div>
+                    <div id="issue-accordion">
+                        <div id="issue-list"><div></div></div>
+                    </div>
+                </div>
+                <div id="center-content">
+                    <div id="budget-chart" style="float:left"></div>
+                    <div id="service-chart" style="float:left"></div>
+                </div>
+                <div id="right-content">                    
+                    <div id="search">
+                        <form id="search-issue" action="/issue/search" method="post">
+                            <span>검색어를 입력하세요:</span><br /><input id="query" name="query"><br />
+                            <button form="search-issue" type="submit" id="btn-search-issue">Search</button>
+                        </form>
+                    </div>
+                    <div id="search-result"></div>
+                </div>
+            </div>
+        </div>
+        <div id="footer">
+            Copyright @ KAIST, 2014
+        </div>
+    </div>
+</div>
+htmhtmll
+</body>
+</html>
