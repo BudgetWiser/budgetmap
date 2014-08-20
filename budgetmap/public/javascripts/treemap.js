@@ -38,7 +38,7 @@ TreeMap.prototype.generate = function(settings){
 	    .attr("width", w)
 	    .attr("height", h)
   	.append("svg:g")
-	    .attr("transform", "translate(.5,.5)");	
+	    .attr("transform", "translate(.0,.0)");	
 
 	// Add tooltip
 	var tip = d3.tip()
@@ -175,7 +175,7 @@ TreeMap.prototype.generate = function(settings){
 				self.selected = this;	  		
 				self.enableHighlight(self.selected);
 				tip.show(d, this);
-				settings.onSelect(d); // call selection callback
+				settings.onSelect(d); // call selection callback				
 			}
 	  		
 	  	})	  	

@@ -1,4 +1,4 @@
-@import url(http://fonts.googleapis.com/css?family=Lobster);
+@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,700);
 body {
     font: 12px "Helvetica Neue", Helvetica, "Noto Sans Korean", "Nanum Gothic", sans-serif;
     color: #555753;
@@ -21,13 +21,18 @@ a{
 }
 
 #header{
-    background: DarkSlateGray;
-    height: 45px;
+    background: #555753;
+    height: 40px;
+    padding: 0px;
+    margin: 0px;
+    opacity: 0.95;
 }
 #site_name{
     float:left;
-    padding: 10px 10px;
-    font: 18px 'Lobster', cursive;
+    font: 18px 'Open Sans', sans-serif;
+    font-weight: bold;
+    text-shadow: .5px .5px 0.5px #888a85;
+
     color: AliceBlue;
 }
 #navigation{
@@ -48,9 +53,9 @@ a{
     display: block;
     float: right;
     text-decoration: none;
-    padding: 15px 10px;
+    padding: 14px 10px;
     /*border-left: 3px solid Gainsboro;*/
-    font-size:12px;
+    font-size:14px;
     color: AliceBlue;
 }
 #navigation li a:hover { 
@@ -68,31 +73,31 @@ a{
 }
 #left-content{
     float:left;
-    width: 16%;
-    padding: 20px 0;
-    margin: 0 2%;
-    display: inline;
+    width: 680px;
+    margin: 0 5px;
     height: 800px;
 }
 #center-content{
     float:left;
-    width: 50%;
-    padding: 20px 0;
-    margin: 0 2%;
+    width: 300px;
+    margin: 0 5px;
+    height: 800px;
 }
 #right-content{
     float:left;
-    width: 22%;
-    padding: 20px 0;
-    margin: 0 2%;
-    display: inline;
+    width: 300px;
+    height: 800px;
+    padding: 0px;
+    margin: 0px;
 }
 #footer
 {
     clear: both;
-    background: #ccc;
+    background: #555753;
     text-align: center;
+    padding-top: 5px;
     height: 20px;
+    color: AliceBlue;
 }
 .issue-title {
     display: inline-block;

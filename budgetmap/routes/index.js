@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 
-/* GET home page. */
+/* GET web pages. */
 router.get('/', function(req, res) {
   res.render('index', { title: 'Express' });
 });
@@ -9,63 +9,113 @@ router.get('/', function(req, res) {
 router.get('/treemap', function(req, res) {
   res.render('treemap', { title: 'Budget-Vis Test' });
 });
-
-router.get('/issue/:id', function(req, res){
-    var db = req.db;
-    if (req.params.id === 'list') {
-        db.collection("issue").find().toArray(function(err, items) {
-            var result = [];
-            for (var i in items) {
-                var budget_ids = items[i]._budget_id || null;
-                result.push({
-                    _id: items[i]._id,
-                    name: items[i].name,
-                    _budget_ids: budget_ids
-                });
-            }
-            res.json(result.sort());
-            console.log("/issue/list: Generated new list");
-        });
-    } else {
-        db.collection("issue").find({
-            _budget_id: {$in: [req.params.id]}
-        }).toArray(function(err, items){
-            var result = [];
-            for (i in items) {
-                var budget_ids = items[i]._budget_id || null;
-                result.push({
-                    _id: items[i]._id,
-                    name: items[i].name,
-                    _budget_ids: budget_ids
-                });
-            }
-            res.json(result);
-        });
-    }
-});
-
-router.get('/budget/kvpairs', function(req, res) {
-    var db = req.db;
-    
-    db.collection("seoul_budget").find().toArray(function(err, items) {
-        var result = {};
-        for (var i in items) {
-            result[items[i]._id] = items[i].name;
-        }
-        //console.log(result);
-        res.json(result);
+router.get('/budgetmap', function(req, res){
+    res.render('index', {
+        title: "budgetmap",
     });
 });
 
+/* RESTFUL DATA API : ISSUES */
+router.route('/issues/:id')
+    //get issue by budget name
+    .get(function(req, res){
+        var db = req.db;
+        var budget_id = req.toObjectID(req.params.id);
 
-router.get('/budget/data', function(req, res){
-    var db = req.budgetspider;
+        db.collection('issues').find({budgets:budget_id}).toArray(function(err, items){
+        res.json(items);
+    });
+    })
+    //update issue with new budgets linked to it
+    .post(function(req, res){
+        var db = req.db;
+        var issue_id = req.toObjectID(req.params.id);
+        var budgets = [];
+        for (var i in req.body.budgets){ // convert to objectID
+            budgets.push(req.toObjectID(req.body.budgets[i]));
+        }
+
+        //update issue
+        
+        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets} }, function(err, result){
+            if (err) {
+                return console.log('insert error', err);
+            }
+            
+            if (result) {
+                res.json({ message: 'successfully updated!'});
+            }            
+        });
+    });
+
+
+
+
+router.route('/issues')
+    //retrieve all the issues
+    .get(function(req, res){
+        var db = req.db;
+        db.collection('issues').find().toArray(function(err, items){
+            res.json(items);
+        });
+    })
+    //create a new issue
+    .post(function(req, res){
+        var db = req.db;
+        var budgets = [];
+        if (req.body.budgets){ 
+            for (var i in req.body.budgets){ // convert to objectID
+                budgets.push(req.toObjectID(req.body.budgets[i]));
+            }
+        }
+        var new_issue = {
+            name: req.body.name,
+            year: req.body.year,
+            budgets: budgets
+        };
+        db.collection('issues').insert(new_issue, function(err, result) {
+            if (err) {
+                return console.log('insert error', err);
+            }
+            
+            if (result) {
+                res.json({ message: 'successfully created!', result: result});
+            }
+
+        });
+    });
+
+
+/* RESTFUL DATA API : BUDGETS */
+
+//update budget with new issues added
+router.post('/budgets/:id',function(req, res){
+    var db = req.db;
+    var budget_id = req.toObjectID(req.params.id);    
+    var issues = [];
+    for (var i in req.body.issues){ // convert to objectID
+        issues.push(req.toObjectID(req.body.issues[i]));
+    }
+    //update budget
+    console.log(issues);
+    db.collection('budgets').update({_id: budget_id}, { '$set': { issues: issues} }, function(err, result){
+        if (err) {
+            return console.log('insert error', err);
+        }
+        console.log(result);
+        if (result) {
+            res.json({ message: 'successfully updated!'});
+        }      
+    });
+});
+router.get('/budgets', function(req, res){
+    var db = req.db;
     var date = new Date();
     var currYear = date.getFullYear();
     var prevYear = currYear-1;
     currYear = currYear.toString();
     prevYear = prevYear.toString();
-    db.collection('budgetspider').find({ year: { $in: [ prevYear, currYear ] } }).toArray(function(err, items){
+    db.collection('budgets').find({ year: { '$in': [ prevYear, currYear ] } }).toArray(function(err, items){
         console.log(items.length + ' budget records returned');
         
         var seoulBudget = {
@@ -181,6 +231,7 @@ router.get('/budget/data', function(req, res){
                 services[budget.category_three] = [];
             }
             budget.rate = (prevBudget==null || prevBudget.budget_assigned==0)? 0.0 : (budget.budget_assigned - prevBudget.budget_assigned)/prevBudget.budget_assigned;
+            budget.issues = budget.issues? budget.issues : [];
             services[budget.category_three].push(budget);
         }
         //sorting
@@ -195,13 +246,55 @@ router.get('/budget/data', function(req, res){
     })
 });
 
-router.get('/budgetmap', function(req, res){
-    res.render('index', {
-        title: "budgetmap",
+
+/*
+router.get('/issue/:id', function(req, res){
+    var db = req.db;
+    if (req.params.id === 'list') {
+        db.collection("issue").find().toArray(function(err, items) {
+            var result = [];
+            for (var i in items) {
+                var budget_ids = items[i]._budget_id || null;
+                result.push({
+                    _id: items[i]._id,
+                    name: items[i].name,
+                    _budget_ids: budget_ids
+                });
+            }
+            res.json(result.sort());
+            console.log("/issue/list: Generated new list");
+        });
+    } else {
+        db.collection("issue").find({
+            _budget_id: {$in: [req.params.id]}
+        }).toArray(function(err, items){
+            var result = [];
+            for (i in items) {
+                var budget_ids = items[i]._budget_id || null;
+                result.push({
+                    _id: items[i]._id,
+                    name: items[i].name,
+                    _budget_ids: budget_ids
+                });
+            }
+            res.json(result);
+        });
+    }
+});
+
+router.get('/budget/kvpairs', function(req, res) {
+    var db = req.db;
+    
+    db.collection("seoul_budget").find().toArray(function(err, items) {
+        var result = {};
+        for (var i in items) {
+            result[items[i]._id] = items[i].name;
+        }
+        //console.log(result);
+        res.json(result);
     });
 });
 
-/* GET home page. */
 router.post('/issue/add', function(req, res){
     var db = req.db;
     var data = req.body;
@@ -312,5 +405,5 @@ router.post('/issue/search', function(req, res) {
         });
     }
 });
-
+*/
 module.exports = router;

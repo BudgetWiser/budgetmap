@@ -15,7 +15,7 @@
     <script type="text/javascript">
     $(document).ready(function(){        
 
-        $.getJSON('/budget/data', function(data){
+        $.getJSON('/budgets', function(data){
             console.log(data);
             var vis = new TreeMap();
             vis.generate({
