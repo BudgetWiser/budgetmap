@@ -23,8 +23,11 @@ router.route('/issues/:id')
         var budget_id = req.toObjectID(req.params.id);
 
         db.collection('issues').find({budgets:budget_id}).toArray(function(err, items){
-        res.json(items);
-    });
+            items.sort(function(a, b){
+                return b.budgets.length - a.budgets.length;
+            });
+            res.json(items);
+        });
     })
     //update issue with new budgets linked to it
     .post(function(req, res){
@@ -49,13 +52,14 @@ router.route('/issues/:id')
     });
 
 
-
-
 router.route('/issues')
     //retrieve all the issues
     .get(function(req, res){
         var db = req.db;
         db.collection('issues').find().toArray(function(err, items){
+            items.sort(function(a, b){
+                return b.budgets.length - a.budgets.length;
+            });
             res.json(items);
         });
     })
@@ -138,10 +142,14 @@ router.get('/budgets', function(req, res){
                     category2: budget.category_two,
                     name: budget.category_three,
                     year: budget.year,
-                    size: 0
+                    size: 0,
+                    issue_size: 0,
+                    serv_size: 0
                 };
             }
             node.size += budget.budget_assigned;
+            node.issue_size += budget.issues!=null? budget.issues.length : 0;
+            node.serv_size  += 1;
 
             // service map by year (used later)
             svmap[budget.year + budget.service] = budget;
@@ -239,6 +247,9 @@ router.get('/budgets', function(req, res){
             services[name].sort(function(a, b){
                 return b.budget_assigned - a.budget_assigned;
             });
+            for (var i = 0; i<services[name].length; i++){
+                services[name][i].service = (i+1) + ". " + services[name][i].service;
+            }
         }
         //console.log(services)
         res.json({budget: seoulBudget, services: services});
