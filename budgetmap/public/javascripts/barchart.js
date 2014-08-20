@@ -1,33 +1,28 @@
-var BarChart = function(){
-  
-};
+var BarChart = function(config){
+  //define private variables
+  var margin = config.margin, //{top: 10, right: 10, bottom: 100, left: 40},
+      height = config.size.height - margin.top - margin.bottom,
+      width = config.size.width - margin.left - margin.right;
 
-BarChart.prototype.generate = function(settings){
-  var margin = settings.margin, //{top: 10, right: 10, bottom: 100, left: 40},
-      margin2 = settings.margin2, //{top: 430, right: 10, bottom: 20, left: 40},
-      height = settings.size.height - margin.top - margin.bottom,
-      width = settings.size.width - margin.left - margin.right,
-      width2 = settings.size.width - margin2.left - margin2.right;
+  var selected = null;
 
-  this.selected = null;
-  var self = this;
+  var data = config.data;
 
-  var data = settings.data;
-  
   var format = d3.format("s");
 
   var barSize     = 24;
   var barPadding  = 4;
-  var fullHeight  = barSize*data.length;
+  var outerPadding = 4;
+  var fullHeight  = outerPadding*2 + (barPadding + barSize)*data.length; //manually set the chart height
 
-  var x   = d3.scale.ordinal().rangeRoundBands([0, fullHeight], .2),
+  var x   = d3.scale.ordinal().rangeRoundBands([0, fullHeight]),
       y   = d3.scale.linear().range([0, width]);
 
   var xAxis   = d3.svg.axis().scale(x).orient("left").tickValues([]).tickSize(0),
       yAxis   = d3.svg.axis().scale(y).orient("top").tickFormat(format);
 
 
-  var svg = d3.select(settings.container).append("div")
+  var svg = d3.select(config.container).append("div")
       .attr("class", "barchart")
       .style("width", width + "px")
       .style("height", fullHeight + "px")
@@ -38,115 +33,177 @@ BarChart.prototype.generate = function(settings){
       .append("svg:svg")
       .attr("width", width + margin.left + margin.right)
       .attr("height", fullHeight);
-/*
-  svg.append("defs").append("clipPath")
-      .attr("id", "clip")
-    .append("rect")
-      .attr("x", margin.left)
-      .attr("y", margin.top)
-      .attr("width", width)
-      .attr("height", height);
-*/
 
   var focus = svg.append("g")
       .attr("class", "barchart-focus")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  x.domain(data.map(function(d) { return d.service; }));
-  y.domain([0, d3.max(data.map(function(d) { return d.budget_assigned; }))]);
-
-  //Add Legend Tooltip
   var tip = d3.tip()
       .attr('class', 'barchart-d3-tip')
       .offset([-10, 0])
       .html(function(d) {
-        var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.service+"<br/><br/>" + self.format(d.budget_assigned) + "</span>";
-          //html += "<span style='color:lightgray'>" + d.name + ": "+self.format(d.size)+" ("+d3.format('.2%')(d.size/d.parent.size)+")</span><br/><br/>";
+        var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.service+"<br/><br/>" + chart.format(d.budget_assigned) + "</span>";
+          //html += "<span style='color:lightgray'>" + d.name + ": "+format(d.size)+" ("+d3.format('.2%')(d.size/d.parent.size)+")</span><br/><br/>";
         return html;
       })
   focus.call(tip);
 
-  // Focus Bar Chart
-  var bars = focus.selectAll(".barchart-bar")
-    .data(data)    
-    .enter().append("g")
-    .attr("class", "barchart-bar")
-    .attr("transform", "translate(0,0)")
+  function chart(){
+  }
+  chart.create = function(){
+    this.update(data, width, height);    
+  }
+  chart.update = function(d, w, h){
+    data = d;
+    h = config.size.height - margin.top - margin.bottom;
+    w = config.size.width - margin.left - margin.right;
+
+    fullHeight  = outerPadding*2 + (barPadding + barSize)*data.length;
+    x.rangeRoundBands([0, fullHeight], .2); //range update
+    x.domain(data.map(function(d) { return d.service; }));
+    y.domain([0, d3.max(data.map(function(d) { return d.budget_assigned; }))]);
+    //console.log(x(data[0].service));
+    // Canvas Size update
+    d3.select(config.container).select(".barchart").style("height", fullHeight + "px");
+    d3.select(config.container).select("svg").attr("height", fullHeight);
+
+    // Join new data with old elements, if any.
+    var bars = focus.selectAll(".barchart-bar")
+      .data(data, function(d) { return d._id; });
+
+    // Remove interaction while constructing and transitioning
+    bars.on("mouseover", null)
+        .on("mouseout", null)
+        .on("click", null);
+
+    // Remove old elements as needed.
+    bars.exit()
+      .transition()
+      .duration(750)
+      .attr("transform", function(d, i) { 
+        var t = d3.transform(d3.select(this).attr("transform")),
+          y = t.translate[1];
+        return "translate("+width+","+y+")"; 
+      })
+      .remove();
+      
+    //Update old elements as needed
+    bars.transition()
+      .duration(750)
+      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }); //((barSize+barPadding)*i)
+
+    // Create new elements as needed.  
+    var entered = bars.enter().append("g")
+      .attr("class", "barchart-bar")
+      .attr("transform", "translate(0,0)")
+
+    entered.transition()
+      .duration(750)
+      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }) //((barSize+barPadding)*i)
+
+    entered.append("rect")
+      .attr("class", "barchart-rect")
+      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("height", barSize)
     
-  var transition = bars.transition().duration(1000);
-  transition.attr("transform", function(d, i) { return "translate(0," + ((barSize+barPadding)*i) + ")"; })
-
-  bars.append("rect")
-    .attr("class", "barchart-rect")
-    .attr("width", function(d) { return y(d.budget_assigned); })
-    .attr("height", barSize)
-  
-  bars.append("text")
-    .attr("class", "barchart-text")
-    .attr("x", 0)
-    .attr("y", barSize/2)
-    .attr("dx", "0.25em")
-    .attr("dy", "0.25em")
-    .attr("text-anchor", "start")
-    .text(function(d){ return d.service; })
-
-  setTimeout(function(){
-    bars.on("mouseover", function(d){             
-        if (this!= self.selected) self.enableHighlight(this); 
-        tip.show(d, this);        
-      })
-      .on("mouseout", function(d){
-        if (this!= self.selected) self.disableHighlight(this); 
-        tip.hide(d, this);                
-      })
-      .on("click", function(d){
-        d3.event.stopPropagation();
-
-        if (self.selected) {
-          self.disableHighlight(self.selected);
-        }
-        if (self.selected==this) { //no selection if click the existing selection
-          self.selected = null;     
-          tip.hide(d, this);
-          settings.onDeselect(d); // call de-selection callback
-        }else{
-          self.selected = this;       
-          self.enableHighlight(self.selected);
-          tip.show(d, this);
-          settings.onSelect(d); // call selection callback
-        }
+    entered.append("text")
+      .attr("class", "barchart-text")
+      .attr("x", 0)
+      .attr("y", barSize/2)
+      .attr("dx", "0.25em")
+      .attr("dy", "0.25em")
+      .attr("text-anchor", "start")
+      .text(function(d){      
+        return d.service;
       });
-  }, 1000);
-}
 
-BarChart.prototype.enableHighlight = function(elem) {
-  var g = d3.select(elem);
-  var trs = g.transition().duration(100);
-  trs.select("rect")
-    .style("fill", "#addd8e")
-  trs.select("text")
-    .style("fill", "#d95f0e")
-    .style("font-weight", "bold");
-}
-BarChart.prototype.disableHighlight = function(elem) {
-  var g = d3.select(elem);
-  var trs = g.transition().duration(100);
-  trs.select("rect")
-    .style("fill", "#7fcdbb")
-  trs.select("text")
-    .style("fill", "#555753")
-    .style("font-weight", "normal");  
-}
-
-BarChart.prototype.format = function(budget){
-  var val;
-  var format = d3.format(",");
-  if ((val = Math.floor(budget/1000000000000))>0){ //1조
-    var rest = budget-val*1000000000000;
-    return format(val) + "조 " + format(Math.floor(rest/100000000)) + "억원";
+    setTimeout(function(){
+      bars.on("mouseover", chart.mouseOver)
+        .on("mouseout", chart.mouseOut)
+        .on("click", chart.mouseClick);
+      entered.on("mouseover", chart.mouseOver)
+        .on("mouseout", chart.mouseOut)
+        .on("click", chart.mouseClick);
+    }, 1000);    
+  }
+  chart.emphasize = function(dl){
+    if (dl==null) return;
+    var newData = [];
+    dl.forEach(function(d){ if (data.indexOf(d)!=-1)  newData.push(d); });
+    data.forEach(function(d){   if (dl.indexOf(d)==-1)  newData.push(d); });
+    x.domain(newData.map(function(d) { return d.service; }));
+    focus.selectAll(".barchart-bar")
+      .transition()
+      .duration(300)
+      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
+      .attr("opacity", function(d){ return dl.indexOf(d)!=-1? 1.0 : 0.6; });
 
   }
-  val = Math.floor(budget/100000000);
-  var rest = budget-val*100000000;
-  return format(val) + "억 " + format(Math.floor(rest/10000)) + "만원";;
-}
+  chart.deemphasize = function(){
+    x.domain(data.map(function(d) { return d.service; }));
+    focus.selectAll(".barchart-bar")
+      .transition()
+      .duration(300)
+      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
+      .attr("opacity", 1.0);
+
+  }
+  chart.mouseOver = function(d){             
+    if (this!= selected) chart.enableHighlight(this); 
+    tip.show(d, this);        
+  }
+  chart.mouseOut = function(d){
+    if (this!= selected) chart.disableHighlight(this); 
+    tip.hide(d, this);                
+  }
+  chart.mouseClick = function(d){
+    d3.event.stopPropagation();
+
+    if (selected) {
+      chart.disableHighlight(selected);
+    }
+    if (selected==this) { //no selection if click the existing selection
+      selected = null;     
+      tip.hide(d, this);
+      config.onDeselect(d); // call de-selection callback
+    }else{
+      selected = this;       
+      chart.enableHighlight(selected);
+      tip.show(d, this);
+      config.onSelect(d); // call selection callback
+    }
+  }
+  chart.enableHighlight = function(elem) {
+    var g = d3.select(elem);
+    var trs = g.transition().duration(100);
+    trs.select("rect")
+      .style("fill", "#addd8e")
+    trs.select("text")
+      .style("fill", "#d95f0e")
+      .style("font-weight", "bold");
+  }
+  chart.disableHighlight = function(elem) {
+    var g = d3.select(elem);
+    var trs = g.transition().duration(100);
+    trs.select("rect")
+      .style("fill", "#7fcdbb")
+    trs.select("text")
+      .style("fill", "#555753")
+      .style("font-weight", "normal");  
+  }
+
+  chart.format = function(budget){
+    var val;
+    var format = d3.format(",");
+    if ((val = Math.floor(budget/1000000000000))>0){ //1조
+      var rest = budget-val*1000000000000;
+      return format(val) + "조 " + format(Math.floor(rest/100000000)) + "억원";
+
+    }
+    val = Math.floor(budget/100000000);
+    var rest = budget-val*100000000;
+    return format(val) + "억 " + format(Math.floor(rest/10000)) + "만원";;
+  }
+  return chart;
+
+};
