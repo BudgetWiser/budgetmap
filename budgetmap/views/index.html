@@ -250,7 +250,7 @@
         function deselectIssue(){
             selected_issue.removeClass("list-group-item-info");
             treemap.deemphasize();
-            if (barchart)   barchart.deemphasize();
+            if (barchart!=null)   barchart.deemphasize();
             selected_issue = null;
             em_budgets = null;
             em_services = null;
@@ -293,7 +293,7 @@
                 //} 
             }
             treemap.emphasize(em_budgets);
-            if (barchart)   barchart.deemphasize();
+            if (barchart!=null)   barchart.emphasize(em_services);
             //console.log(issue.name);
             //console.log(em_budgets);
             //console.log(em_services);
