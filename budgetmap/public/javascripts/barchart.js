@@ -164,10 +164,14 @@ var BarChart = function(config){
     }
     if (selected==this) { //no selection if click the existing selection
       selected = null;     
+      $("#service-functions").css({"display": "none"});
+      $("#selected_service").removeAttr("id");
       tip.hide(d, this);
       config.onDeselect(d); // call de-selection callback
     }else{
       selected = this;       
+      $("#service-functions").css({"display": "inline-block"});
+      $(this).attr("id", "selected_service");
       chart.enableHighlight(selected);
       tip.show(d, this);
       config.onSelect(d); // call selection callback
