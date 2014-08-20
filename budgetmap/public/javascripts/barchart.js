@@ -104,14 +104,19 @@ BarChart.prototype.generate = function(settings){
 
         if (self.selected) {
           self.disableHighlight(self.selected);
+          $("#selected_service").removeAttr("id");
         }
         if (self.selected==this) { //no selection if click the existing selection
+            $("#service-functions").css({"display": "none"});
           self.selected = null;     
+          $("#selected_service").removeAttr("id");
           tip.hide(d, this);
           settings.onDeselect(d); // call de-selection callback
         }else{
+            $("#service-functions").css({"display": "inline-block"});
           self.selected = this;       
           self.enableHighlight(self.selected);
+          $(this).attr("id", "selected_service");
           tip.show(d, this);
           settings.onSelect(d); // call selection callback
         }
