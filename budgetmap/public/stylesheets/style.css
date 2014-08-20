@@ -136,3 +136,9 @@ a{
 .search-result-service {
     margin-left: 10px;
 }
+#service-functions {
+    display: none;
+}
+#btn-find_docs {
+    margin-bottom: 10px;
+}

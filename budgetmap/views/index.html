@@ -84,6 +84,13 @@
             $('#btn-service-search').click(searchService);
 
 
+            $("#btn-find_docs").click(function() {
+                var name = $("#selected_service").text();
+                console.log(name);
+                var url = 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
+                + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
+                window.open(url, '_blank');
+            });
         });
 
         // $(window).resize(function(){
@@ -338,7 +345,6 @@
         <!-- /.container -->
     </nav>    
     <div class="container">
-
         <div class="row">
             <!-- VISUALIZATION -->
             <div class="col-md-9">
@@ -370,6 +376,16 @@
                 <div class="panel panel-primary">
                     <div class="panel-heading">
                         <h3 id="issue-title" class="panel-title">2014년 서울시 전체 예산</h3>
+                    </div>
+                    <div id="service-functions" class="panel-body">
+                        <div class="jumbotron" style="padding: 10px;">
+                            <div class="btn-group btn-group-justified">
+                                <div class="btn-group">
+                                    <button id="btn-find_docs" type="button" class="btn btn-success">사업 알아보기</button>
+                                    <button id="btn-relate_issues" type="button" class="btn btn-success">사업과 이슈 연걸하기</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="panel-body">
                         <div class="jumbotron" style="padding: 10px;">
