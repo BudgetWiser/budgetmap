@@ -44,7 +44,7 @@ router.route('/issues/:id')
 
         //update issue
         
-        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets} }, function(err, result){
+        db.collection('issues').update({_id: req.toObjectId(issue_id)}, { '$set': { budgets: req.toObjectId(budgets)} }, function(err, result){
             if (err) {
                 return console.log('insert error', err);
             }
@@ -264,15 +264,16 @@ router.get('/budgets', function(req, res){
 /*
  * Explorer task functions
  * VERSION 14-08-26: Pure random
+ * VERSION 14-08-28: Pure random + weighed unrelated
  */
-router.route('/explore/:id')
+router.route('/explore/start')
     .get(function(req, res) {
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         var date = new Date();
         var currYear = date.getFullYear();
         // Configuration variables
-        var thresh_up = 1, thresh_down = 1, list_num = 3;
+        var list_num = 3;
 
         db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
             var candidate_list = [];
@@ -285,7 +286,6 @@ router.route('/explore/:id')
                 var candidate_item = {
                     '_id': item._id,
                     'one': item.category_one,
-                    'two': item.category_two,
                     'three': item.category_three,
                     'service': item.service,
                     'department': item.department,
@@ -299,28 +299,72 @@ router.route('/explore/:id')
     });
 
 
-router.get('/explore/new', function(req, res) {
+router.get('/explore/pass', function(req, res) {
     var db = req.db;
-    var date = new Date()
+    var date = new Date();
     var currYear = date.getFullYear();
 
     db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
         var rand_idx;
         do {
             rand_idx = Math.floor(Math.random() * items.length);
-        } wihle (items[rand_idx].service === '기본경비');
+        } while (items[rand_idx].service.indexOf('기본경비') == 0);
+        console.log(rand_idx);
         var item = items[rand_idx];
         var new_candidate = {
             '_id': item._id,
             'one': item.category_one,
-            'two': item.category_two,
             'three': item.category_three,
-            'serivice': item.service,
+            'service': item.service,
             'department': item.department,
             'team': item.team,
             'budget': item.budget_assigned
         }
         res.json(new_candidate);
+    });
+});
+
+
+router.post('/explore/related', function(req, res) {
+    var db = req.db;
+    var data = req.body;
+    var issue_id = data.issue;
+    var budget_id = data.budget;
+    var date = new Date();
+    var currYear = date.getFullYear();
+
+    console.log(issue_id);
+    console.log(budget_id);
+    console.log(req.toObjectId(issue_id));
+    console.log(req.toObjedctId(budget_id));
+    db.collection('issues').update({_id: req.toObjectId(issue_id)}, {'$push': {budgets: req.toObjectId(budget_id)}}, function(err, result) {
+        console.log('eww');
+        if (err) {
+            console.log('error');
+            throw err;
+        }
+        else {
+            console.log(result);
+            console.log('updated ' + budget_id + ' to ' + issue_id);
+            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
+                var rand_idx;
+                do {
+                    rand_idx = Math.floor(Math.random() * items.length);
+                } while (items[rand_idx].service.indexOf('기본경비') == 0);
+                var item = items[rand_idx];
+                var new_candidate = {
+                    '_id': item._id,
+                    'one': item.category_one,
+                    'two': item.category_two,
+                    'three': item.category_three,
+                    'serivice': item.service,
+                    'department': item.department,
+                    'team': item.team,
+                    'budget': item.budget_assigned
+                }
+                res.json(new_candidate);
+            });
+        }
     });
 });
 /*
