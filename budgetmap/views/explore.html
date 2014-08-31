@@ -227,20 +227,18 @@
             $("#issue-list-title strong").text(selected_issue.text().split('관련사업:')[0]);
             $("#issue-list-title strong").attr("data-issue-id", selected_issue.attr("data-issue-id"));
             $("#btn-back-section").css({"display": "inline-block"});
-            $.getJSON('/explore/start', function(data) {
+            $.getJSON('/explore/pass', function(data) {
                 var new_list = '';
-                for (var i=0; i<data.length; i++) {
-                    console.log(data[i]);
-                    new_list += '<div class="list-group-item" data-candidate-id="' + data[i]._id
-                    + '" id="data-candidate-' + data[i]._id + '"><strong>'
-                    + data[i].service + '</strong><br />'
+                    new_list += '<div class="list-group-item" data-candidate-id="' + data._id
+                    + '" id="data-candidate-' + data._id + '"><strong>'
+                    + data.service + '</strong><br />'
                     + '<span class="explore-category" style="magin-top: 5px;">'
-                    + data[i].one + '&nbsp;&gt;&nbsp;'
-                    + data[i].three + '</span>'
+                    + data.one + '&nbsp;&gt;&nbsp;'
+                    + data.three + '</span>'
                     + '<div style="text-align: right"><span class="explore-department">'
-                    + data[i].department + '&nbsp;'
-                    + data[i].team + '</span><br /><span class="explore-budget">'
-                    + data[i].budget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    + data.department + '&nbsp;'
+                    + data.team + '</span><br /><span class="explore-budget">'
+                    + data.budget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     + ' 원</span></div>'
                     + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
                     + '<div class="btn-group">'
@@ -252,42 +250,47 @@
                     + '<div class="btn-group">'
                     + '<button type="submit" class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
                     + '관련 없음</button></div></div></div>';
-                }
                 $("#issue-list").html(new_list);
-                for (var i=0; i<data.length; i++) {
-                    $("#data-candidate-"+data[i]._id+" #btn-related").click(function() {
-                        var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
+                    $("#data-candidate-"+data._id+" #btn-related").click(function() {
+                        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
+                        var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
+                        console.log("service_id", service_id);
                         $.ajax({
                             type: 'POST',
                             url: "/explore/related",
                             data: {
+                                issue: issue_id,
+                                service: service_id
                             },
                         }).done(function (msg) {
+                            console.log(issue_id);
+                            console.log("related", msg);
+                            Explore.pass(msg, service_id);
+                        });
+                    });
+                    $("#data-candidate-"+data._id+" #btn-unrelated").click(function() {
+                        var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
+                        console.log("old_id", old_id);
+                        $.ajax({
+                            type: 'GET',
+                            url: "/explore/pass",
+                        }).done(function (msg) {
                             console.log(old_id);
+                            console.log("unrelated", msg);
                             Explore.pass(msg, old_id);
                         });
                     });
-                    $("#data-candidate-"+data[i]._id+" #btn-unrelated").click(function() {
+                    $("#data-candidate-"+data._id+" #btn-pass").click(function() {
                         var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
                         $.ajax({
                             type: 'GET',
                             url: "/explore/pass",
                         }).done(function (msg) {
                             console.log(old_id);
+                            console.log("pass", msg);
                             Explore.pass(msg, old_id);
                         });
                     });
-                    $("#data-candidate-"+data[i]._id+" #btn-pass").click(function() {
-                        var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
-                        $.ajax({
-                            type: 'GET',
-                            url: "/explore/pass",
-                        }).done(function (msg) {
-                            console.log(old_id);
-                            Explore.pass(msg, old_id);
-                        });
-                    });
-                }
             });
         }
 

@@ -266,39 +266,6 @@ router.get('/budgets', function(req, res){
  * VERSION 14-08-26: Pure random
  * VERSION 14-08-28: Pure random + weighed unrelated
  */
-router.route('/explore/start')
-    .get(function(req, res) {
-        var db = req.db;
-        var issue_id = req.toObjectID(req.params.id);
-        var date = new Date();
-        var currYear = date.getFullYear();
-        // Configuration variables
-        var list_num = 3;
-
-        db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-            var candidate_list = [];
-            for (var i=0; i<list_num; i++) {
-                var rand_idx;
-                do {
-                    rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service === '기본경비');
-                var item = items[rand_idx];
-                var candidate_item = {
-                    '_id': item._id,
-                    'one': item.category_one,
-                    'three': item.category_three,
-                    'service': item.service,
-                    'department': item.department,
-                    'team': item.team,
-                    'budget': item.budget_assigned
-                }
-                candidate_list.push(candidate_item);
-            }
-            res.json(candidate_list);
-        });
-    });
-
-
 router.get('/explore/pass', function(req, res) {
     var db = req.db;
     var date = new Date();
@@ -327,17 +294,12 @@ router.get('/explore/pass', function(req, res) {
 
 router.post('/explore/related', function(req, res) {
     var db = req.db;
-    var data = req.body;
-    var issue_id = data.issue;
-    var budget_id = data.budget;
+    var issue_id = req.body.issue;
+    var budget_id = req.body.service;
     var date = new Date();
     var currYear = date.getFullYear();
 
-    console.log(issue_id);
-    console.log(budget_id);
-    console.log(req.toObjectId(issue_id));
-    console.log(req.toObjedctId(budget_id));
-    db.collection('issues').update({_id: req.toObjectId(issue_id)}, {'$push': {budgets: req.toObjectId(budget_id)}}, function(err, result) {
+    db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {budgets: req.toObjectID(budget_id)}}, function(err, result) {
         console.log('eww');
         if (err) {
             console.log('error');
@@ -357,11 +319,12 @@ router.post('/explore/related', function(req, res) {
                     'one': item.category_one,
                     'two': item.category_two,
                     'three': item.category_three,
-                    'serivice': item.service,
+                    'service': item.service,
                     'department': item.department,
                     'team': item.team,
                     'budget': item.budget_assigned
                 }
+                console.log('new_candidate', new_candidate);
                 res.json(new_candidate);
             });
         }
