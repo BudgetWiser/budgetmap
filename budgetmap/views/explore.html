@@ -269,15 +269,18 @@
                         });
                     });
                     $("#data-candidate-"+data._id+" #btn-unrelated").click(function() {
-                        var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
-                        console.log("old_id", old_id);
+                        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
+                        var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
                         $.ajax({
-                            type: 'GET',
-                            url: "/explore/pass",
+                            type: 'POST',
+                            url: "/explore/unrelated",
+                            data: {
+                                issue: issue_id,
+                                service: service_id
+                            },
                         }).done(function (msg) {
-                            console.log(old_id);
                             console.log("unrelated", msg);
-                            Explore.pass(msg, old_id);
+                            Explore.pass(msg, service_id);
                         });
                     });
                     $("#data-candidate-"+data._id+" #btn-pass").click(function() {

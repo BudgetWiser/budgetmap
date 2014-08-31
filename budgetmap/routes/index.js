@@ -300,14 +300,45 @@ router.post('/explore/related', function(req, res) {
     var currYear = date.getFullYear();
 
     db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {budgets: req.toObjectID(budget_id)}}, function(err, result) {
-        console.log('eww');
         if (err) {
-            console.log('error');
             throw err;
         }
         else {
-            console.log(result);
-            console.log('updated ' + budget_id + ' to ' + issue_id);
+            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
+                var rand_idx;
+                do {
+                    rand_idx = Math.floor(Math.random() * items.length);
+                } while (items[rand_idx].service.indexOf('기본경비') == 0);
+                var item = items[rand_idx];
+                var new_candidate = {
+                    '_id': item._id,
+                    'one': item.category_one,
+                    'two': item.category_two,
+                    'three': item.category_three,
+                    'service': item.service,
+                    'department': item.department,
+                    'team': item.team,
+                    'budget': item.budget_assigned
+                }
+                console.log('new_candidate', new_candidate);
+                res.json(new_candidate);
+            });
+        }
+    });
+});
+
+
+router.post('/explore/unrelated', function(req, res) {
+    var db = req.db;
+    var issue_id = req.toObjectID(req.body.issue);
+    var budget_id = req.toObjectID(req.body.service);
+    var date = new Date();
+    var currYear = date.getFullYear();
+
+    db.collection('issues').update({_id: issue_id}, {'$push': {unrelated: budget_id}}, function(err, result) {
+        if (err) {
+            throw err;
+        } else {
             db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
                 var rand_idx;
                 do {

@@ -1,5 +1,13 @@
 Explore = {};
 
+/* TODO List:
+ * - Progress check
+ *   - number of clicks
+ *   - total budget
+ * - Number readability
+ * - Crawling, DB merge
+ */
+
 Explore.pass = function(msg, old_id) {
     var item = $("#data-candidate-"+old_id);
     item.empty();
@@ -37,17 +45,21 @@ Explore.pass = function(msg, old_id) {
                 service: service_id
             },
         }).done(function (msg) {
-            console.log(issue_id);
             Explore.pass(msg, service_id);
         });
     });
     $("#data-candidate-"+msg._id+" #btn-unrelated").click(function() {
-        var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
+        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
+        var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
         $.ajax({
-            type: 'GET',
-            url: "/explore/pass",
+            type: 'POST',
+            url: "/explore/unrelated",
+            data: {
+                issue: issue_id,
+                service: service_id
+            },
         }).done(function(msg) {
-            Explore.pass(msg, old_id);
+            Explore.pass(msg, service_id);
         });
     });
     $("#data-candidate-"+msg._id+" #btn-pass").click(function() {
