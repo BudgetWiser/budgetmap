@@ -6,8 +6,9 @@
     <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
     <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
     <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
-    <link rel="stylesheet" type="text/css" href="/libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.css">
+    <link rel="stylesheet" type="text/css" href="/libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css">    
+    <link rel="stylesheet" type="text/css" href="/libraries/bootstro/bootstro.min.css">
 
     <script type="text/javascript" src="/libraries/colorbrewer.js"></script>
     <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
@@ -15,14 +16,16 @@
     <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.js"></script> 
     
-    <script type="text/javascript" src="/libraries/bootstrap-3.2.0-dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/libraries/bootstrap-3.2.0-dist/js/bootstrap.min.js"></script>    
     <script type="text/javascript" src="/libraries/bootstrap-typeahead/bootstrap3-typeahead.min.js"></script>
+    <script type="text/javascript" src="/libraries/bootstro/bootstro.min.js"></script>
 
     <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
     <script type="text/javascript" src="/javascripts/treemap.js"></script>
     <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    
     <script type="text/javascript">
-        var selected_service = null;
+        var selected_service = null, previous_service = null;
         var selected_issue  = null;
         var issues = null, all_issues = null, budgets = null, all_services = null, services = null;
         var curr_year = 2014;
@@ -41,20 +44,31 @@
             container : "#budget-chart",
             size :  { width: 550, height: 700},
             margin : { top: 0, left: 0, bottom: 0, right: 0},
-            onSelect: selectBudget,
-            onDeselect: deselectBudget
+            onSelect: selectBudget//,
+            //onDeselect: deselectBudget
         }
         $(document).ready(function(){
             initialize();
-
-            $.getJSON('/issues', function(data){
-                all_issues = issues = data;
-                displayIssues(data);
-                setAutocomplete(all_issues);
-
+            $("#progress-modal").modal({
+                keyboard: false,
+                backdrop: "static"
             });
+            var issueLoaded     = false;
+            var budgetLoaded    = false;
+            var inc = 0;
+            var progress = setInterval(function(){ //Trick Progress
+                inc += inc>=100? 0:Math.floor((Math.random() * 10) + 1);;
+                 $("#progress-bar").css('width', inc+'%').attr('aria-valuenow', inc); 
+                if (issueLoaded && budgetLoaded){
+                    $("#progress-bar").css('width', "100%").attr('aria-valuenow', 100); 
+                    clearInterval(progress); 
+                    $("#progress-modal").modal("hide");
+                    generateGuide();
+                } 
+            }, 1000);
 
             $.getJSON('/budgets', function(data){
+                budgetLoaded = true;
                 console.log(data.budget);
                 budgets         = data.budget;
                 console.log(data.budget);
@@ -65,7 +79,7 @@
                 }
                 console.log(budget_map);
                 all_services    = data.services;
-                for (var name in all_services){
+                for (var name in all_services){ //construct service map
                     for (var i in all_services[name]){
                          service_map[all_services[name][i]._id] = all_services[name][i];
                     }                   
@@ -74,23 +88,46 @@
                 treemap_config.data = budgets;
                 treemap = TreeMap(treemap_config);
                 treemap.create();
+                treemap.selectMax();
+
+                //Load Issues
+                $.getJSON('/issues', function(data){
+                issueLoaded = true;
+                all_issues = issues = data;
+                for (var i in all_issues){//construct issue map
+                    issue_map[all_issues[i]._id] = all_issues[i];
+                    //calculate total budget
+                    var total = 0;
+                    for (var j in all_issues[i].budgets){                        
+                        total += service_map[all_issues[i].budgets[j]].budget_assigned;
+                    }
+                    issue_map[all_issues[i]._id].budget_assigned = total;
+                }
+                displayIssues(data);
+            });
+
             });
             $('#left-content').resize(function(){
                 var elem = $(this);
                 console.log('w, h = ' + elem.width() + ', ' + elem.height());
             });
             $('#new-issue').keypress(function(event) { return event.keyCode != 13; });
-            $('#btn-new_issue').click(addIssue);
+            $('#issue-modal-confirm').click(addIssue);
+            $('#service-modal-confirm').click(connectIssue);
+            $('#service-modal-cancel').click(function (){ selected_service = previous_service; });
+            $('#btn-new-issue').click(populateIssueModal);
             $('#btn-service-search').click(searchService);
 
-
-            $("#btn-find_docs").click(function() {
-                var name = $("#selected_service").text();
-                console.log(name);
-                var url = 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
-                + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
+            $("#service-more-info").click(function() {
+                var url = constructSearchUrl($("#selected_service").text());
                 window.open(url, '_blank');
             });
+
+            $("#service-search-cancel").click(function(){
+                $('#service-search').val("");
+                $('#service-search-result').hide();
+                barchart.update(services, barchart_config.width, barchart_config.height)
+            })
         });
 
         // $(window).resize(function(){
@@ -98,26 +135,56 @@
         //     console.log('w, h = ' + elem.width() + ', ' + elem.height());
         // });
         function initialize(){
-            deselectService(null);
-            deselectBudget(null);
+            //deselectService(null);
+            //deselectBudget(null);
+        }
+        function generateGuide(){
+            $("#budget-area").addClass("bootstro")
+                .attr("data-bootstro-title", "서울시 예산 분야별 예산")
+                .attr("data-bootstro-content", "분야별 예산을 선택가능하며 상단의 범례항목을 클릭 시 해당 예산만 확대 할 수 있다. 예산이 가장 큰 분야가 미리 선택되어있다.")
+                .attr("data-bootstro-placement", "right")
+
+            $("#service-area").addClass("bootstro")
+                .attr("data-bootstro-title", "선택 분야 내 사업별 예산")
+                .attr("data-bootstro-content", "선택한 분야 내 사업별 예산을 확인할 수 있다. 사업항목을 선택하면 관련된 사회이슈 목록을 확인 및 추가 할 수 있다.")
+                .attr("data-bootstro-placement", "left")
+
+            $("#issue-area").addClass("bootstro")
+                .attr("data-bootstro-title", "선택 분야 내 사업별 예산")
+                .attr("data-bootstro-content", "사업항목을 선택하면 관련된 사회이슈 목록을 확인 및 추가 할 수 있다. 미 선택시 서울시 전체 예산이 설정된다.")
+                .attr("data-bootstro-placement", "left")
+            bootstro.start();
+        }
+        function constructSearchUrl(name){
+                return 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
+                + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
         }
         function selectBudget(d){
             deselectService(null); //de-select previously selected service
 
-            if (em_budgets && em_budgets.indexOf(d)==-1){
-                deselectIssue();
-            }
+            //if (em_budgets && em_budgets.indexOf(d)==-1){
+            //    deselectIssue();
+            //}
 
             services = all_services[d.name];
+            $("#service-chart").scrollTop(0);
             $("#service-chart").empty();
-            $("#service-chart-title").text(d.name+" 관련 사업목록("+services.length+")");
-            $("#service-search-group").show();            
+            $("#service-chart-title").text(d.name+" 관련 사업목록("+services.length+"개)");
+            $("#service-search-group").show(); 
+            $("#service-search-result").hide();          
             
             barchart_config.data = services;
             barchart = BarChart(barchart_config);
             barchart.create(); 
             barchart.emphasize(em_services);  
+            if (selected_issue!=null){
+                var id = selected_issue.attr('data-issue-id');
+                var issue = issue_map[id];
+                $("#issue-service-result").show();
+                $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+            }
         }
+        /*
         function deselectBudget(d){
             deselectService(null);
 
@@ -127,35 +194,125 @@
             $("#service-search-group").hide();   
 
             barchart = null;          
+        }*/
+        function serviceName(service){
+            return service.service.split(".")[1];
+        }
+        function populateIssueModal(){
+            var service = selected_service; 
+            //populate issue modal box
+            console.log(service)
+            var items = [];
+            if (service!=null){
+                $("#issue-modal-info").html("<h4>" + serviceName(service) + " <small>사업 관련된 사회이슈를 입력해 주세요.</small></h4>");
+                for (var i in all_issues){
+                    var exist = false;
+                    for (var j in issues){
+                        if (issues[j]._id == all_issues[i]._id){
+                            exist = true;
+                            break;
+                        }                        
+                    }
+                    if (exist==false)   items.push(all_issues[i]); 
+                }
+            }else{
+                $("#issue-modal-info").html("<h4>2014년 서울시 전체 예산<small>과 관련된 사회이슈를 입력해 주세요.</small></h4>");
+            }
+            console.log(items);
+            updateAutocomplete(items);
+            $("#new-issue").val("");
+            $("#issue-modal").modal("show");
+
+
+            
+        }
+        function populateServiceModal(issue_name, service){
+            $("#service-modal-info").html(
+                "<h4>"+serviceName(service)+"<small> 사업 관련 사회이슈에 </small></h4>" + 
+                "<h4>"+issue_name+"<small> 이슈를 추가합니다. </small></h4><hr>"+
+                "<h4>"+serviceName(service)+"</h4>"+
+                "<table><tbody>"+
+                "<tr><td>대분류 </td><td>: "+service.category_one+"</td></tr>" +
+                "<tr><td>소분류 </td><td>: "+service.category_three+"</td></tr>" +
+                "<tr><td>회계년도 </td><td>: "+service.year+"</td></tr>" +
+                "<tr><td>부서 </td><td>: "+service.department+"</td></tr>" +
+                "<tr><td>그룹 </td><td>: "+service.team+"</td></tr>" +
+                "<tr><td>예산 </td><td>: "+treemap.format(service.budget_assigned)+"</td></tr>" +
+                "</tbody></table>" +
+                "<a id='service-more-info' class='text-right' target='_blank' href='"+
+                constructSearchUrl(serviceName(service))+"'>사업 더 알아보기 ...</a>");
+            $("#service-modal").modal("show");
         }
         function selectService(d){
-            if (em_services && em_services.indexOf(d)==-1){
-                deselectIssue();
-            }
-
+            previous_service = selected_service;
             selected_service = d;
-            $.getJSON('/issues/'+d._id, function(data){                
-                $('#issue-title').text(d.service);
-                issues = data;
-                displayIssues(issues);
-            });             
+            
+            if (em_services && em_services.indexOf(d)==-1){ //if issue is selected but not connected yet
+                //deselectIssue();
+                populateServiceModal(issue_map[selected_issue.attr("data-issue-id")].name, d);
+                return false;
+            } //else if issue is selected and also connected to this service                    
+
+             //update right info-panel
+            $('#issue-title').text(serviceName(d));
+            $('#service-info').html("<h4>"+serviceName(d)+"</h4>"+
+                "<table><tbody>"+
+                "<tr><td>대분류 </td><td>: "+d.category_one+"</td></tr>" +
+                "<tr><td>소분류 </td><td>: "+d.category_three+"</td></tr>" +
+                "<tr><td>회계년도 </td><td>: "+d.year+"</td></tr>" +
+                "<tr><td>부서 </td><td>: "+d.department+"</td></tr>" +
+                "<tr><td>그룹 </td><td>: "+d.team+"</td></tr>" +
+                "<tr><td>예산 </td><td>: "+treemap.format(d.budget_assigned)+"</td></tr>" +
+                "</tbody></table>");
+            issues = [];
+            for (var i in d.issues){
+                issues.push(issue_map[d.issues[i]]);
+            }
+            displayIssues(issues);        
+            $("#service-more-info").show();
+            return true;        
         }
-        
+
         function deselectService(d){
             selected_service = null;
             $('#issue-title').text("2014년 서울시 전체 예산");  
+            $('#service-info').html("<h4>2014년 서울시 전체 예산</h4>"+
+                    "<table><tbody>"+
+                    "<tr><td>총 사업개수 </td><td>: "+budgets.serv_size+"</td></tr>" +
+                    "<tr><td>총 예산 </td><td>: "+treemap.format(budgets.size)+"</td></tr>" +
+                    "</tbody></table>");
             issues = all_issues;  
             displayIssues(issues); 
+            $("#service-more-info").hide();
+            return true;
+        }
+        function connectIssue(){
+
+            //bar chart update
+            em_services.push(selected_service);
+            barchart.emphasize(em_services);
+
+            //add issue
+            $('#new-issue').val(issue_map[selected_issue.attr("data-issue-id")].name); //set input box manually
+            addIssue();
+
+            //select item
+            setTimeout(function(){
+                barchart.select(selected_service);
+            }, 300);
+
+            $("#service-modal").modal("hide");
+
         }
         function addIssue(){
-
             var issue_name = $('#new-issue').val();
 
-            if (issue_name==""){//no issue name provided
+           if (issue_name==""){//no issue name provided
                 console.log("no issue name provided")
                 $( "#new-issue-fail" ).text("이슈가 입력되지 않았습니다.").show().effect( "shake" ).delay(2000).fadeOut();
                 return;
             }
+
             var issue = null;
             for (var i in all_issues){
                 if (all_issues[i].name == issue_name){
@@ -170,15 +327,21 @@
                     $( "#new-issue-fail" ).text("이미 등록된 이슈가 있습니다.").show().effect( "shake" ).delay(2000).fadeOut();
                     return;
                 }else{
+                    //update issues
                     issue.budgets.push(selected_service._id);
+                    issue.budget_assigned += selected_service==null? 0:selected_service.budget_assigned;
                     issues.push(issue);
                     createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                     updateIssueTitle();
+
                     $.post("/issues/"+issue._id, 
                         {
                             budgets: issue.budgets
                         }); 
+                    //update service
                     selected_service.issues.push(issue._id)
+                    treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
+
                     //console.log(selected_service.issues);
                     $.post("budgets/"+selected_service._id,
                         {
@@ -191,26 +354,33 @@
                     year: curr_year,
                     budgets: selected_service==null? []:[selected_service._id]
                 }, function(res){   
-                    issue = res.result[0];            
-                    issues.push(issue);
+                    issue = res.result[0];    
+                    issue.budget_assigned = 0;
+                    issue.budget_assigned += selected_service==null? 0:selected_service.budget_assigned;  
+
+                    //update issue lists
+                    issues.push(issue); 
                     all_issues.push(issue);
+                    issue_map[issue._id] = issue;
                     createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                     updateIssueTitle();
-                    if (selected_service!=null){//connect budget on creation
-                        selected_service.issues.push(issue._id)
+
+                    
+                    if (selected_service!=null){//connect with budget on issue-creation
+                        selected_service.issues.push(issue._id);
+                        treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
                         $.post("budgets/"+selected_service._id, {
                             issues: selected_service.issues
                         })
                     }
-                    //update autocomplete names
-                    setAutocomplete(all_issues);
                 })
 
             }
             $('#new-issue').val(""); 
-            $( "#new-issue-success" ).text(issue.name+" 이슈가 성공적으로 등록되었습니다.").show().delay(2000).fadeOut();       
+            $( "#new-issue-success" ).text(issue_name+" 이슈가 성공적으로 등록되었습니다.").show().delay(2000).fadeOut();       
+            $("#issue-modal").modal("hide");
         }
-        function setAutocomplete(issues){
+        function updateAutocomplete(issues){
             var source = [];
             for (var i in issues){
                 source.push(issues[i].name);
@@ -232,13 +402,32 @@
             }
         }
         function createIssueElem(issue, pos){
-            var newElem = null
+            //console.log(issue)
+            var newElem = $('<a href="#" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">예산 총액: '+treemap.format(issue.budget_assigned)+'</span></a>')
             if (pos=="end"){
-                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.budgets.length+'개</span></a>').appendTo('#issue-list');
+                newElem.appendTo('#issue-list');
             }else{
-                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.budgets.length+'개</span></a>').prependTo('#issue-list');
+                newElem.prependTo('#issue-list');
             }
-            
+            /*
+            var elem = null
+            newElem.mouseover(function(e){
+                e.stopPropagation();
+                console.log("issue-item-over");
+                elem = $("<a href='#' class='delete-issue-item text-right' data-issue-id='"+issue._id+"'>삭제</a>").appendTo($(this));
+                
+                elem.mouseover(function(e){ e.stopPropagation(); })
+                elem.mouseout(function(e){ e.stopPropagation(); })
+                elem.click(function(e){ 
+                    e.stopPropagation();
+                    alert("삭제");
+                }) 
+            });
+            newElem.mouseout(function(e){
+                e.stopPropagation();
+                $(elem).remove();
+            });
+            */
             newElem.attr('data-issue-id', issue._id);
             if (selected_issue!=null && issue._id == selected_issue.attr("data-issue-id")){
                 selected_issue = newElem;
@@ -254,6 +443,8 @@
             selected_issue = null;
             em_budgets = null;
             em_services = null;
+            $("#issue-service-result").hide();
+            $("#issue-service-text").text("");
 
         }
         function selectIssue(){
@@ -266,17 +457,12 @@
                 deselectIssue(); 
             }
             console.log("select");
-            selected_issue = $(this);
-            selected_issue.addClass("list-group-item-info");
-            var id = selected_issue.attr('data-issue-id');
+            selected_issue = $(this);           
+
             //find issue
-            var issue = null;
-            for (var i in issues){
-                if (issues[i]._id==id){
-                    issue = issues[i];
-                    break;
-                }
-            }
+            var id = selected_issue.attr('data-issue-id');
+            var issue = issue_map[id];
+
             //find budgetes             
             em_budgets = [];
             em_services = [];
@@ -292,11 +478,12 @@
                 //    em_services.push(serv);
                 //} 
             }
+
+            selected_issue.addClass("list-group-item-info"); 
             treemap.emphasize(em_budgets);
             if (barchart!=null)   barchart.emphasize(em_services);
-            //console.log(issue.name);
-            //console.log(em_budgets);
-            //console.log(em_services);
+            $("#issue-service-result").show();
+            $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
         }
 
         function searchService(){
@@ -309,9 +496,19 @@
                     filtered.push(service);
                 }
             }
-            barchart.update(filtered, barchart_config.width, barchart_config.height)
+            barchart.update(filtered, barchart_config.width, barchart_config.height);
             //alert(filtered.length+"개 찾음: "+ test);
-            $('#service-search').val(""); 
+            //$('#service-search').val(""); 
+            $('#service-search-text').text(filtered.length + " 개 사업이 검색됨");
+            $('#service-search-result').show();
+
+            //update # of services associated with the selected issue if necessary
+            if (selected_issue!=null){
+                var id = selected_issue.attr('data-issue-id');
+                var issue = issue_map[id];
+                $("#issue-service-result").show();
+                $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+            }
         }
     </script>
 </head>
@@ -356,10 +553,10 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-8">
+                    <div id="budget-area" class="col-md-8">
                         <div id="budget-chart" style="float:left"></div>
                     </div>
-                    <div class="col-md-4" style="padding-left:0px;">
+                    <div id="service-area" class="col-md-4" style="padding-left:0px;">
                         <h4 id="service-chart-title" style="margin:0px;"></h4> 
                         <div id="service-search-group" class="input-group" style="display:none">
                             <input id="service-search" type="text" class="form-control" placeholder="사업명을 입력하세요.">
@@ -367,49 +564,37 @@
                                 <button id="btn-service-search" class="btn btn-default" type="button">검색</button>
                             </span>
                         </div>
+                        <div id="service-search-result" style="display:none; padding: 5px; margin-bottom:5px;" class="alert alert-success" role="alert">
+                          <button id="service-search-cancel" type="button" class="close"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                          <p id="service-search-text"></p>
+                        </div>
+                        <blockquote id="issue-service-result" style="display:none; margin:5px; 0px;">
+                            <h5 id="issue-service-text" class="text-muted"></h5>
+                        </blockquote>
                         <div id="service-chart" style="width:280px;height:700px;overflow: auto;"></div>
                     </div>  
                 </div>
             </div>             
             <!-- ISSUE AREA -->
             <div class="col-md-3">
-                <div class="panel panel-primary">
+                <div id="issue-area" class="panel panel-primary">
                     <div class="panel-heading">
                         <h3 id="issue-title" class="panel-title">2014년 서울시 전체 예산</h3>
                     </div>
-                    <div id="service-functions" class="panel-body">
-                        <div class="jumbotron" style="padding: 10px;">
-                            <div class="btn-group btn-group-justified">
-                                <div class="btn-group">
-                                    <button id="btn-find_docs" type="button" class="btn btn-success">사업 알아보기</button>
-                                    <button id="btn-relate_issues" type="button" class="btn btn-success">사업과 이슈 연걸하기</button>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="panel-body">                        
+                        <div id="service-info"></div>
+                        <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
+                       
                     </div>
-                    <div class="panel-body">
-                        <div class="jumbotron" style="padding: 10px;">
-                            <h4 style="margin-top:2px; margin-bottom:5px; padding:0px"><span class="glyphicon glyphicon-pencil btn-lg"></span> 사회이슈 공유하기</h4>
-                            <div id="new-issue-form">
-                                <div class="input-group"  style="width:100%">
-                                    <input id="new-issue" data-provide="typeahead" type="text" class="form-control" placeholder="연관된 사회이슈를 입력 해주세요." style="width:100%" autocomplete="off">
-                                </div>                                
-                                <div id="new-issue-fail" class="alert alert-danger" role="alert" style="display:none">이슈를 올바르게 입력해주세요.</div>
-                                <div id="new-issue-success" class="alert alert-success" role="alert" style="display:none">이슈를 추가하였습니다.</div>
-                                <br/>
-                                <div class="btn-group btn-group-justified">
-                                    <div class="btn-group">
-                                        <button id="btn-new_issue" type="button" class="btn btn-success">제출</button>
-                                    </div>
-                                    <!--<div class="btn-group">
-                                        <button type="button" class="btn btn-default">취소</button>
-                                    </div>-->
-                                </div>
-                            </div>
-                        </div>
+                    <div class="btn-group btn-group-justified">
+                        <div class="btn-group">
+                            <button id="btn-new-issue" type="button" class="btn btn-info">
+                                <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
+                            </button> 
+                         </div>
                     </div>
-                    <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin-top:0px;">
-                    </h4>
+                    <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
+                    </h4>   
                     <div id="issue-list" class="list-group">
                     </div>
                     <!--<div class="text-center">
@@ -426,9 +611,72 @@
                 </div> 
             </div>
         </div>
+    </div>
+    <!--Progressbar Modal -->
+<!-- Modal -->
 
 
+<!-- Progress Modal -->
+<div class="modal fade" id="progress-modal" tabindex="-1" role="dialog" aria-labelledby="progress-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="progress-modal-label">서울시 예산 정보를 로딩 중입니다...</h4>
+            </div>
+            <div class="modal-body">
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                    </div>
+                </div>  
+            </div>
+        </div>
     </div>
 </div>
+<!-- New Issue Modal -->
+<div class="modal fade" id="issue-modal" tabindex="-1" role="dialog" aria-labelledby="issueModelLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 id="issue-modal-title" class="modal-title" id="issueModelLabel">새로운 이슈 더하기</h4>
+        </div>
+        <div class="modal-body">
+            <p id="issue-modal-info"></p> 
+            <div id="new-issue-form">
+                <div class="input-group"  style="width:100%">
+                    <input id="new-issue" data-provide="typeahead" type="text" class="form-control" placeholder="사회이슈를 입력 해주세요..." style="width:100%" autocomplete="off">
+                </div>                                
+                <div id="new-issue-fail" class="alert alert-danger" role="alert" style="display:none">이슈를 올바르게 입력해주세요.</div>
+                <div id="new-issue-success" class="alert alert-success" role="alert" style="display:none">이슈를 추가하였습니다.</div>
+                <br/>
+            </div>
+                                  
+                       
+        </div>
+        <div class="modal-footer">
+            <button id="issue-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+            <button id="issue-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div>  
+<div class="modal fade" id="service-modal" tabindex="-1" role="dialog" aria-labelledby="serviceModelLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 id="service-modal-title" class="modal-title" id="serviceModelLabel">새로운 이슈 더하기</h4>
+        </div>
+        <div class="modal-body">
+            <p id="service-modal-info"></p> 
+        </div>
+        <div class="modal-footer">
+            <button id="service-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+            <button id="service-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div>  
+
 </body>
 </html>

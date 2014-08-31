@@ -4,7 +4,7 @@ var BarChart = function(config){
       height = config.size.height - margin.top - margin.bottom,
       width = config.size.width - margin.left - margin.right;
 
-  var selected = null;
+  var selected = null, emList=null;
 
   var data = config.data;
 
@@ -55,6 +55,17 @@ var BarChart = function(config){
   }
   chart.update = function(d, w, h){
     data = d;
+    //update emphasize items
+    if (emList!=null){
+      var newList = [];
+      emList.forEach(function(d){ 
+        if (data.indexOf(d)!=-1){
+          newList.push(d)
+        }  
+      });
+      emList = newList;
+    }
+
     h = config.size.height - margin.top - margin.bottom;
     w = config.size.width - margin.left - margin.right;
 
@@ -117,33 +128,50 @@ var BarChart = function(config){
         return d.service;
       });
 
+
     setTimeout(function(){
-      bars.on("mouseover", chart.mouseOver)
-        .on("mouseout", chart.mouseOut)
-        .on("click", chart.mouseClick);
-      entered.on("mouseover", chart.mouseOver)
-        .on("mouseout", chart.mouseOut)
-        .on("click", chart.mouseClick);
-    }, 1000);    
-  }
+      // recover previously emphasized elements
+      var period = 0;
+      if (emList!=null){
+        chart.emphasize(emList);
+        period = 300;
+      }
+      setTimeout(function(){
+        bars.on("mouseover", chart.mouseOver)
+          .on("mouseout", chart.mouseOut)
+          .on("click", chart.mouseClick);
+        entered.on("mouseover", chart.mouseOver)
+          .on("mouseout", chart.mouseOut)
+          .on("click", chart.mouseClick);
+      }, period);
+    }, 800);    
+  }  
   chart.emphasize = function(dl){
+    if (!arguments.length) return emList;
     if (dl==null) return;
+    emList = [];
     var newData = [];
-    dl.forEach(function(d){ if (data.indexOf(d)!=-1)  newData.push(d); });
+    dl.forEach(function(d){ 
+      if (data.indexOf(d)!=-1){
+        newData.push(d); 
+        emList.push(d)
+      }  
+    });
     data.forEach(function(d){   if (dl.indexOf(d)==-1)  newData.push(d); });
     x.domain(newData.map(function(d) { return d.service; }));
     focus.selectAll(".barchart-bar")
       .transition()
-      .duration(300)
+      .duration(250)
       .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
       .attr("opacity", function(d){ return dl.indexOf(d)!=-1? 1.0 : 0.6; });
 
   }
   chart.deemphasize = function(){
+    emList = null;
     x.domain(data.map(function(d) { return d.service; }));
     focus.selectAll(".barchart-bar")
       .transition()
-      .duration(300)
+      .duration(250)
       .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
       .attr("opacity", 1.0);
 
@@ -157,27 +185,38 @@ var BarChart = function(config){
     tip.hide(d, this);                
   }
   chart.mouseClick = function(d){
-    d3.event.stopPropagation();
+    if (d3.event!=null) d3.event.stopPropagation();
 
     if (selected) {
       chart.disableHighlight(selected);
     }
+
     if (selected==this) { //no selection if click the existing selection
-      selected = null;     
-      $("#service-functions").css({"display": "none"});
-      $("#selected_service").removeAttr("id");
-      tip.hide(d, this);
-      config.onDeselect(d); // call de-selection callback
+      if (config.onDeselect(d)){ // call de-selection callback)
+        chart.disableHighlight(selected);
+        selected = null;     
+        $("#service-functions").css({"display": "none"});
+        $("#selected_service").removeAttr("id");        
+      }
     }else{
-      selected = this;       
-      $("#service-functions").css({"display": "inline-block"});
-      $(this).attr("id", "selected_service");
-      chart.enableHighlight(selected);
-      tip.show(d, this);
-      config.onSelect(d); // call selection callback
+      if (config.onSelect(d)){ // call selection callback)
+        chart.disableHighlight(selected);
+        selected = this;       
+        $("#service-functions").css({"display": "inline-block"});
+        $(this).attr("id", "selected_service");
+        chart.enableHighlight(selected);
+      }
     }
   }
+  chart.select = function(selectData){
+    var selectItem = focus.selectAll(".barchart-bar")
+      .filter(function(d){  return (d.service == selectData.service); });
+    console.log(selectItem);
+    var selectElem = selectItem[0][0];
+    chart.mouseClick.call(selectElem, selectData);
+  }
   chart.enableHighlight = function(elem) {
+    if (elem==null) return;
     var g = d3.select(elem);
     var trs = g.transition().duration(100);
     trs.select("rect")
@@ -187,6 +226,7 @@ var BarChart = function(config){
       .style("font-weight", "bold");
   }
   chart.disableHighlight = function(elem) {
+    if (elem==null) return;
     var g = d3.select(elem);
     var trs = g.transition().duration(100);
     trs.select("rect")
@@ -195,19 +235,27 @@ var BarChart = function(config){
       .style("fill", "#555753")
       .style("font-weight", "normal");  
   }
-
-  chart.format = function(budget){
+  chart.format = function(budget, depth){
+    if (arguments.length==1)  depth = 2;
+    depth--;
+    if (depth<0)  return "만원";
     var val;
     var format = d3.format(",");
     if ((val = Math.floor(budget/1000000000000))>0){ //1조
-      var rest = budget-val*1000000000000;
-      return format(val) + "조 " + format(Math.floor(rest/100000000)) + "억원";
+        var rest = budget-val*1000000000000;
+        return format(val) + "조 " + chart.format(rest, depth);
 
+    }else if ((val = Math.floor(budget/100000000))>0){ //1억
+        var rest = budget-val*100000000; 
+        //console.log(val + ", " + rest)
+        return format(val) + "억 " + chart.format(rest, depth);
+    }else if ((val = Math.floor(budget/10000000))>0){//1천
+        var rest = budget-val*10000000; 
+        return format(val) + "천 " + chart.format(rest, depth);
     }
-    val = Math.floor(budget/100000000);
-    var rest = budget-val*100000000;
-    return format(val) + "억 " + format(Math.floor(rest/10000)) + "만원";;
-  }
+    return budget==0? "": format(Math.floor(budget/10000)) + "만원";; 
+
+  } 
   return chart;
 
 };
