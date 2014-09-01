@@ -183,6 +183,8 @@
 
         }
         function selectIssue(){
+            Explore.num_reviewed = 0;
+            console.log(Explore.num_reviewed);
             if (selected_issue!=null){    
                 console.log("deselect");            
                 if (selected_issue.get(0)==this){ 
@@ -226,6 +228,8 @@
             $("#issue-title").text("아래 이슈와 관련된 사업인가요?");
             $("#issue-list-title strong").text(selected_issue.text().split('관련사업:')[0]);
             $("#issue-list-title strong").attr("data-issue-id", selected_issue.attr("data-issue-id"));
+            $("#issue-list-title").append('<p><div><span>목표: </span><span id="num_reviewed">'
+                    +Explore.num_reviewed+'</span><span> / 50개</span></p>');
             $("#btn-back-section").css({"display": "inline-block"});
             $.getJSON('/explore/pass', function(data) {
                 var new_list = '';
@@ -238,7 +242,7 @@
                     + '<div style="text-align: right"><span class="explore-department">'
                     + data.department + '&nbsp;'
                     + data.team + '</span><br /><span class="explore-budget">'
-                    + data.budget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    + Explore.format(data.budget)
                     + ' 원</span></div>'
                     + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
                     + '<div class="btn-group">'

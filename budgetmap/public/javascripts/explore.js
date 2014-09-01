@@ -1,4 +1,6 @@
-Explore = {};
+Explore = {
+    num_reviewed: 0
+};
 
 /* TODO List:
  * - Progress check
@@ -21,7 +23,7 @@ Explore.pass = function(msg, old_id) {
         + '<div style="text-align: right"><span class="explore-department">'
         + msg.department + '&nbsp;'
         + msg.team + '</span><br /><span class="explore-budget">'
-        + msg.budget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        + Explore.format(msg.budget)
         + ' 원</span></div>'
         + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
         + '<div class="btn-group">'
@@ -37,6 +39,9 @@ Explore.pass = function(msg, old_id) {
     $("#data-candidate-"+msg._id+" #btn-related").click(function() {
         var issue_id = $("#issue-list-title strong").attr("data-issue-id");
         var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
+        Explore.num_reviewed++;
+        $("#num_reviewed").text(Explore.num_reviewed);
+        console.log(Explore.num_reviewed);
         $.ajax({
             type: 'POST',
             url: "/explore/related",
@@ -51,6 +56,9 @@ Explore.pass = function(msg, old_id) {
     $("#data-candidate-"+msg._id+" #btn-unrelated").click(function() {
         var issue_id = $("#issue-list-title strong").attr("data-issue-id");
         var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
+        Explore.num_reviewed++;
+        $("#num_reviewed").text(Explore.num_reviewed);
+        console.log(Explore.num_reviewed);
         $.ajax({
             type: 'POST',
             url: "/explore/unrelated",
@@ -72,3 +80,14 @@ Explore.pass = function(msg, old_id) {
         });
     });
 };
+
+Explore.format = function(budget) {
+    var val;
+    if ((val = Math.floor(budget/100000000000)) > 0) {
+        var rest = budget-val*1000000000000;
+        return val + "조 " + Math.floor(rest/100000000) + "억원";
+    }
+    val = Math.floor(budget/10000000);
+    var rest = budget-val*10000000;
+    return val + "억 " + Math.floor(rest/10000) + "만원";
+}
