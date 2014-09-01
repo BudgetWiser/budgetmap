@@ -15,6 +15,7 @@
     "hogan-express": "*",
     "mongodb": "*",
     "mongoskin": "*",
-    "supervisor": "*"
+    "supervisor": "*",
+    "bcrypt": "*"
   }
 }
