@@ -6,6 +6,8 @@ var BarChart = function(config){
 
   var selected = null, emList=null;
 
+  var transPeriod = 1000;
+
   var data = config.data;
 
   var format = d3.format("s");
@@ -90,7 +92,7 @@ var BarChart = function(config){
     // Remove old elements as needed.
     bars.exit()
       .transition()
-      .duration(750)
+      .duration(transPeriod)
       .attr("transform", function(d, i) { 
         var t = d3.transform(d3.select(this).attr("transform")),
           y = t.translate[1];
@@ -100,8 +102,11 @@ var BarChart = function(config){
       
     //Update old elements as needed
     bars.transition()
-      .duration(750)
+      .duration(transPeriod)
       .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }); //((barSize+barPadding)*i)
+
+    bars.select(".barchart-rect").transition().duration(transPeriod)
+      .attr("width", function(d) { return y(d.budget_assigned); })
 
     // Create new elements as needed.  
     var entered = bars.enter().append("g")
@@ -109,7 +114,7 @@ var BarChart = function(config){
       .attr("transform", "translate(0,0)")
 
     entered.transition()
-      .duration(750)
+      .duration(transPeriod)
       .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }) //((barSize+barPadding)*i)
 
     entered.append("rect")
@@ -144,7 +149,7 @@ var BarChart = function(config){
           .on("mouseout", chart.mouseOut)
           .on("click", chart.mouseClick);
       }, period);
-    }, 800);    
+    }, transPeriod);    
   }  
   chart.emphasize = function(dl){
     if (!arguments.length) return emList;

@@ -412,17 +412,17 @@ var TreeMap = function(config){
 		if (selected) {
 			chart.disableHighlight(selected);
 		}
-		/*
+		
 		if (selected==this) { //no selection if click the existing selection
 			selected = null;			
 			tip.hide(d, this);
 			config.onDeselect(d); // call de-selection callback
-		}else{*/
+		}else{
 			selected = this;	  		
 			chart.enableHighlight(selected);
 			tip.show(d, this);
 			config.onSelect(d); // call selection callback				
-		//}
+		}
   		
   	}
   	chart.selectMax = function(){
@@ -450,6 +450,13 @@ var TreeMap = function(config){
 			 	return "이슈:"+d.issue_size + "/사업:" + d.serv_size; 
 			})
   	}
+  	chart.updateIssueCnt = function(){
+ 		treeSVG.selectAll(".treemap-sub-text")
+			.text(function(d) { 
+			 	return "이슈:"+d.issue_size + "/사업:" + d.serv_size; 
+			}) 		
+  	}
+
 	chart.enableHighlight = function(elem) {
 		//console.log("enable")
 		d3.select(elem).select("rect")

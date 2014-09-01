@@ -53,7 +53,7 @@ router.route('/issues/:id')
     .delete(function(req, res){
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
-        /*db.collection('issues').remove({_id: issue_id}, function(err, result){
+        db.collection('issues').remove({_id: issue_id}, function(err, result){
             if (err) {
                 return console.log('insert error', err);
             }
@@ -61,7 +61,7 @@ router.route('/issues/:id')
             if (result) {
                 res.json({ message: 'successfully updated!'});
             }            
-        });  */      
+        });     
     });
 
 
@@ -145,9 +145,11 @@ router.get('/budgets', function(req, res){
 
         //aggregate by category_three 
         var cat3 = {};
+        var tempMap = {};
         var svmap = {};
         for (var i in items){ 
             var budget = items[i];
+            if (budget.budget_assigned==0) continue; // do not consider budget==0
 
             // category 3
             var node = cat3[budget.year + budget.category_three]
@@ -166,6 +168,22 @@ router.get('/budgets', function(req, res){
             node.issue_size += budget.issues!=null? budget.issues.length : 0;
             node.serv_size  += 1;
 
+
+            // resolve duplicate service names
+            if (tempMap[budget.year + budget.service]==null){//duplicate found
+                tempMap[budget.year + budget.service] = [];               
+            }
+            tempMap[budget.year + budget.service].push(budget);
+        }
+        for (var i in tempMap){
+            if (tempMap[i].length>1){
+                for (var j in tempMap[i]){
+                    var budget = tempMap[i][j];
+                    budget.service += ("("+budget.department + "," + budget.team+")-"+j);
+                }
+            }
+        }
+        for (var i in items){ 
             // service map by year (used later)
             svmap[budget.year + budget.service] = budget;
         }
@@ -253,7 +271,9 @@ router.get('/budgets', function(req, res){
         var services = {};
         for (var i in items){ 
             var budget = items[i];
+            if (budget.budget_assigned==0) continue; // do not consider budget==0
             if (budget.year!=currYear) continue;
+
             var prevBudget = svmap[prevYear + budget.service];
 
             if (services[budget.category_three]==null){
@@ -268,9 +288,6 @@ router.get('/budgets', function(req, res){
             services[name].sort(function(a, b){
                 return b.budget_assigned - a.budget_assigned;
             });
-            for (var i = 0; i<services[name].length; i++){
-                services[name][i].service = (i+1) + ". " + services[name][i].service;
-            }
         }
         //console.log(services)
         res.json({budget: seoulBudget, services: services});

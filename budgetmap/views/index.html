@@ -30,12 +30,12 @@
         var issues = null, all_issues = null, budgets = null, all_services = null, services = null;
         var curr_year = 2014;
         var treemap = null, barchart = null;
-        var service_map = {}, issue_map = {}, budget_map = {};
+        var service_map = {}, issue_map = {}, budget_map = {}, service_list_map = {};
         var em_services = null;
         var em_budgets  = null;
         var barchart_config = {
             container : "#service-chart",
-            size :  { width: 250, height: 700},
+            size :  { width: 250, height: 750},
             margin: {top: 0, right: 0, bottom: 0, left: 0},
             onSelect: selectService,
             onDeselect: deselectService
@@ -44,11 +44,11 @@
             container : "#budget-chart",
             size :  { width: 550, height: 700},
             margin : { top: 0, left: 0, bottom: 0, right: 0},
-            onSelect: selectBudget//,
-            //onDeselect: deselectBudget
+            onSelect: selectBudget,
+            onDeselect: deselectBudget
         }
         $(document).ready(function(){
-            initialize();
+            
             $("#progress-modal").modal({
                 keyboard: false,
                 backdrop: "static"
@@ -69,7 +69,7 @@
 
             $.getJSON('/budgets', function(data){
                 budgetLoaded = true;
-                console.log(data.budget);
+                //console.log(data.budget);
                 budgets         = data.budget;
                 console.log(data.budget);
                 for (var i in budgets.children){//top level
@@ -77,34 +77,46 @@
                         budget_map[budgets.children[i].children[j].name] = budgets.children[i].children[j];
                     }
                 }
-                console.log(budget_map);
-                all_services    = data.services;
-                for (var name in all_services){ //construct service map
-                    for (var i in all_services[name]){
-                         service_map[all_services[name][i]._id] = all_services[name][i];
+                //console.log(budget_map);
+                all_services        = [];
+                service_list_map    = data.services;
+                for (var name in service_list_map){ //construct service map
+                    for (var i in service_list_map[name]){
+                         service_map[service_list_map[name][i]._id] = service_list_map[name][i];
+                         all_services.push(service_list_map[name][i]);
                     }                   
                 }
-
+                all_services.sort(function(a, b){
+                    return b.budget_assigned - a.budget_assigned;
+                });
+                //create budget chart
                 treemap_config.data = budgets;
                 treemap = TreeMap(treemap_config);
                 treemap.create();
-                treemap.selectMax();
+                //treemap.selectMax();
+
+                //create service chart
+                barchart_config.data = services = all_services;
+                barchart = BarChart(barchart_config);
+                barchart.create(); 
 
                 //Load Issues
                 $.getJSON('/issues', function(data){
-                issueLoaded = true;
-                all_issues = issues = data;
-                for (var i in all_issues){//construct issue map
-                    issue_map[all_issues[i]._id] = all_issues[i];
-                    //calculate total budget
-                    var total = 0;
-                    for (var j in all_issues[i].budgets){                        
-                        total += service_map[all_issues[i].budgets[j]].budget_assigned;
+                    issueLoaded = true;
+                    all_issues = issues = data;
+                    for (var i in all_issues){//construct issue map
+                        issue_map[all_issues[i]._id] = all_issues[i];
+                        //calculate total budget
+                        var total = 0;
+                        for (var j in all_issues[i].budgets){                        
+                            total += service_map[all_issues[i].budgets[j]].budget_assigned;
+                        }
+                        issue_map[all_issues[i]._id].budget_assigned = total;
                     }
-                    issue_map[all_issues[i]._id].budget_assigned = total;
-                }
-                displayIssues(data);
-            });
+                    displayIssues(data);
+
+                    initialize();
+                });
 
             });
             $('#left-content').resize(function(){
@@ -117,6 +129,7 @@
             $('#service-modal-cancel').click(function (){ selected_service = previous_service; });
             $('#btn-new-issue').click(populateIssueModal);
             $('#btn-service-search').click(searchService);
+            $('#delete-modal-confirm').click(deleteIssue);
 
             $("#service-more-info").click(function() {
                 var url = constructSearchUrl($("#selected_service").text());
@@ -135,8 +148,8 @@
         //     console.log('w, h = ' + elem.width() + ', ' + elem.height());
         // });
         function initialize(){
-            //deselectService(null);
-            //deselectBudget(null);
+            deselectService(null);
+            deselectBudget(null);
         }
         function generateGuide(){
             $("#budget-area").addClass("bootstro")
@@ -160,43 +173,74 @@
                 + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
         }
         function selectBudget(d){
-            deselectService(null); //de-select previously selected service
+            if (services==service_list_map[d.name]) return;
+            //fillter services by the selected budget
+            services = service_list_map[d.name];
 
-            //if (em_budgets && em_budgets.indexOf(d)==-1){
-            //    deselectIssue();
-            //}
-
-            services = all_services[d.name];
+            // set up service chart panel
             $("#service-chart").scrollTop(0);
-            $("#service-chart").empty();
+            //$("#service-chart").empty();
             $("#service-chart-title").text(d.name+" 관련 사업목록("+services.length+"개)");
             $("#service-search-group").show(); 
-            $("#service-search-result").hide();          
+            $("#service-search-result").hide();   
+
+            //draw barchart
+            barchart.update(services, barchart_config.width, barchart_config.height);
             
-            barchart_config.data = services;
-            barchart = BarChart(barchart_config);
-            barchart.create(); 
-            barchart.emphasize(em_services);  
+            //show issue counts on top
             if (selected_issue!=null){
+                barchart.emphasize(em_services);  
                 var id = selected_issue.attr('data-issue-id');
                 var issue = issue_map[id];
                 $("#issue-service-result").show();
                 $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
             }
+
+            //maintain previously selected service, if possible
+            if (selected_service && services.indexOf(selected_service)!=-1){
+                selectService(d);
+            }else{            
+                deselectService(null); //de-select previously selected service
+            }
+            //if (em_budgets && em_budgets.indexOf(d)==-1){
+            //    deselectIssue();
+            //}
         }
-        /*
+        
         function deselectBudget(d){
-            deselectService(null);
+            //deselectService(null);
 
-            services = null;
-            $("#service-chart").empty();
-            $("#service-chart-title").text("");
-            $("#service-search-group").hide();   
+            //set to all services
+            services = all_services;
 
-            barchart = null;          
-        }*/
+            // set up service chart panel
+            $("#service-chart").scrollTop(0);
+            //$("#service-chart").empty();
+            $("#service-chart-title").text("서울시 사업목록("+services.length+"개)");
+            $("#service-search-group").show(); 
+            $("#service-search-result").hide();   
+
+            //draw barchart
+            barchart.update(services, barchart_config.width, barchart_config.height);
+
+            //show issue counts on top
+            if (selected_issue!=null){
+                barchart.emphasize(em_services);  
+                var id = selected_issue.attr('data-issue-id');
+                var issue = issue_map[id];
+                $("#issue-service-result").show();
+                $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+            }    
+
+            //maintain previously selected service, if possible
+            if (selected_service && services.indexOf(selected_service)!=-1){
+                selectService(d);
+            }else{            
+                deselectService(null); //de-select previously selected service
+            }    
+        }
         function serviceName(service){
-            return service.service.split(".")[1];
+            return service.service;//service.service.split(".")[1];
         }
         function populateIssueModal(){
             var service = selected_service; 
@@ -401,20 +445,105 @@
                 createIssueElem(data[i], "end");
             }
         }
+        function deleteIssue(){
+            console.log("removoing: "+ $("#delete-modal-info").attr("data-issue-id"));
+            var issue = issue_map[$("#delete-modal-info").attr("data-issue-id")];
+            if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
+                deselectIssue();
+            }
+
+            if (selected_service!=null){
+                var selVal = $(':radio[name="delete-issue"]:checked').val();
+                console.log(selVal);
+                if (selVal=="disconnect"){ //delete only the connection
+                    //remove connection
+                    selected_service.issues.splice(selected_service.issues.indexOf(issue._id), 1);
+                    issues.splice(issues.indexOf(issue), 1);
+                    issue.budgets.splice(issue.budgets.indexOf(selected_service._id), 1);
+                    $.post("issues/"+issue._id,
+                    {
+                        budgets: issue.budgets
+                    });
+                    $.post("budgets/"+selected_service._id,
+                    {
+                        issues: selected_service.issues
+                    });
+                    //remove issue displayed
+                    $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+                    //update treemap issue count
+                    budget_map[selected_service.category_three].issue_size-=1;
+                    treemap.updateIssueCnt();
+                    $("#delete-modal").modal("hide");
+                    return;
+                }
+            }
+
+            //remove issue completely
+            $.ajax({
+                url: '/issues/'+issue._id,
+                type: 'DELETE',
+                fail: function(result) {
+                    alert("failed to delete issue!")
+                }
+            });
+            //update front-end issue
+            delete issue_map[issue._id];
+            issues.splice(issues.indexOf(issue), 1);
+            all_issues.splice(all_issues.indexOf(issue), 1);
+
+            //remove issue displayed
+            $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+
+            //remove connections
+            for (var i in issue.budgets){
+                var service = service_map[issue.budgets[i]];
+
+                //update issue-service connection
+                service.issues.splice(service.issues.indexOf(issue._id), 1);
+                budget_map[service.category_three].issue_size-=1;
+                $.post("budgets/"+service._id,
+                {
+                    issues: service.issues
+                });
+            }
+            //update treemap issue count
+            treemap.updateIssueCnt();
+
+            $("#delete-modal").modal("hide");
+        }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="#" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">예산 총액: '+treemap.format(issue.budget_assigned)+'</span></a>')
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">예산 총액: '+treemap.format(issue.budget_assigned)+'</span></a>');// data-issue-id="'+issue._id+'"
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
             }else{
                 newElem.prependTo('#issue-list');
             }
+            newElem.find(".delete-issue-item")
+                .hover(function(){
+                    $(this).css('text-decoration', 'underline');
+                }, function(){
+                    $(this).css('text-decoration', 'none');
+                })
+                .click(function(e){
+                    e.stopPropagation();
+                    $("#delete-modal-info").attr("data-issue-id", issue._id);
+                    if (selected_service!=null){
+                        $("#delete-modal-info").html("<h4>"+serviceName(selected_service)+"<small> 사업에서 </small></h4><h4>"+issue.name+"<small> 이슈를 삭제합니다.</small></h4>");
+                        $("#delete-modal-form").show();
+                    }else{
+                        $("#delete-modal-info").html("<h4>"+issue.name+"<small> 이슈를 삭제합니다. </small></h4><br/>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");
+                        $("#delete-modal-form").hide();
+                    }
+                  
+                    $("#delete-modal").modal("show");
+                })
             /*
             var elem = null
             newElem.mouseover(function(e){
                 e.stopPropagation();
                 console.log("issue-item-over");
-                elem = $("<a href='#' class='delete-issue-item text-right' data-issue-id='"+issue._id+"'>삭제</a>").appendTo($(this));
+                elem = $("").appendTo($(this));
                 
                 elem.mouseover(function(e){ e.stopPropagation(); })
                 elem.mouseout(function(e){ e.stopPropagation(); })
@@ -433,10 +562,16 @@
                 selected_issue = newElem;
                 selected_issue.addClass("list-group-item-info");
             }
-            newElem.click(selectIssue);
+            newElem.hover(function(){
+                    newElem.find(".delete-issue-item").show();
+                }, function(){
+                    newElem.find(".delete-issue-item").hide();
+                })
+                .click(selectIssue);
             return newElem;
         }
         function deselectIssue(){
+            if (selected_issue==null) return;
             selected_issue.removeClass("list-group-item-info");
             treemap.deemphasize();
             if (barchart!=null)   barchart.deemphasize();
@@ -546,14 +681,10 @@
             <!-- VISUALIZATION -->
             <div class="col-md-9">
                 <div class="row">
-                    <div class="col-lg-12">
-                        <h3 class="page-header" style="margin-top:0px;">2014년도 서울시 전체 예산
-                            <small> 서울시 사업 예산과 관련된 이슈를 공유해 보세요!</small>
-                        </h3>
-                    </div>
-                </div>
-                <div class="row">
                     <div id="budget-area" class="col-md-8">
+                        <h4 class="page-header" style="margin-top:0px;">서울시 예산 지도(2014)
+                            <small> 서울시 사업 예산과 관련된 이슈를 공유해 보세요!</small>
+                        </h4>
                         <div id="budget-chart" style="float:left"></div>
                     </div>
                     <div id="service-area" class="col-md-4" style="padding-left:0px;">
@@ -677,6 +808,26 @@
         </div>
     </div>
 </div>  
-
+<div class="modal fade" id="delete-modal" tabindex="-1" role="dialog" aria-labelledby="deleteModelLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 id="delete-modal-title" class="modal-title" id="deleteModelLabel">이슈 삭제하기</h4>
+        </div>
+        <div class="modal-body">
+            <p id="delete-modal-info"></p> 
+            <form id="delete-modal-form" style="display:none">
+                <input id="delete-modal-select1" type="radio" name="delete-issue" value="disconnect"> 이 사업에서만 이슈를 삭제합니다.<br>
+                <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete"> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button id="delete-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+            <button id="delete-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div>  
 </body>
 </html>
