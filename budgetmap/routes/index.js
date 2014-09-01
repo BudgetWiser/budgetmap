@@ -15,6 +15,23 @@ router.get('/budgetmap', function(req, res){
     });
 });
 
+router.post('/signin', function(req, res){
+    var db = req.db;
+    var email = req.body.email;
+    var password = req.body.password;
+    console.log(email+", "+password);
+    res.json({msg: "success"})
+    //if user found 
+})
+router.post('/register', function(req, res){
+    var db = req.db;
+    var email = req.body.email;
+    var password = req.body.password;
+    var nickname = req.body.nickname;
+    console.log(email+", "+password+", "+nickname);
+
+    //duplicate email check
+})
 /* RESTFUL DATA API : ISSUES */
 router.route('/issues/:id')
     //get issue by budget name
