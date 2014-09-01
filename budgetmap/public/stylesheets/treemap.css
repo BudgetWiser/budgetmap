@@ -5,17 +5,24 @@
 
 .treemap-text {
   font-size: 12px;
-  fill:aliceblue ;
+  fill:#2e3436  ;
+  pointer-events: none;
+}
+
+.treemap-sub-text {
+  font-size: 10px;
+  fill:#555753;
+  pointer-events: none;
   
 }
 
 .treemap-rect {
-  opacity: 0.7;
+  opacity: 0.8;
   fill: none;
   stroke: none;
 }
 .treemap-legend-rect{
-  opacity: 0.7;
+  opacity: 0.8;
 }
 .treemap-legend-text{
   font-size: 12px;
@@ -27,6 +34,7 @@
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
   border-radius: 2px;
+  pointer-events: none;
 }
 
 /* Creates a small triangle extender for the tooltip */
@@ -37,14 +45,39 @@
   width: 100%;
   line-height: 1;
   color: rgba(0, 0, 0, 0.8);
-  content: "\25BC";
   position: absolute;
-  text-align: center;
+  pointer-events: none;
 }
 
 /* Style northward tooltips differently */
 .treemap-d3-tip.n:after {
+  content: "\25BC";
   margin: -1px 0 0 0;
   top: 100%;
   left: 0;
+  text-align: center;
+}
+/* Eastward tooltips */
+.treemap-d3-tip.e:after {
+  content: "\25C0";
+  margin: -4px 0 0 0;
+  top: 50%;
+  left: -8px;
+}
+
+/* Southward tooltips */
+.treemap-d3-tip.s:after {
+  content: "\25B2";
+  margin: 0 0 1px 0;
+  top: -8px;
+  left: 0;
+  text-align: center;
+}
+
+/* Westward tooltips */
+.treemap-d3-tip.w:after {
+  content: "\25B6";
+  margin: -4px 0 0 -1px;
+  top: 50%;
+  left: 100%;
 }

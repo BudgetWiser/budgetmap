@@ -49,6 +49,19 @@ router.route('/issues/:id')
                 res.json({ message: 'successfully updated!'});
             }            
         });
+    })
+    .delete(function(req, res){
+        var db = req.db;
+        var issue_id = req.toObjectID(req.params.id);
+        db.collection('issues').remove({_id: issue_id}, function(err, result){
+            if (err) {
+                return console.log('insert error', err);
+            }
+            
+            if (result) {
+                res.json({ message: 'successfully updated!'});
+            }            
+        });     
     });
 
 
@@ -124,15 +137,19 @@ router.get('/budgets', function(req, res){
         
         var seoulBudget = {
             name: "seoul-budget-"+currYear,
-            size: 0,
+            size: 0,           
+            issue_size: 0,
+            serv_size: 0,
             children: []
         };
 
         //aggregate by category_three 
         var cat3 = {};
+        var tempMap = {};
         var svmap = {};
         for (var i in items){ 
             var budget = items[i];
+            if (budget.budget_assigned==0) continue; // do not consider budget==0
 
             // category 3
             var node = cat3[budget.year + budget.category_three]
@@ -147,10 +164,26 @@ router.get('/budgets', function(req, res){
                     serv_size: 0
                 };
             }
-            node.size += budget.budget_assigned;
+            node.size       += budget.budget_assigned;
             node.issue_size += budget.issues!=null? budget.issues.length : 0;
             node.serv_size  += 1;
 
+
+            // resolve duplicate service names
+            if (tempMap[budget.year + budget.service]==null){//duplicate found
+                tempMap[budget.year + budget.service] = [];               
+            }
+            tempMap[budget.year + budget.service].push(budget);
+        }
+        for (var i in tempMap){
+            if (tempMap[i].length>1){
+                for (var j in tempMap[i]){
+                    var budget = tempMap[i][j];
+                    budget.service += ("("+budget.department + "," + budget.team+")-"+j);
+                }
+            }
+        }
+        for (var i in items){ 
             // service map by year (used later)
             svmap[budget.year + budget.service] = budget;
         }
@@ -187,10 +220,14 @@ router.get('/budgets', function(req, res){
                     name: cat3node.category1,
                     year: cat3node.year,
                     size: 0,
+                    issue_size: 0,
+                    serv_size: 0,
                     children: []
                 }
             }
-            node.size += cat3node.size;
+            node.size       += cat3node.size;
+            node.issue_size += cat3node.issue_size;
+            node.serv_size  += cat3node.serv_size;;
             node.children.push(cat3node);            
         }
         //aggregate all
@@ -201,7 +238,9 @@ router.get('/budgets', function(req, res){
                 lastYearTotal +=cat1node.size;
                 continue; 
             }
-            seoulBudget.size += cat1node.size
+            seoulBudget.size        += cat1node.size
+            seoulBudget.issue_size  += cat1node.issue_size;
+            seoulBudget.serv_size   += cat1node.serv_size;;
             seoulBudget.children.push(cat1node);
         }
       
@@ -232,7 +271,9 @@ router.get('/budgets', function(req, res){
         var services = {};
         for (var i in items){ 
             var budget = items[i];
+            if (budget.budget_assigned==0) continue; // do not consider budget==0
             if (budget.year!=currYear) continue;
+
             var prevBudget = svmap[prevYear + budget.service];
 
             if (services[budget.category_three]==null){
@@ -247,9 +288,6 @@ router.get('/budgets', function(req, res){
             services[name].sort(function(a, b){
                 return b.budget_assigned - a.budget_assigned;
             });
-            for (var i = 0; i<services[name].length; i++){
-                services[name][i].service = (i+1) + ". " + services[name][i].service;
-            }
         }
         //console.log(services)
         res.json({budget: seoulBudget, services: services});
