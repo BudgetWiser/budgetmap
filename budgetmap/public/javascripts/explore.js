@@ -85,7 +85,7 @@ Explore.pass = function(msg, old_id) {
         Explore.budget_reviewed += msg.budget;
         Explore.budget_unrelated += msg.budget;
         $("#num_reviewed").text(Explore.num_reviewed);
-        $("#num_unrelated").text(Explore.num_reviewed);
+        $("#num_unrelated").text(Explore.num_unrelated);
         $("#budget_reviewed").text(Explore.format(Explore.budget_reviewed));
         $("#budget_unrelated").text(Explore.format(Explore.budget_unrelated));
         $.ajax({
