@@ -5,16 +5,11 @@ Explore = {
     num_unrelated: 0,
     budget_reviewed: 0,
     budget_related: 0,
-    budget_unrelated: 0
+    budget_unrelated: 0,
+    hints_list: [],
+    hint_generator: 0,
+    hint_threshold: 7
 };
-
-/*
- * TODO
- * - num_related, num_unrelated show
- * - progress objective reached
- * - 예산설명서
- * - 모범답안
- */
 
 Explore.pass = function(msg, old_id) {
     var item = $("#data-candidate-"+old_id);
@@ -63,6 +58,7 @@ Explore.pass = function(msg, old_id) {
         Explore.num_related++;
         Explore.budget_reviewed += msg.budget;
         Explore.budget_related += msg.budget;
+        Explore.hint_generator = 0;
         $("#num_reviewed").text(Explore.num_reviewed);
         $("#num_related").text(Explore.num_related);
         $("#budget_reviewed").text(Explore.format(Explore.budget_reviewed));
@@ -85,20 +81,38 @@ Explore.pass = function(msg, old_id) {
         Explore.num_unrelated++;
         Explore.budget_reviewed += msg.budget;
         Explore.budget_unrelated += msg.budget;
+        Explore.hint_generator += Math.random();
         $("#num_reviewed").text(Explore.num_reviewed);
         $("#num_unrelated").text(Explore.num_unrelated);
         $("#budget_reviewed").text(Explore.format(Explore.budget_reviewed));
         $("#budget_unrelated").text(Explore.format(Explore.budget_unrelated));
-        $.ajax({
-            type: 'POST',
-            url: "/explore/unrelated",
-            data: {
-                issue: issue_id,
-                service: service_id
-            },
-        }).done(function(msg) {
-            Explore.pass(msg, service_id);
-        });
+
+        if (Explore.hint_generator > Explore.hint_threshold) {
+            Explore.hint_generator = 0;
+            var rand_idx = Math.floor(Math.random() * Explore.hints_list.length);
+            var hint_id = Explore.hints_list[rand_idx];
+            delete Explore.hints_list[rand_idx];
+            $.ajax({
+                type: 'POST',
+                url: "/explore/pass",
+                data: {
+                   'hint': hint_id
+                },
+            }).done(function(msg) {
+                Explore.pass(msg, service_id);
+            });
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: "/explore/unrelated",
+                data: {
+                    issue: issue_id,
+                    service: service_id
+                },
+            }).done(function(msg) {
+                Explore.pass(msg, service_id);
+            });
+        }
     });
     $("#data-candidate-"+msg._id+" #btn-pass").click(function() {
         var old_id = $(this).parent().parent().parent().attr("data-candidate-id");

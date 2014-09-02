@@ -399,65 +399,64 @@ router.get('/budgets', function(req, res){
  * VERSION 14-08-28: Pure random + remove service=='기본경비'
  * VERSION 14-09-02: Remove budget==0
  */
-router.get('/explore/pass', function(req, res) {
+
+router.pass = function(req, res, hint) {
     var db = req.db;
     var date = new Date();
-    var currYear = date.getFullYear();
+    var currYear = date.getFullYear().toString();
 
-    db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-        var rand_idx;
-        do {
-            rand_idx = Math.floor(Math.random() * items.length);
-        } while (items[rand_idx].service.indexOf('기본경비') == 0
-            || items[rand_idx].budget_assigned == 0);
-        var item = items[rand_idx];
-        var new_candidate = {
-            '_id': item._id,
-            'one': item.category_one,
-            'three': item.category_three,
-            'service': item.service,
-            'department': item.department,
-            'team': item.team,
-            'budget': item.budget_assigned
-        }
-        res.json(new_candidate);
+    if (hint) {
+        db.collection('budgets').findOne({year: currYear, _id: req.toObjectID(hint)}, function(err, item) {
+            var new_candidate = {
+                '_id': item._id,
+                'one': item.category_one,
+                'three': item.category_three,
+                'service': item.service,
+                'department': item.department,
+                'team': item.team,
+                'budget': item.budget_assigned
+            }
+            res.json(new_candidate);
+        });
+    } else {
+        db.collection('budgets').find({year: currYear}).toArray(function(err, items) {
+            var rand_idx;
+            do {
+                rand_idx = Math.floor(Math.random() * items.length);
+            } while (items[rand_idx].service.indexOf('기본경비') == 0
+                || items[rand_idx].budget_assigned == 0);
+            var item = items[rand_idx];
+            var new_candidate = {
+                '_id': item._id,
+                'one': item.category_one,
+                'three': item.category_three,
+                'service': item.service,
+                'department': item.department,
+                'team': item.team,
+                'budget': item.budget_assigned
+            }
+            res.json(new_candidate);
+        });
+    }
+};
+
+router.route('/explore/pass')
+    .get(function(req, res) {
+        router.pass(req, res);
+    })
+    .post(function(req, res) {
+        router.pass(req, res, req.body.hint);
     });
-});
 
 
 router.post('/explore/related', function(req, res) {
     var db = req.db;
     var issue_id = req.body.issue;
     var budget_id = req.body.service;
-    var date = new Date();
-    var currYear = date.getFullYear();
 
     db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
-        if (err) {
-            throw err;
-        }
-        else {
-            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-                var rand_idx;
-                do {
-                    rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service.indexOf('기본경비') == 0
-                    || items[rand_idx].budget_assigned == 0);
-                var item = items[rand_idx];
-                var new_candidate = {
-                    '_id': item._id,
-                    'one': item.category_one,
-                    'two': item.category_two,
-                    'three': item.category_three,
-                    'service': item.service,
-                    'department': item.department,
-                    'team': item.team,
-                    'budget': item.budget_assigned
-                }
-                console.log('new_candidate', new_candidate);
-                res.json(new_candidate);
-            });
-        }
+        if (err) throw err;
+        router.pass(req, res);
     });
 });
 
@@ -466,34 +465,10 @@ router.post('/explore/unrelated', function(req, res) {
     var db = req.db;
     var issue_id = req.toObjectID(req.body.issue);
     var budget_id = req.toObjectID(req.body.service);
-    var date = new Date();
-    var currYear = date.getFullYear();
 
     db.collection('issues').update({_id: issue_id}, {'$push': {unrelated: budget_id}}, function(err, result) {
-        if (err) {
-            throw err;
-        } else {
-            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-                var rand_idx;
-                do {
-                    rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service.indexOf('기본경비') == 0
-                    || items[rand_idx].budget_assigned == 0);
-                var item = items[rand_idx];
-                var new_candidate = {
-                    '_id': item._id,
-                    'one': item.category_one,
-                    'two': item.category_two,
-                    'three': item.category_three,
-                    'service': item.service,
-                    'department': item.department,
-                    'team': item.team,
-                    'budget': item.budget_assigned
-                }
-                console.log('new_candidate', new_candidate);
-                res.json(new_candidate);
-            });
-        }
+        if (err) throw err;
+        router.pass(req, res);
     });
 });
 /*
