@@ -141,7 +141,7 @@ router.route('/issues')
     //retrieve all the issues
     .get(function(req, res){
         if (req.session.useremail){
-            console.log(req.session.useremail + "created a new issue");
+            console.log('treemap', req.session.useremail, "lists all issues");
         }
         var db = req.db;
         db.collection('issues').find().toArray(function(err, items){
@@ -154,7 +154,7 @@ router.route('/issues')
     //create a new issue
     .post(function(req, res){
         if (req.session.useremail){
-            console.log(req.session.useremail + "created a new issue");
+            console.log('treemap', req.session.useremail, "created a new issue");
         }
         var db = req.db;
         var budgets = [], related = [], unrelated = [];
@@ -200,7 +200,7 @@ router.route('/issues')
 //update budget with new issues added
 router.post('/budgets/:id',function(req, res){
     if (req.session.useremail){
-        console.log(req.session.useremail + "created a new issue");
+        console.log('treemap', req.session.useremail, "created a new issue");
     }
     var db = req.db;
     var budget_id = req.toObjectID(req.params.id);    
@@ -222,7 +222,7 @@ router.post('/budgets/:id',function(req, res){
 });
 router.get('/budgets', function(req, res){
     if (req.session.useremail){
-        console.log(req.session.useremail + "created a new issue");
+        console.log('treemap', req.session.useremail, "created a new issue");
     }
     var db = req.db;
     var date = new Date();
@@ -401,7 +401,7 @@ router.get('/budgets', function(req, res){
  */
 
 router.pass = function(req, res, hint) {
-    var db = req.db;
+    var db = req.expl;
     var date = new Date();
     var currYear = date.getFullYear().toString();
 
@@ -440,34 +440,61 @@ router.pass = function(req, res, hint) {
     }
 };
 
+router.get('/explore/issues', function(req, res) {
+    var db = req.expl;
+    db.collection('issues').find().toArray(function(err, items) {
+        items.sort(function(a, b) {
+            return b.related.length - a.related.length;
+        });
+        if (req.session.useremail) {
+            console.log('explore', req.session.useremail, "listed all issues");
+        }
+        res.json(items);
+    });
+});
+
 router.route('/explore/pass')
     .get(function(req, res) {
+        if (req.session.useremail) {
+            console.log('explore', req.session.useremail, "moved on to next service");
+        }
         router.pass(req, res);
     })
     .post(function(req, res) {
+        if (req.session.useremail) {
+            console.log('explore', req.session.useremail, "used a hint");
+        }
         router.pass(req, res, req.body.hint);
     });
 
 
 router.post('/explore/related', function(req, res) {
-    var db = req.db;
+    var db = req.expl;
     var issue_id = req.body.issue;
     var budget_id = req.body.service;
 
-    db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
+    db.collection('issues').update({_id: req.toObjectID(issue_id)}, 
+        {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
         if (err) throw err;
+        if (req.session.useremail) {
+            console.log(req.session.useremail, "reported a related service", budget_id);
+        }
         router.pass(req, res);
     });
 });
 
 
 router.post('/explore/unrelated', function(req, res) {
-    var db = req.db;
+    var db = req.expl;
     var issue_id = req.toObjectID(req.body.issue);
     var budget_id = req.toObjectID(req.body.service);
 
-    db.collection('issues').update({_id: issue_id}, {'$push': {unrelated: budget_id}}, function(err, result) {
+    db.collection('issues').update({_id: issue_id}, 
+        {'$push': {unrelated: budget_id}}, function(err, result) {
         if (err) throw err;
+        if (req.session.useremail) {
+            console.log(req.session.useremail, "reported an unrelated service", budget_id);
+        }
         router.pass(req, res);
     });
 });
@@ -475,164 +502,4 @@ router.post('/explore/unrelated', function(req, res) {
  * End of explorer task functions.
  */
 
-
-/*
-router.get('/issue/:id', function(req, res){
-    var db = req.db;
-    if (req.params.id === 'list') {
-        db.collection("issue").find().toArray(function(err, items) {
-            var result = [];
-            for (var i in items) {
-                var budget_ids = items[i]._budget_id || null;
-                result.push({
-                    _id: items[i]._id,
-                    name: items[i].name,
-                    _budget_ids: budget_ids
-                });
-            }
-            res.json(result.sort());
-            console.log("/issue/list: Generated new list");
-        });
-    } else {
-        db.collection("issue").find({
-            _budget_id: {$in: [req.params.id]}
-        }).toArray(function(err, items){
-            var result = [];
-            for (i in items) {
-                var budget_ids = items[i]._budget_id || null;
-                result.push({
-                    _id: items[i]._id,
-                    name: items[i].name,
-                    _budget_ids: budget_ids
-                });
-            }
-            res.json(result);
-        });
-    }
-});
-
-router.get('/budget/kvpairs', function(req, res) {
-    var db = req.db;
-    
-    db.collection("seoul_budget").find().toArray(function(err, items) {
-        var result = {};
-        for (var i in items) {
-            result[items[i]._id] = items[i].name;
-        }
-        //console.log(result);
-        res.json(result);
-    });
-});
-
-router.post('/issue/add', function(req, res){
-    var db = req.db;
-    var data = req.body;
-    if (data.issue == null || data.issue == '') {
-        console.log("ERROR /issue/add: no issue entered");
-        res.json({success: 0, errcode: "No issue entered / How did you get here?"});
-    } else {
-        db.collection("issue").findOne({name: data.issue}, function(err, result) {
-            if (err) {
-                console.log("ERROR /issue/add: error querying issue from DB");
-                res.json({success: 0, errcode: "Internal DB errorr"});
-            } else if (!result) {
-                var insert_query = {};
-                if (data.budget_id == '') {
-                    insert_query = {
-                        name: data.issue
-                    }
-                } else {
-                    insert_query = {
-                        name: data.issue,
-                        _budget_id: [req.toObjectID(data.budget_id)]
-                    }
-                }
-                db.collection("issue").insert(insert_query, function(err, result) {
-                    if (err) {
-                        console.log("ERROR /issue/add: failed logging issue to DB: " + data.issue);
-                        res.json({success: 0, errcode: "DB insert error"});
-                    } else {
-                        console.log("/issue/add: Logged new issue_names entry: " + result.name);
-                        res.json({success: 1, errcode: "DB insert success"});
-                    }
-                });
-            } else {
-                if (data.budget_id == '' || result._budget_id.toString().indexOf(req.toObjectID(data.budget_id)) > -1) {
-                    console.log("ERROR /issue/add: issue-budget relation already exists");
-                    res.json({success: 0, errcode: "Budget-Issue relation already exists"});
-                } else {
-                    db.collection("issue").update({
-                        name: data.issue,
-                    }, {'$push': {
-                        _budget_id: req.toObjectID(data.budget_id)
-                    }}, function(err) {
-                       if (err) {
-                           console.log("ERROR /issue/add: failed updating budget_id to DB");
-                           res.json({success: 0, errcode: "DB update error"});
-                       } else {
-                           console.log("/issue/add: Appended new budget_id: " + data.budget_id);
-                           res.json({success: 1, errcode: "Db update success"});
-                       }
-                    });
-                }
-            }
-        });
-    }
-});
-
-router.post('/issue/search', function(req, res) {
-    var db = req.db;
-    var budgetspider = req.budgetspider;
-    var data = req.body;
-    
-    if (data.query == null || data.query == '') {
-        console.log("ERROR /issue/search: Invalid query");
-        res.json({success: 0, errcode: "Invalid query"});
-    } else {
-        db.collection("search_index").findOne({
-            query: data.query
-        }, function(err, result) {
-            if (err) {
-                console.log("ERROR /issue/search: Error querying search index from DB");
-                res.json({success: 0, errcode: "Internal DB error"});
-            } else if (!result) {
-                query = '/*' + data.query + '/*';
-
-                budgetspider.collection("budgetspider").find({
-                    service: {$regex: query}
-                }).toArray(function(err, items) {
-                    for (var i in items) {
-                        delete items[i].start_date;
-                        delete items[i].end_date;
-                        delete items[i].budget_summary;
-                        delete items[i].budget_current;
-                        delete items[i].budget_contract;
-                        delete items[i].budget_spent;
-                    }
-                    db.collection("search_index").insert({
-                        query: data.query,
-                        results: items
-                    }, function(err, newQuery) {
-                        if (err) {
-                            console.log("ERROR /issue/search inserting search index");
-                            res.json({success: 0, errcode: "DB insert error"});
-                        }
-                        else {
-                            console.log("/issue/search: Inserted new search index");
-                            var result = {
-                                query: data.query,
-                                result: newQuery
-                            };
-                            res.json({success: 1, errcode: "DB insert success", result: newQuery[0]});
-                        }
-                    });
-                });
-            } else {
-                console.log("/issue/search: Previous search index found");
-                res.json({success: 1, errcode: "Search success", result: result});
-            }
-        });
-    }
-});
-*/
 module.exports = router;

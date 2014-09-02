@@ -48,7 +48,7 @@
         $(document).ready(function(){
             initialize();
 
-            $.getJSON('/issues', function(data){
+            $.getJSON('/explore/issues', function(data){
                 all_issues = issues = data;
                 console.log('getjson', data);
                 displayIssues(data);
@@ -286,14 +286,6 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
                     <li><a href="/explore">Explore Task</a></li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    <li>
-                        <a href="#">About</a>
-                    </li>
-                    <li>
-                        <a href="#">Login</a>
-                    </li>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
