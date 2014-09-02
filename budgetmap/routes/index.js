@@ -60,10 +60,11 @@ router.route('/issues/:id')
         for (var i in req.body.budgets){ // convert to objectID
             budgets.push(req.toObjectID(req.body.budgets[i]));
         }
+        console.log('update', budgets);
 
         //update issue
         
-        db.collection('issues').update({_id: req.toObjectId(issue_id)}, { '$set': { budgets: req.toObjectId(budgets)} }, function(err, result){
+        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets} }, function(err, result){
             if (err) {
                 return console.log('insert error', err);
             }
@@ -84,7 +85,7 @@ router.route('/issues/:id')
             if (result) {
                 res.json({ message: 'successfully updated!'});
             }            
-        });     
+        });
     });
 
 
@@ -106,6 +107,7 @@ router.route('/issues')
         if (req.body.budgets){ 
             for (var i in req.body.budgets){ // convert to objectID
                 budgets.push(req.toObjectID(req.body.budgets[i]));
+                console.log(budgets);
             }
         }
         if (req.body.related) {
@@ -118,6 +120,7 @@ router.route('/issues')
                 budgets.push(req.toObjectID(req.body.unrelated[i]));
             }
         }
+        console.log(budgets);
         var new_issue = {
             name: req.body.name,
             year: req.body.year,

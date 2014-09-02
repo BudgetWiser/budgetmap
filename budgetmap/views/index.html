@@ -552,7 +552,6 @@
             $("#delete-modal").modal("hide");
         }
         function createIssueElem(issue, pos){
-            //console.log(issue)
             var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">예산 총액: '+treemap.format(issue.budget_assigned)+'</span></a>');// data-issue-id="'+issue._id+'"
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
