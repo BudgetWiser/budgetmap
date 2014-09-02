@@ -8,7 +8,7 @@ Explore = {
     budget_unrelated: 0,
     hints_list: [],
     hint_generator: 0,
-    hint_threshold: 7
+    hint_threshold: 7,
 };
 
 Explore.pass = function(msg, old_id) {
@@ -41,6 +41,8 @@ Explore.pass = function(msg, old_id) {
         + '관련 없음</button></div></div></div>';
     item.html(new_candidate);
 
+    Explore.treemap.drawBorder(msg.three);
+
     if (Explore.num_reviewed == Explore.max_reviewed) {
         alert("권장 목표를 모두 달성하였습니다! 찾아주신 사업은 연구자료로 소중히 사용됩니다.  감사합니다!");
         if (confirm("다음 권장 목표에 도전하시겠습니까")) {
@@ -50,6 +52,7 @@ Explore.pass = function(msg, old_id) {
             $("#max_reviewed").text(Explore.max_reviewed.toString()+"(달성)");
         }
     }
+
 
     $("#data-candidate-"+msg._id+" #btn-related").click(function() {
         var issue_id = $("#issue-list-title strong").attr("data-issue-id");

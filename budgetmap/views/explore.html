@@ -19,7 +19,7 @@
     <script type="text/javascript" src="/libraries/bootstrap-typeahead/bootstrap3-typeahead.min.js"></script>
 
     <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
-    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script type="text/javascript" src="/javascripts/treemap_cp.js"></script>
     <script type="text/javascript" src="/javascripts/barchart.js"></script>
     <script type="text/javascript" src="/javascripts/explore.js"></script>
     <script type="text/javascript">
@@ -201,9 +201,15 @@
 
         }
         function selectIssue(){
+            Explore.max_reviewed = 50;
             Explore.num_reviewed = 0;
-            Explore.relativity = 0;
+            Explore.num_related = 0;
+            Explore.num_unrelated = 0;
             Explore.budget_reviewed = 0;
+            Explore.budget_related = 0;
+            Explore.budget_unrelated = 0;
+            Explore.treemap = treemap;
+
             if (selected_issue!=null){    
                 console.log("deselect");            
                 if (selected_issue.get(0)==this){ 
@@ -238,7 +244,7 @@
                 //    em_services.push(serv);
                 //} 
             }
-            treemap.emphasize(em_budgets);
+            //treemap.emphasize(em_budgets);
             if (barchart!=null)   barchart.emphasize(em_services);
             //console.log(issue.name);
             //console.log(em_budgets);
@@ -247,13 +253,13 @@
             $(".panel-primary strong").css("color", "#08298A");
             $("#issue-list-title strong").text(selected_issue.text().split('관련사업:')[0]);
             $("#issue-list-title strong").attr("data-issue-id", selected_issue.attr("data-issue-id"));
-            $("#progress").append('<p><span>현재까지: </span><span id="num_reviewed">'
+            $("#progress").append('<p><span>현재까지 (개수): </span><span id="num_reviewed">'
                     + Explore.num_reviewed+'</span><span> / 권장 목표: '
                     + '<span id="max_reviewed">'+Explore.max_reviewed+'</span><span></span><br />'
                     + '<span>관련 있음: </span><span id="num_related">'
                     + Explore.num_related+'</span><span class="separator"> / </span><span>관련 없음: </span>'
                     + '<span id="num_unrelated">'+Explore.num_unrelated+'</span></p>');
-            $("#progress").append('<p><span>현재까지: </span><span id="budget_reviewed">'
+            $("#progress").append('<p><span>내가 검토한 예산: </span><span id="budget_reviewed">'
                     + Explore.budget_reviewed+'</span><span>원</span><br />'
                     + '<span>관련 있음: </span><span id="budget_related">'
                     + Explore.budget_related+'</span><span>원</span><br />'
@@ -268,6 +274,7 @@
                     + 'id="data-candidate-init"></div>';
                 $("#issue-list").html(new_list);
                 Explore.pass(msg, "init");
+                Explore.hints_list = issue.hint;
             });
         }
 
