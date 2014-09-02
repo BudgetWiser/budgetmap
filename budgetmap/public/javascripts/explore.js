@@ -22,7 +22,8 @@ Explore.pass = function(msg, old_id) {
     item.attr('data-candidate-id', msg._id);
     item.attr('id', 'data-candidate-'+msg._id);
     var new_candidate = '<p><strong style="color: #08298A; cursor: pointer;">'
-        + msg.service + '</strong></p>'
+        + '<a href="'+Explore.searchUrl(msg.service)+'" target="_blank">'
+        + msg.service + '</a></strong></p>'
         + '<div id="candidate-detail" style="text-align: right; color: #848484">'
         + '<p><span class="explore-category" style="margin-top: 5px;">'
         + msg.one + '&nbsp; &gt; &nbsp;'
@@ -130,3 +131,8 @@ Explore.format = function(budget, depth) {
     }
     return budget == 0 ? "": Math.floor(budget/10000) + "만";
 };
+
+Explore.searchUrl = function(name) {
+                return 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
+                + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
+}
