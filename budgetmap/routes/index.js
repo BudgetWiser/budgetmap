@@ -10,15 +10,22 @@ router.get('/', function(req, res) {
 router.get('/treemap', function(req, res) {
   res.render('treemap', { title: 'Budget-Vis Test' });
 });
+
 router.get('/budgetmap', function(req, res){
     res.render('index', {
         title: "budgetmap",
     });
 });
+
+router.get('/explore', function(req, res) {
+    res.render('explore', {title: 'Budgetmap'});
+});
+
 router.post('/logout', function(req, res){
     req.session.useremail = null;
     res.json({code: 0, message: "Logout Success"});
 });
+
 router.post('/signin', function(req, res){
     var db = req.db;
     var email = req.body.email;
@@ -74,10 +81,6 @@ router.post('/register', function(req, res){
             });
         });
     });
-});
-
-router.get('/explore', function(req, res) {
-    res.render('explore', {title: 'Budgetmap'});
 });
 
 /* RESTFUL DATA API : ISSUES */
@@ -393,7 +396,8 @@ router.get('/budgets', function(req, res){
 /*
  * Explorer task functions
  * VERSION 14-08-26: Pure random
- * VERSION 14-08-28: Pure random + weighed unrelated
+ * VERSION 14-08-28: Pure random + remove service=='기본경비'
+ * VERSION 14-09-02: Remove budget==0
  */
 router.get('/explore/pass', function(req, res) {
     var db = req.db;
@@ -404,8 +408,8 @@ router.get('/explore/pass', function(req, res) {
         var rand_idx;
         do {
             rand_idx = Math.floor(Math.random() * items.length);
-        } while (items[rand_idx].service.indexOf('기본경비') == 0);
-        console.log(rand_idx);
+        } while (items[rand_idx].service.indexOf('기본경비') == 0
+            || items[rand_idx].budget_assigned == 0);
         var item = items[rand_idx];
         var new_candidate = {
             '_id': item._id,
@@ -437,7 +441,8 @@ router.post('/explore/related', function(req, res) {
                 var rand_idx;
                 do {
                     rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service.indexOf('기본경비') == 0);
+                } while (items[rand_idx].service.indexOf('기본경비') == 0
+                    || items[rand_idx].budget_assigned == 0);
                 var item = items[rand_idx];
                 var new_candidate = {
                     '_id': item._id,
@@ -472,7 +477,8 @@ router.post('/explore/unrelated', function(req, res) {
                 var rand_idx;
                 do {
                     rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service.indexOf('기본경비') == 0);
+                } while (items[rand_idx].service.indexOf('기본경비') == 0
+                    || items[rand_idx].budget_assigned == 0);
                 var item = items[rand_idx];
                 var new_candidate = {
                     '_id': item._id,
