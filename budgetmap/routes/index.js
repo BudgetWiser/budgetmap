@@ -4,7 +4,7 @@ var router  = express.Router();
 
 /* GET web pages. */
 router.get('/', function(req, res) {
-  res.render('index', { title: 'Budgetmap' });
+  res.render('index', { title: 'Task B' });
 });
 
 router.get('/treemap', function(req, res) {
@@ -13,12 +13,16 @@ router.get('/treemap', function(req, res) {
 
 router.get('/budgetmap', function(req, res){
     res.render('index', {
-        title: "budgetmap",
+        title: "Task B",
     });
 });
 
 router.get('/explore', function(req, res) {
-    res.render('explore', {title: 'Budgetmap'});
+    res.render('explore', {title: 'Task C'});
+});
+
+router.get('/empty', function(req, res) {
+    res.render('empty', {title: 'Task A'});
 });
 
 router.post('/logout', function(req, res){
