@@ -114,6 +114,25 @@
                     issueLoaded = true;
                     all_issues = issues = data;
                     console.log(all_issues);
+                    /* clear all issues
+                    for (var i in all_issues){
+                        //remove issue completely
+                        $.ajax({
+                            url: '/issues/'+all_issues[i]._id,
+                            type: 'DELETE',
+                            fail: function(result) {
+                                alert("failed to delete issue!")
+                            }
+                        });
+                    }
+                    for (var i in all_services){
+                        if (all_services[i].length>0){
+                            $.post("budgets/"+all_services[i]._id,
+                            {
+                                issues: []
+                            });
+                        }
+                    }*/
                     for (var i in all_issues){//construct issue map
                         console.log(all_issues[i]);
                         issue_map[all_issues[i]._id] = all_issues[i];
