@@ -4,7 +4,7 @@ var router  = express.Router();
 
 /* GET web pages. */
 router.get('/', function(req, res) {
-  res.render('index', { title: 'Express' });
+  res.render('index', { title: 'Budgetmap' });
 });
 
 router.get('/treemap', function(req, res) {
@@ -44,6 +44,7 @@ router.post('/signin', function(req, res){
         });
     });
 })
+
 router.post('/register', function(req, res){
     var db = req.db;
     var email = req.body.email;
@@ -73,7 +74,12 @@ router.post('/register', function(req, res){
             });
         });
     });
-})
+});
+
+router.get('/explore', function(req, res) {
+    res.render('explore', {title: 'Budgetmap'});
+});
+
 /* RESTFUL DATA API : ISSUES */
 router.route('/issues/:id')
     //get issue by budget name
@@ -98,6 +104,7 @@ router.route('/issues/:id')
         for (var i in req.body.budgets){ // convert to objectID
             budgets.push(req.toObjectID(req.body.budgets[i]));
         }
+        console.log('update', budgets);
 
         //update issue
         
@@ -123,7 +130,7 @@ router.route('/issues/:id')
             if (result) {
                 res.json({ message: 'successfully updated!'});
             }            
-        });     
+        });
     });
 
 
@@ -147,16 +154,30 @@ router.route('/issues')
             console.log(req.session.useremail + "created a new issue");
         }
         var db = req.db;
-        var budgets = [];
+        var budgets = [], related = [], unrelated = [];
         if (req.body.budgets){ 
             for (var i in req.body.budgets){ // convert to objectID
                 budgets.push(req.toObjectID(req.body.budgets[i]));
+                console.log(budgets);
             }
         }
+        if (req.body.related) {
+            for (var i in req.body.related) {
+                budgets.push(req.toObjectID(req.body.related[i]));
+            }
+        }
+        if (req.body.unrelated) {
+            for (var i in req.body.unrelated) {
+                budgets.push(req.toObjectID(req.body.unrelated[i]));
+            }
+        }
+        console.log(budgets);
         var new_issue = {
             name: req.body.name,
             year: req.body.year,
-            budgets: budgets
+            budgets: budgets,
+            related: related,
+            unrelated: unrelated
         };
         db.collection('issues').insert(new_issue, function(err, result) {
             if (err) {
@@ -368,6 +389,110 @@ router.get('/budgets', function(req, res){
         
     })
 });
+
+/*
+ * Explorer task functions
+ * VERSION 14-08-26: Pure random
+ * VERSION 14-08-28: Pure random + weighed unrelated
+ */
+router.get('/explore/pass', function(req, res) {
+    var db = req.db;
+    var date = new Date();
+    var currYear = date.getFullYear();
+
+    db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
+        var rand_idx;
+        do {
+            rand_idx = Math.floor(Math.random() * items.length);
+        } while (items[rand_idx].service.indexOf('기본경비') == 0);
+        console.log(rand_idx);
+        var item = items[rand_idx];
+        var new_candidate = {
+            '_id': item._id,
+            'one': item.category_one,
+            'three': item.category_three,
+            'service': item.service,
+            'department': item.department,
+            'team': item.team,
+            'budget': item.budget_assigned
+        }
+        res.json(new_candidate);
+    });
+});
+
+
+router.post('/explore/related', function(req, res) {
+    var db = req.db;
+    var issue_id = req.body.issue;
+    var budget_id = req.body.service;
+    var date = new Date();
+    var currYear = date.getFullYear();
+
+    db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
+        if (err) {
+            throw err;
+        }
+        else {
+            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
+                var rand_idx;
+                do {
+                    rand_idx = Math.floor(Math.random() * items.length);
+                } while (items[rand_idx].service.indexOf('기본경비') == 0);
+                var item = items[rand_idx];
+                var new_candidate = {
+                    '_id': item._id,
+                    'one': item.category_one,
+                    'two': item.category_two,
+                    'three': item.category_three,
+                    'service': item.service,
+                    'department': item.department,
+                    'team': item.team,
+                    'budget': item.budget_assigned
+                }
+                console.log('new_candidate', new_candidate);
+                res.json(new_candidate);
+            });
+        }
+    });
+});
+
+
+router.post('/explore/unrelated', function(req, res) {
+    var db = req.db;
+    var issue_id = req.toObjectID(req.body.issue);
+    var budget_id = req.toObjectID(req.body.service);
+    var date = new Date();
+    var currYear = date.getFullYear();
+
+    db.collection('issues').update({_id: issue_id}, {'$push': {unrelated: budget_id}}, function(err, result) {
+        if (err) {
+            throw err;
+        } else {
+            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
+                var rand_idx;
+                do {
+                    rand_idx = Math.floor(Math.random() * items.length);
+                } while (items[rand_idx].service.indexOf('기본경비') == 0);
+                var item = items[rand_idx];
+                var new_candidate = {
+                    '_id': item._id,
+                    'one': item.category_one,
+                    'two': item.category_two,
+                    'three': item.category_three,
+                    'service': item.service,
+                    'department': item.department,
+                    'team': item.team,
+                    'budget': item.budget_assigned
+                }
+                console.log('new_candidate', new_candidate);
+                res.json(new_candidate);
+            });
+        }
+    });
+});
+/*
+ * End of explorer task functions.
+ */
 
 
 /*

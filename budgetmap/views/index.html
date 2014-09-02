@@ -635,6 +635,7 @@
         function createIssueElem(issue, pos){
             //console.log(issue)
             var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">예산 총액: '+(issue.budget_assigned==0? "0원": treemap.format(issue.budget_assigned))+'</span></a>');// data-issue-id="'+issue._id+'"
+
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
             }else{
@@ -789,6 +790,9 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="/explore">Explore Task</a></li>
+                </ul>
                 <ul class="nav navbar-nav navbar-right">
                     <li>
                         <a id="nickname" href="javaScript:void(0);"></a>
@@ -841,7 +845,6 @@
                     <div class="panel-body">                        
                         <div id="service-info"></div>
                         <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
-                       
                     </div>
                     <div class="btn-group btn-group-justified">
                         <div class="btn-group">

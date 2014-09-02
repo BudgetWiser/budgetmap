@@ -1,0 +1,357 @@
+<html>
+<head>
+    <title>{{title}}</title>
+
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
+    <link rel="stylesheet" type="text/css" href="/libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.css">
+
+    <script type="text/javascript" src="/libraries/colorbrewer.js"></script>
+    <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+    <script type="text/javascript" src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.js"></script> 
+    
+    <script type="text/javascript" src="/libraries/bootstrap-3.2.0-dist/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/libraries/bootstrap-typeahead/bootstrap3-typeahead.min.js"></script>
+
+    <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
+    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="/javascripts/explore.js"></script>
+    <script type="text/javascript">
+        var selected_service = null;
+        var selected_issue  = null;
+        var issues = null, all_issues = null, budgets = null, all_services = null, services = null;
+        var curr_year = 2014;
+        var treemap = null, barchart = null;
+        var service_map = {}, issue_map = {}, budget_map = {};
+        var em_services = null;
+        var em_budgets  = null;
+        var barchart_config = {
+            container : "#service-chart",
+            size :  { width: 250, height: 700},
+            margin: {top: 0, right: 0, bottom: 0, left: 0},
+            onSelect: selectService,
+            onDeselect: deselectService
+        };
+        var treemap_config = {
+            container : "#budget-chart",
+            size :  { width: 550, height: 700},
+            margin : { top: 0, left: 0, bottom: 0, right: 0},
+            onSelect: selectBudget,
+            onDeselect: deselectBudget
+        }
+        $(document).ready(function(){
+            initialize();
+
+            $.getJSON('/issues', function(data){
+                all_issues = issues = data;
+                console.log('getjson', data);
+                displayIssues(data);
+                setAutocomplete(all_issues);
+
+            });
+
+            $.getJSON('/budgets', function(data){
+                console.log(data.budget);
+                budgets         = data.budget;
+                console.log(data.budget);
+                for (var i in budgets.children){//top level
+                    for (var j in budgets.children[i].children){
+                        budget_map[budgets.children[i].children[j].name] = budgets.children[i].children[j];
+                    }
+                }
+                console.log(budget_map);
+                all_services    = data.services;
+                for (var name in all_services){
+                    for (var i in all_services[name]){
+                         service_map[all_services[name][i]._id] = all_services[name][i];
+                    }                   
+                }
+
+                treemap_config.data = budgets;
+                treemap = TreeMap(treemap_config);
+                treemap.create();
+            });
+            $('#left-content').resize(function(){
+                var elem = $(this);
+                console.log('w, h = ' + elem.width() + ', ' + elem.height());
+            });
+            $('#new-issue').keypress(function(event) { return event.keyCode != 13; });
+            $('#btn-service-search').click(searchService);
+
+
+            $("#btn-find_docs").click(function() {
+                var name = $("#selected_service").text();
+                console.log(name);
+                var url = 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
+                + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
+                window.open(url, '_blank');
+            });
+        });
+
+        // $(window).resize(function(){
+        //     var elem = $(this);
+        //     console.log('w, h = ' + elem.width() + ', ' + elem.height());
+        // });
+        function initialize(){
+            deselectService(null);
+            deselectBudget(null);
+        }
+        function selectBudget(d){
+            deselectService(null); //de-select previously selected service
+
+            if (em_budgets && em_budgets.indexOf(d)==-1){
+                deselectIssue();
+            }
+
+            services = all_services[d.name];
+            $("#service-chart").empty();
+            $("#service-chart-title strong").text(d.name+" 관련 사업목록("+services.length+")");
+            $("#service-search-group").show();            
+            
+            barchart_config.data = services;
+            barchart = BarChart(barchart_config);
+            barchart.create(); 
+            barchart.emphasize(em_services);  
+        }
+        function deselectBudget(d){
+            deselectService(null);
+
+            services = null;
+            $("#service-chart").empty();
+            $("#service-chart-title strong").text("");
+            $("#service-search-group").hide();   
+
+            barchart = null;          
+        }
+        function selectService(d){
+            if (em_services && em_services.indexOf(d)==-1){
+                deselectIssue();
+            }
+        }
+        
+        function deselectService(d){
+        }
+        function setAutocomplete(issues){
+            var source = [];
+            for (var i in issues){
+                source.push(issues[i].name);
+            }
+            $('#new-issue').typeahead('destroy')
+            $('#new-issue').typeahead({source: source, highlight: true});
+        }
+        function updateIssueTitle(){
+            selected_service==null? $('#issue-list-title strong').text("전체 사회이슈("+(all_issues? all_issues.length : 0)+"개)") 
+                : $('#issue-list-title strong').text("연관 사회이슈("+(issues? issues.length : 0) +"개)");
+        }
+        function displayIssues(data){
+            if (data==null) return;
+            updateIssueTitle();
+            
+            $('#issue-list').empty();
+            for (var i in data){
+                createIssueElem(data[i], "end");
+            }
+        }
+        function createIssueElem(issue, pos){
+            var newElem = null
+            if (pos=="end"){
+                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.related.length+'개</span></a>').appendTo('#issue-list');
+            }else{
+                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.unrelated.length+'개</span></a>').prependTo('#issue-list');
+            }
+            
+            newElem.attr('data-issue-id', issue._id);
+            if (selected_issue!=null && issue._id == selected_issue.attr("data-issue-id")){
+                selected_issue = newElem;
+                selected_issue.addClass("list-group-item-info");
+            }
+            newElem.click(selectIssue);
+            return newElem;
+        }
+        function deselectIssue(){
+            selected_issue.removeClass("list-group-item-info");
+            treemap.deemphasize();
+            if (barchart!=null)   barchart.deemphasize();
+            selected_issue = null;
+            em_budgets = null;
+            em_services = null;
+
+        }
+        function selectIssue(){
+            Explore.num_reviewed = 0;
+            Explore.relativity = 0;
+            Explore.budget_reviewed = 0;
+            if (selected_issue!=null){    
+                console.log("deselect");            
+                if (selected_issue.get(0)==this){ 
+                    deselectIssue();                    
+                    return;
+                } 
+                deselectIssue(); 
+            }
+            selected_issue = $(this);
+            selected_issue.addClass("list-group-item-info");
+            var id = selected_issue.attr('data-issue-id');
+            //find issue
+            var issue = null;
+            for (var i in issues){
+                if (issues[i]._id==id){
+                    issue = issues[i];
+                    break;
+                }
+            }
+            //find budgetes             
+            em_budgets = [];
+            em_services = [];
+            var exists = {};
+            for (var i in issue.budgets){
+                var serv = service_map[issue.budgets[i]];
+                if (exists[serv.category_three]== null){
+                    exists[serv.category_three] = 1;
+                    em_budgets.push(budget_map[serv.category_three]);
+                }
+                em_services.push(serv);
+                //if (services.indexOf(serv)!= -1){
+                //    em_services.push(serv);
+                //} 
+            }
+            treemap.emphasize(em_budgets);
+            if (barchart!=null)   barchart.emphasize(em_services);
+            //console.log(issue.name);
+            //console.log(em_budgets);
+            //console.log(em_services);
+            $("#issue-title").text("아래 이슈와 관련된 사업인가요?");
+            $(".panel-primary strong").css("color", "#08298A");
+            $("#issue-list-title strong").text(selected_issue.text().split('관련사업:')[0]);
+            $("#issue-list-title strong").attr("data-issue-id", selected_issue.attr("data-issue-id"));
+            $("#progress").append('<p><span>내가 찾은 사업 수: </span><span id="num_reviewed">'
+                    + Explore.num_reviewed+'</span><span> / 권장 목표: '
+                    + '<span id="max_reviewed">'+Explore.max_reviewed+'</span><span></span><br />'
+                    + '<span>관련 있음: </span><span id="num_related">'
+                    + Explore.num_related+'</span><span class="separator"> / </span><span>관련 없음: </span>'
+                    + '<span id="num_unrelated">'+Explore.num_unrelated+'</span></p>');
+            $("#progress").append('<p><span>내가 본 예산 총액: </span><span id="budget_reviewed">'
+                    + Explore.budget_reviewed+'</span><span>원</span><br />'
+                    + '<span>관련 있음: </span><span id="budget_related">'
+                    + Explore.budget_related+'</span><br />'
+                    + '<span>관련 없음: </span><span id="budget_unrelated">'
+                    + Explore.budget_unrelated+'</span></p>');
+            $("#btn-back-section").css({"display": "inline-block"});
+            $.ajax({
+                type: 'GET',
+                url: "/explore/pass",
+            }).done(function (msg) {
+                var new_list = '<div class="list-group-item" data-candidate-id="init"'
+                    + 'id="data-candidate-init"></div>';
+                $("#issue-list").html(new_list);
+                Explore.pass(msg, "init");
+            });
+        }
+
+        function searchService(){
+            if (services==null) return;
+            var query =  $('#service-search').val(); 
+            var filtered = [];
+            for (var i in services){
+                var service = services[i];
+                if (service.service.search(query)!=-1){
+                    filtered.push(service);
+                }
+            }
+            barchart.update(filtered, barchart_config.width, barchart_config.height)
+            //alert(filtered.length+"개 찾음: "+ test);
+            $('#service-search').val(""); 
+        }
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-static-top" role="navigation">
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">BudgetMap</a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="/explore">Explore Task</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="#">About</a>
+                    </li>
+                    <li>
+                        <a href="#">Login</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>    
+    <div class="container">
+        <div class="row">
+            <!-- VISUALIZATION -->
+                <div class="row">
+                    <div class="col-md-9">
+                        <h3 class="page-header" style="margin-top:0px;">2014년도 서울시 전체 예산
+                            <small>아직 연결되지 않은 사업예산을 찾아보세요.</small>
+                        </h3>
+                    </div>
+                </div>
+            <div class="col-md-9">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="budget-chart" style="float:left"></div>
+                    </div>
+                    <div class="col-md-4" style="padding-left:0px;">
+                        <h4 id="service-chart-title" style="margin-bottom:15px;"><strong></strong></h4> 
+                        <div id="service-search-group" class="input-group" style="display:none">
+                            <input id="service-search" type="text" class="form-control" placeholder="사업명을 입력하세요.">
+                            <span class="input-group-btn">
+                                <button id="btn-service-search" class="btn btn-default" type="button">검색</button>
+                            </span>
+                        </div>
+                        <div id="service-chart" style="width:280px;height:700px;overflow: auto;"></div>
+                    </div>  
+                </div>
+            </div>             
+            <!-- ISSUE AREA -->
+            <div class="col-md-3">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 id="issue-title" class="panel-title text-center">탐색할 이슈를 선택하세요</h3>
+                    </div>
+                    <div id="issue-list-title" class="text-muted text-center" style="margin-top: 15px; margin-bottom: 15px">
+                        <h4><strong></strong></h4><div id="progress"></div></div>
+                    <div id="issue-list" class="list-group">
+                    </div>
+                    <div id="btn-back-section" class="jumbotron" style="padding: 10px; display: none;">
+                        <div class="btn-group btn-group-justified">
+                            <div class="btn-group">
+                                <a id="btn-issue-back" href="/explore" type="button" class="btn btn-success">다른 이슈 탐색하기</a>
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+            </div>
+        </div>
+
+
+    </div>
+</div>
+</body>
+</html>
