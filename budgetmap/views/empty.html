@@ -184,7 +184,7 @@
                    $('#btn-service-search').trigger('click');
                 }
             });
-            $("#service-more-info").click(function() {
+            $("#btn-service-more-info").click(function() {
                 var url = constructSearchUrl($("#selected_service").text());
                 window.open(url, '_blank');
             });
@@ -838,6 +838,7 @@
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
                     </div>
+                    <button id="btn-service-more-info" class="btn btn-default" type="button">공문서 검색</button>
                     <div id="service-area" class="col-md-4" style="padding-left:0px; display: none;">
                         <h4 id="service-chart-title" style="margin:0px;"></h4> 
                         <div id="service-search-group" class="input-group" style="display:none">
