@@ -16,6 +16,7 @@
     "mongodb": "*",
     "mongoskin": "*",
     "supervisor": "*",
-    "bcrypt": "*"
+    "bcrypt": "*",
+    "express-session": "*"
   }
 }

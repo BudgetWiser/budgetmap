@@ -1,5 +1,6 @@
 var express = require('express');
-var router = express.Router();
+var bcrypt  = require('bcrypt');
+var router  = express.Router();
 
 /* GET web pages. */
 router.get('/', function(req, res) {
@@ -14,28 +15,70 @@ router.get('/budgetmap', function(req, res){
         title: "budgetmap",
     });
 });
-
+router.post('/logout', function(req, res){
+    req.session.useremail = null;
+    res.json({code: 0, message: "Logout Success"});
+});
 router.post('/signin', function(req, res){
     var db = req.db;
     var email = req.body.email;
     var password = req.body.password;
-    console.log(email+", "+password);
-    res.json({msg: "success"})
     //if user found 
+    db.collection('users').find({email: email}).toArray(function(err, items){
+        if (err){
+            return console.log('insert error', err);
+        }
+
+        if (items.length==0){
+            res.json({ code: 1, message: "No Such Email Found!" });
+        }
+        var user = items[0]; // there must be one user matching the email
+        bcrypt.compare(password, user.password, function(err, result) {
+            if (result==true){
+                //session start
+                req.session.useremail = email;
+                res.json({ code: 0, message: "Sign In Success!", user: user});
+            }else{
+                res.json({ code: 2, message: "Password is Not Correct!" });
+            }
+        });
+    });
 })
 router.post('/register', function(req, res){
     var db = req.db;
     var email = req.body.email;
     var password = req.body.password;
     var nickname = req.body.nickname;
-    console.log(email+", "+password+", "+nickname);
 
     //duplicate email check
+    db.collection('users').find({email: email}).toArray(function(err, items){
+        if (err){
+            return console.log('insert error', err);
+        }
+        if (items.length>0){
+            res.json({ code: 1, message: "Email Already Exists!" });
+        }
+        bcrypt.genSalt(10, function(err, salt) {
+            bcrypt.hash(password, salt, function(err, hash) {
+                var newUser = {email: email, password: hash, nickname:nickname};
+                db.collection('users').insert(newUser, function(err, result) {
+                    if (err) {
+                        return console.log('insert error', err);
+                    }
+                    if (result) {
+                        res.json({ code: 0, message: 'Successfully Created!', user: result[0]});
+                    }
+
+                });
+            });
+        });
+    });
 })
 /* RESTFUL DATA API : ISSUES */
 router.route('/issues/:id')
     //get issue by budget name
     .get(function(req, res){
+        console.log(req.session.useremail);
         var db = req.db;
         var budget_id = req.toObjectID(req.params.id);
 
@@ -48,6 +91,7 @@ router.route('/issues/:id')
     })
     //update issue with new budgets linked to it
     .post(function(req, res){
+        console.log(req.session.useremail);
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         var budgets = [];
@@ -68,6 +112,7 @@ router.route('/issues/:id')
         });
     })
     .delete(function(req, res){
+        console.log(req.session.useremail);
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         db.collection('issues').remove({_id: issue_id}, function(err, result){
@@ -85,6 +130,9 @@ router.route('/issues/:id')
 router.route('/issues')
     //retrieve all the issues
     .get(function(req, res){
+        if (req.session.useremail){
+            console.log(req.session.useremail + "created a new issue");
+        }
         var db = req.db;
         db.collection('issues').find().toArray(function(err, items){
             items.sort(function(a, b){
@@ -95,6 +143,9 @@ router.route('/issues')
     })
     //create a new issue
     .post(function(req, res){
+        if (req.session.useremail){
+            console.log(req.session.useremail + "created a new issue");
+        }
         var db = req.db;
         var budgets = [];
         if (req.body.budgets){ 
@@ -124,6 +175,9 @@ router.route('/issues')
 
 //update budget with new issues added
 router.post('/budgets/:id',function(req, res){
+    if (req.session.useremail){
+        console.log(req.session.useremail + "created a new issue");
+    }
     var db = req.db;
     var budget_id = req.toObjectID(req.params.id);    
     var issues = [];
@@ -131,18 +185,21 @@ router.post('/budgets/:id',function(req, res){
         issues.push(req.toObjectID(req.body.issues[i]));
     }
     //update budget
-    console.log(issues);
+    //console.log(issues);
     db.collection('budgets').update({_id: budget_id}, { '$set': { issues: issues} }, function(err, result){
         if (err) {
             return console.log('insert error', err);
         }
-        console.log(result);
+        //console.log(result);
         if (result) {
             res.json({ message: 'successfully updated!'});
         }      
     });
 });
 router.get('/budgets', function(req, res){
+    if (req.session.useremail){
+        console.log(req.session.useremail + "created a new issue");
+    }
     var db = req.db;
     var date = new Date();
     var currYear = date.getFullYear();
