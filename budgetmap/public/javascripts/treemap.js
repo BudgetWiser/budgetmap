@@ -12,8 +12,8 @@ var TreeMap = function(config){
 	var x = d3.scale.linear().range([0, w]);
 	var y = d3.scale.linear().range([0, h]);
 
-	var selected = null, emList = null;
-
+	var selected = null, emList = null, emCategory = null;
+	var period = 500;
 	var treemap = d3.layout.treemap()
 	    .round(false)
 	    .size([w, h-legendSize.height]) //save space for legend
@@ -134,15 +134,16 @@ var TreeMap = function(config){
 		var cell = treeSVG.selectAll(".treemap-cell")
 		  	.data(nodes, function(d) { return d.name }); //return update selection
 
-	    // Remove interaction while constructing and transitioning
-	    cell.on("mouseover", null)
-	        .on("mouseout", null)
-	        .on("click", null);
+	    cell.on("click", chart.cellClick)	  	
+		  	.on('mouseover', chart.cellMouseOver)
+	      	.on('mouseout', chart.cellMouseOut);
+
 
 	    // Remove old elements as needed.
 		cell.exit()
+			.attr("pointer-events", "none")
 			.transition()
-			.duration(750)
+			.duration(period)
 			.attr("transform", function(d, i) { 
 				var t = d3.transform(d3.select(this).attr("transform")),
 			  	x = t.translate[0];
@@ -151,38 +152,58 @@ var TreeMap = function(config){
 			.remove();	 
 
 		//Update old elements as needed
-		cell.transition()
-			.duration(750)
-			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+		cell.attr("pointer-events", "none")
+			.transition()
+			.duration(period)
+			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+			.attr("opacity", function(d){
+				if (emCategory)	return emCategory==d.category1? 1.0:0.5;
+				if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
+				return 1.0;
+			})
+			.each("end", function() { d3.select(this).attr("pointer-events", null); });
 
-		cell.select(".treemap-rect").transition().duration(750)		
+		cell.select(".treemap-rect")
+			.attr("pointer-events", "none")
+			.transition().duration(period)		
 			.attr("width", function(d) { 	return (d.dx-1)<0? 0 : (d.dx-1); })
 		  	.attr("height", function(d) { 	return (d.dy-1)<0? 0 : (d.dy-1); })
+		  	.each("end", function() { d3.select(this).attr("pointer-events", null); });
 
-		cell.select(".treemap-text").transition().duration(750)
+		cell.select(".treemap-text").transition().duration(period)
 		  	.attr("x", function(d) { return d.dx / 2; })
 		  	.attr("y", function(d) { return d.dy / 2; })
 		  	.style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
 		
-		cell.select(".treemap-sub-text").transition().duration(750)
+		cell.select(".treemap-sub-text").transition().duration(period)
 			.attr("x", function(d) { return d.dx; })
 			.attr("y", function(d) { return d.dy; })
 			.style("opacity", function(d) { d.w = this.getComputedTextLength()+4; return d.dx > d.w ? (d.dy>24? 1:0) : 0; });
 
-
 		// Create new elements as needed. 			
 		var entered = cell.enter().append("svg:g")
 		  	.attr("class", "treemap-cell")
-		  	.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-	   
+		  	.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
+			.attr("opacity", function(d){
+				if (emCategory)	return emCategory==d.category1? 1.0:0.5;
+				if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
+				return 1.0;
+			});
+
+		entered.on("click", chart.cellClick)	  	
+		  	.on('mouseover', chart.cellMouseOver)
+	      	.on('mouseout', chart.cellMouseOut);
+
 		entered.append("svg:rect")
 			.attr("class", "treemap-rect")
 			.attr("width", 0)
 			.attr("height", 0)
-		.transition().duration(750)
+			.attr("pointer-events", "none")
+		.transition().duration(period)
 			.attr("width", function(d) { 	return (d.dx-1)<0? 0 : (d.dx-1); })
 		  	.attr("height", function(d) { 	return (d.dy-1)<0? 0 : (d.dy-1); })
-		  	.style("fill", function(d) {	return color(d.parent.name); });
+		  	.style("fill", function(d) {	return color(d.parent.name); })
+		  	.each("end", function() { d3.select(this).attr("pointer-events", null); });
 
 		entered.append("svg:text")
 			.attr("class", "treemap-text")
@@ -192,7 +213,7 @@ var TreeMap = function(config){
 		  	.attr("text-anchor", "middle")
 		  	.text(function(d) { return d.name; })
 		  	.style("opacity", 0.0)
-		.transition().duration(750)
+		.transition().duration(period)
 		  	.style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
 		//issue counts
 		entered.append("svg:text")
@@ -204,7 +225,7 @@ var TreeMap = function(config){
 			.attr("dx", "-.35em")
 			.text(function(d) { return "이슈:"+d.issue_size + "/사업:" + d.serv_size; })
 			.style("opacity", 0.0)
-		.transition().duration(750)
+		.transition().duration(period)
 			.style("opacity", function(d) { d.w = this.getComputedTextLength()+4; return d.dx > d.w ? (d.dy>24? 1:0) : 0; });
 		// *************** Draw Legends **************************************************************** //
 
@@ -217,16 +238,15 @@ var TreeMap = function(config){
 		var legend = legendSVG.selectAll(".treemap-legend")
 			.data(parents, function(d){ return d.name; });
 
-		// Remove interaction while constructing and transitioning
-	    legend.on("mouseover", null)
-	        .on("mouseout", null)
-	        .on("click", null)
+		legend.on('mouseover', chart.legMouseOver)
+	      	.on('mouseout', chart.legMouseOut)
+	      	.on('click', chart.legClick);
 
 		// Remove old elements as needed.
 		legend.exit()		
 			.attr("pointer-events", "none")
 			.transition()
-			.duration(750)
+			.duration(period)
 			.attr("transform", function(d, i) { 
 				var t = d3.transform(d3.select(this).attr("transform")),
 			  	x = t.translate[0];
@@ -235,25 +255,33 @@ var TreeMap = function(config){
 			.remove();
 
 		// Update old elements as needed
-		legend.transition()
-			.duration(750)
-			.attr("transform", function(d, i) { return "translate(" + (i%4*legendWidth) + "," + (Math.floor(i/4)*legendHeight) + ")"; });
+		legend.attr("pointer-events", "none")
+			.transition()
+			.duration(period)
+			.attr("transform", function(d, i) { return "translate(" + (i%4*legendWidth) + "," + (Math.floor(i/4)*legendHeight) + ")"; })
+			.each("end", function() { d3.select(this).attr("pointer-events", null); });
 		
 		// Create new elements as needed.  
 
 		var legEntered = legend.enter().append("g")
 			.attr("class", "treemap-legend")
 			.attr("transform", function(d, i) { return "translate(" + (i%4*legendWidth) + "," + (Math.floor(i/4)*legendHeight) + ")"; });
+		
+		legEntered.on('mouseover', chart.legMouseOver)
+	      	.on('mouseout', chart.legMouseOut)
+	      	.on('click', chart.legClick);	
 
 		legEntered.append("rect")
 			.attr("class","treemap-legend-rect")
 			.attr("width", 0)
 			.attr("height", 0)
+			.attr("pointer-events", "none")
 		.transition()
-			.duration(750)
+			.duration(period)
 			.attr("width", legendElemSize)
 			.attr("height", legendElemSize)
-			.style("fill", function(d){ return color(d.name);});
+			.style("fill", function(d){ return color(d.name);})
+			.each("end", function() { d3.select(this).attr("pointer-events", null); });
 
 		legEntered.append("text")
 		    .attr("class", "treemap-legend-text")
@@ -261,12 +289,14 @@ var TreeMap = function(config){
 		    .attr("dx", legendElemSize+4)
 		    .attr("dy", "1em")
 		    .attr("opacity", 0.0)
+		    .attr("pointer-events", "none")
 		.transition()
-			.duration(750)
-			.attr("opacity", 1.0);
+			.duration(period)
+			.attr("opacity", 1.0)
+			.each("end", function() { d3.select(this).attr("pointer-events", null); });
 
 		// Add Event Handler At the End of transition
-		setTimeout(function(){
+		/*setTimeout(function(){
 			var period = 0;
 			if (emList!=null){
 				chart.emphasize(emList);
@@ -292,33 +322,19 @@ var TreeMap = function(config){
 		      	.on('click', chart.legClick);				
 			}, period)
 
-		}, 750);		
+		}, period);*/		
 	}
 	chart.emphasize = function(dl){
 		console.log("emphasize");
 		if (!arguments.length) return emList;
+		if (dl==null) return;
 		emList = dl;
-		treeSVG.selectAll(".treemap-cell")
-			.attr("pointer-events", "none")
-			.transition()
-			.duration(300)
-			.attr("opacity", function(d){
-				if (dl.indexOf(d)==-1){
-					return 0.5;
-				}
-				return 1.0;
-			})
-			.each("end", function() { d3.select(this).attr("pointer-events", null); });
+    	chart.update(config.data, w, h);
 	}
 	chart.deemphasize = function(){
-		console.log("deemphasize");
-		emList = null;
-		treeSVG.selectAll(".treemap-cell")
-			.attr("pointer-events", "none")
-			.transition()
-			.duration(300)
-			.attr("opacity", 1.0)
-			.each("end", function() { d3.select(this).attr("pointer-events", null); });
+	    if (emList==null) return;
+	    emList = null;
+	    chart.update(config.data, w, h);
 	}
 	var legendClicked = null;
 	chart.legClick = function (d){
@@ -354,45 +370,36 @@ var TreeMap = function(config){
 		}
 	}
 	chart.legMouseOver = function (d){
-  		chart.enableHighlight(this);		  		
-  		legendTip.show(d, this);
   		console.log("legMouseOver");
 
   		//highlight budgets within this category
-  		var catName = d3.select(this).select(".treemap-legend-text").text();
+  		emCategory = d3.select(this).select(".treemap-legend-text").text();
+  		//chart.update(config.data, w, h);
+
+  		chart.enableHighlight(this);		  		
+  		legendTip.show(d, this);
   		//console.log(catName)
   		treeSVG.selectAll(".treemap-cell")
-  		.attr("pointer-events", "none")
-		.transition()
-		.duration(300)
 		.attr("opacity", function(d){
 			//console.log(d)
-			if (d.category1==catName){
+			if (d.category1==emCategory){
 				return 1.0;
 			}
 			return 0.5;
 		})
-		.each("end", function() { d3.select(this).attr("pointer-events", null); });
+		
 
   	}
     chart.legMouseOut = function (d){
+  		console.log("legMouseOut:" + (emList==null));
+  		emCategory = null;
+  		// rollback to previous state
   		chart.disableHighlight(this);     
   		legendTip.hide(d, this);
-  		console.log("legMouseOut:" + (emList==null));
-  		// rollback to previous state
-  		if (emList==null){
-	  		treeSVG.selectAll(".treemap-cell")
-	  		.attr("pointer-events", "none")
-			.transition()
-			.duration(300)
-			.attr("opacity", function(d){
-				return 1.0;
-			})
-			.each("end", function() { console.log("reevents");  d3.select(this).attr("pointer-events", null); });
-		}else{
-			chart.emphasize(emList);
-		}
 
+  		treeSVG.selectAll(".treemap-cell")  		
+		.attr("opacity",1.0)
+		
 
   	}
 	chart.cellMouseOver = function (d){
@@ -482,7 +489,7 @@ var TreeMap = function(config){
 	chart.format = function(budget, depth){
 		if (arguments.length==1)	depth = 2;
 		depth--;
-		if (depth<0)	return "만원";
+		if (depth<0)	return "원";
 		var val;
 		var format = d3.format(",");
 		if ((val = Math.floor(budget/1000000000000))>0){ //1조

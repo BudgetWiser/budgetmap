@@ -11,8 +11,9 @@ var users = require('./routes/users');
 // mongodb settings
 var mongo = require('mongoskin');
 //var db = mongo.db("mongodb://143.248.234.88:17027/budgetmap_proto", {native_parser: true});
-var db = mongo.db("mongodb://143.248.234.88:27017/budgetmap_proto", {native_parser: true});
+var db = mongo.db("mongodb://143.248.234.88:27017/budgetmap_explore_1", {native_parser: true});
 var budgetspider = mongo.db("mongodb://143.248.234.88:27017/budgetspider", {native_parser: true});
+var session = require('express-session');
 
 var app = express();
 
@@ -29,6 +30,9 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 app.use(cookieParser());
+app.use(session({secret: 'budgetmap super secret', 
+                 saveUninitialized: true,
+                 resave: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // db settings

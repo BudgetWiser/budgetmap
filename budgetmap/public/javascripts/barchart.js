@@ -6,7 +6,7 @@ var BarChart = function(config){
 
   var selected = null, emList=null;
 
-  var transPeriod = 1000;
+  var transPeriod = 750;
 
   var data = config.data;
 
@@ -56,8 +56,25 @@ var BarChart = function(config){
     this.update(data, width, height);    
   }
   chart.update = function(d, w, h){
+    console.log("update barchart");
     data = d;
+    if (emList!=null){
+      newData = [];
+      emList.forEach(function(d){ 
+        if (data.indexOf(d)!=-1){
+          newData.push(d); 
+        }  
+      });
+      data.forEach(function(d){   if (emList.indexOf(d)==-1)  newData.push(d); });
+      data = newData;
+    }else{
+      data.sort(function(a, b){
+          return b.budget_assigned - a.budget_assigned;
+      });
+    }
+
     //update emphasize items
+    /*
     if (emList!=null){
       var newList = [];
       emList.forEach(function(d){ 
@@ -66,7 +83,7 @@ var BarChart = function(config){
         }  
       });
       emList = newList;
-    }
+    }*/
 
     h = config.size.height - margin.top - margin.bottom;
     w = config.size.width - margin.left - margin.right;
@@ -84,13 +101,13 @@ var BarChart = function(config){
     var bars = focus.selectAll(".barchart-bar")
       .data(data, function(d) { return d._id; });
 
-    // Remove interaction while constructing and transitioning
-    bars.on("mouseover", null)
-        .on("mouseout", null)
-        .on("click", null);
-
+    bars.on("mouseover", chart.mouseOver)
+          .on("mouseout", chart.mouseOut)
+          .on("click", chart.mouseClick)
+   
     // Remove old elements as needed.
     bars.exit()
+      .attr("pointer-events", "none")
       .transition()
       .duration(transPeriod)
       .attr("transform", function(d, i) { 
@@ -99,23 +116,34 @@ var BarChart = function(config){
         return "translate("+width+","+y+")"; 
       })
       .remove();
-      
+    //console.log(bars)
     //Update old elements as needed
-    bars.transition()
+    bars.attr("pointer-events", "none")// Remove interaction while constructing and transitioning
+      .transition()
       .duration(transPeriod)
-      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }); //((barSize+barPadding)*i)
+      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })//((barSize+barPadding)*i)
+      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.6); })
+      .each("end", function() { d3.select(this).attr("pointer-events", null); });
 
     bars.select(".barchart-rect").transition().duration(transPeriod)
       .attr("width", function(d) { return y(d.budget_assigned); })
+
 
     // Create new elements as needed.  
     var entered = bars.enter().append("g")
       .attr("class", "barchart-bar")
       .attr("transform", "translate(0,0)")
 
-    entered.transition()
+    entered.on("mouseover", chart.mouseOver)
+          .on("mouseout", chart.mouseOut)
+          .on("click", chart.mouseClick);
+
+    entered.attr("pointer-events", "none")
+      .transition()
       .duration(transPeriod)
       .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }) //((barSize+barPadding)*i)
+      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.6); })
+      .each("end", function() { d3.select(this).attr("pointer-events", null); });
 
     entered.append("rect")
       .attr("class", "barchart-rect")
@@ -134,60 +162,66 @@ var BarChart = function(config){
       });
 
 
-    setTimeout(function(){
+    //setTimeout(function(){
       // recover previously emphasized elements
-      var period = 0;
-      if (emList!=null){
-        chart.emphasize(emList);
-        period = 300;
-      }
-      setTimeout(function(){
+      //var period = 0;
+      //if (emList!=null){
+      //  chart.emphasize(emList);
+      //  period = 300;
+      //}
+      /*setTimeout(function(){
+        console.log("attach callbacks")
         bars.on("mouseover", chart.mouseOver)
           .on("mouseout", chart.mouseOut)
           .on("click", chart.mouseClick);
         entered.on("mouseover", chart.mouseOver)
           .on("mouseout", chart.mouseOut)
           .on("click", chart.mouseClick);
-      }, period);
-    }, transPeriod);    
+      }, period);*/
+    //}, transPeriod);    
   }  
   chart.emphasize = function(dl){
     if (!arguments.length) return emList;
     if (dl==null) return;
-    emList = [];
-    var newData = [];
-    dl.forEach(function(d){ 
-      if (data.indexOf(d)!=-1){
-        newData.push(d); 
-        emList.push(d)
-      }  
-    });
-    data.forEach(function(d){   if (dl.indexOf(d)==-1)  newData.push(d); });
+    emList = dl;
+
+    chart.update(data, width, height);
+
+    /*
     x.domain(newData.map(function(d) { return d.service; }));
     focus.selectAll(".barchart-bar")
+      .attr("pointer-events", "none")
       .transition()
       .duration(250)
-      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
-      .attr("opacity", function(d){ return dl.indexOf(d)!=-1? 1.0 : 0.6; });
-
+      .attr("transform", function(d, i) { console.log(x(d.service)); return "translate(0," + x(d.service) + ")"; })
+      .attr("opacity", function(d){ return dl.indexOf(d)!=-1? 1.0 : 0.6; })
+      .each("end", function() { d3.select(this).attr("pointer-events", null); });
+    */
   }
   chart.deemphasize = function(){
+    if (emList==null) return;
     emList = null;
+    chart.update(data, width, height);
+    /*
     x.domain(data.map(function(d) { return d.service; }));
     focus.selectAll(".barchart-bar")
+      .attr("pointer-events", "none")
       .transition()
       .duration(250)
       .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
-      .attr("opacity", 1.0);
-
+      .attr("opacity", 1.0)
+      .each("end", function() { d3.select(this).attr("pointer-events", null); });
+    */
   }
   chart.mouseOver = function(d){             
     if (this!= selected) chart.enableHighlight(this); 
-    tip.show(d, this);        
+    tip.show(d, this);       
+    config.onMouseOver.call(this, d); 
   }
   chart.mouseOut = function(d){
     if (this!= selected) chart.disableHighlight(this); 
-    tip.hide(d, this);                
+    tip.hide(d, this);    
+    config.onMouseOut.call(this, d);            
   }
   chart.mouseClick = function(d){
     if (d3.event!=null) d3.event.stopPropagation();
@@ -243,7 +277,7 @@ var BarChart = function(config){
   chart.format = function(budget, depth){
     if (arguments.length==1)  depth = 2;
     depth--;
-    if (depth<0)  return "만원";
+    if (depth<0)  return "원";
     var val;
     var format = d3.format(",");
     if ((val = Math.floor(budget/1000000000000))>0){ //1조
