@@ -1,5 +1,3 @@
-Treemap = {};
-
 var TreeMap = function(config){
 	var legendSize = {width: config.size.width, height: 70};
 	var margin = config.margin,
@@ -32,7 +30,6 @@ var TreeMap = function(config){
 
 	var treeSVG = svg.append("svg:g")
 	    .attr("transform", "translate(.0,"+legendSize.height+")");	
-    Treemap.treeSVG = treeSVG;
 
 	var legendSVG = svg.append("svg:g")
 		    .attr("transform", "translate(.0,.0)");	
@@ -406,12 +403,12 @@ var TreeMap = function(config){
 
   	}
 	chart.cellMouseOver = function (d){
-		//console.log("cellMouseOver");
+		console.log("cellMouseOver");
   		if (this!= selected) chart.enableHighlight(this);		  		
   		tip.show(d, this);
   	}
 	chart.cellMouseOut = function (d){
-		//console.log("cellMouseOut");
+		console.log("cellMouseOut");
   		if (this!= selected) chart.disableHighlight(this);
   		tip.hide(d, this);
   	}	  	 

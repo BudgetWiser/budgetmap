@@ -41,18 +41,6 @@ Explore.pass = function(msg, old_id) {
         + '관련 없음</button></div></div></div>';
     item.html(new_candidate);
 
-    Treemap.treeSVG.selectAll(".treemap-cell")
-        .select("rect")
-        .style("stroke", "black")
-        .style("stroke-width", "0px");
-
-    Treemap.treeSVG.selectAll(".treemap-cell")
-        .filter(function(d){return d.name==msg.three})
-        .select("rect")
-        .style("stroke", "black")
-        .style("stroke-width", "2px")
-        .attr("opacity", "1");
-
     if (Explore.num_reviewed == Explore.max_reviewed) {
         alert("권장 목표를 모두 달성하였습니다! 찾아주신 사업은 연구자료로 소중히 사용됩니다.  감사합니다!");
         if (confirm("다음 권장 목표에 도전하시겠습니까")) {
