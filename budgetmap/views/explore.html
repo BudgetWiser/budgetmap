@@ -184,7 +184,8 @@
         }
         function selectIssue(){
             Explore.num_reviewed = 0;
-            console.log(Explore.num_reviewed);
+            Explore.relativity = 0;
+            Explore.budget_reviewed = 0;
             if (selected_issue!=null){    
                 console.log("deselect");            
                 if (selected_issue.get(0)==this){ 
@@ -193,7 +194,6 @@
                 } 
                 deselectIssue(); 
             }
-            console.log("select");
             selected_issue = $(this);
             selected_issue.addClass("list-group-item-info");
             var id = selected_issue.attr('data-issue-id');
@@ -226,78 +226,30 @@
             //console.log(em_budgets);
             //console.log(em_services);
             $("#issue-title").text("아래 이슈와 관련된 사업인가요?");
+            $(".panel-primary strong").css("color", "#08298A");
             $("#issue-list-title strong").text(selected_issue.text().split('관련사업:')[0]);
             $("#issue-list-title strong").attr("data-issue-id", selected_issue.attr("data-issue-id"));
-            $("#issue-list-title").append('<p><div><span>목표: </span><span id="num_reviewed">'
-                    +Explore.num_reviewed+'</span><span> / 50개</span></p>');
+            $("#progress").append('<p><span>내가 찾은 사업 수: </span><span id="num_reviewed">'
+                    + Explore.num_reviewed+'</span><span> / 권장 목표: '
+                    + '<span id="max_reviewed">'+Explore.max_reviewed+'</span><span></span><br />'
+                    + '<span>관련 있음: </span><span id="num_related">'
+                    + Explore.num_related+'</span><span class="separator"> / </span><span>관련 없음: </span>'
+                    + '<span id="num_unrelated">'+Explore.num_unrelated+'</span></p>');
+            $("#progress").append('<p><span>내가 본 예산 총액: </span><span id="budget_reviewed">'
+                    + Explore.budget_reviewed+'</span><span>원</span><br />'
+                    + '<span>관련 있음: </span><span id="budget_related">'
+                    + Explore.budget_related+'</span><br />'
+                    + '<span>관련 없음: </span><span id="budget_unrelated">'
+                    + Explore.budget_unrelated+'</span></p>');
             $("#btn-back-section").css({"display": "inline-block"});
-            $.getJSON('/explore/pass', function(data) {
-                var new_list = '';
-                    new_list += '<div class="list-group-item" data-candidate-id="' + data._id
-                    + '" id="data-candidate-' + data._id + '"><strong>'
-                    + data.service + '</strong><br />'
-                    + '<span class="explore-category" style="magin-top: 5px;">'
-                    + data.one + '&nbsp;&gt;&nbsp;'
-                    + data.three + '</span>'
-                    + '<div style="text-align: right"><span class="explore-department">'
-                    + data.department + '&nbsp;'
-                    + data.team + '</span><br /><span class="explore-budget">'
-                    + Explore.format(data.budget)
-                    + ' 원</span></div>'
-                    + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
-                    + '<div class="btn-group">'
-                    + '<button type="submit" class="btn btn-default" id="btn-related" style="font-size: 12px;">'
-                    + '관련 있음</button></div>'
-                    + '<div class="btn-group">'
-                    + '<button type="submit" class="btn btn-default" id="btn-pass" style="font-size: 12px;">'
-                    + '모르겠음</button></div>'
-                    + '<div class="btn-group">'
-                    + '<button type="submit" class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
-                    + '관련 없음</button></div></div></div>';
+            $.ajax({
+                type: 'GET',
+                url: "/explore/pass",
+            }).done(function (msg) {
+                var new_list = '<div class="list-group-item" data-candidate-id="init"'
+                    + 'id="data-candidate-init"></div>';
                 $("#issue-list").html(new_list);
-                    $("#data-candidate-"+data._id+" #btn-related").click(function() {
-                        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
-                        var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
-                        console.log("service_id", service_id);
-                        $.ajax({
-                            type: 'POST',
-                            url: "/explore/related",
-                            data: {
-                                issue: issue_id,
-                                service: service_id
-                            },
-                        }).done(function (msg) {
-                            console.log(issue_id);
-                            console.log("related", msg);
-                            Explore.pass(msg, service_id);
-                        });
-                    });
-                    $("#data-candidate-"+data._id+" #btn-unrelated").click(function() {
-                        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
-                        var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
-                        $.ajax({
-                            type: 'POST',
-                            url: "/explore/unrelated",
-                            data: {
-                                issue: issue_id,
-                                service: service_id
-                            },
-                        }).done(function (msg) {
-                            console.log("unrelated", msg);
-                            Explore.pass(msg, service_id);
-                        });
-                    });
-                    $("#data-candidate-"+data._id+" #btn-pass").click(function() {
-                        var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
-                        $.ajax({
-                            type: 'GET',
-                            url: "/explore/pass",
-                        }).done(function (msg) {
-                            console.log(old_id);
-                            console.log("pass", msg);
-                            Explore.pass(msg, old_id);
-                        });
-                    });
+                Explore.pass(msg, "init");
             });
         }
 
@@ -382,8 +334,8 @@
                     <div class="panel-heading">
                         <h3 id="issue-title" class="panel-title text-center">탐색할 이슈를 선택하세요</h3>
                     </div>
-                    <h4 id="issue-list-title" class="text-muted text-center" style="margin-top: 15px; margin-bottom: 15px">
-                    <strong></strong></h4>
+                    <div id="issue-list-title" class="text-muted text-center" style="margin-top: 15px; margin-bottom: 15px">
+                        <h4><strong></strong></h4><div id="progress"></div></div>
                     <div id="issue-list" class="list-group">
                     </div>
                     <div id="btn-back-section" class="jumbotron" style="padding: 10px; display: none;">

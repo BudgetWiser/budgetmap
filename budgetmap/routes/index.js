@@ -299,7 +299,7 @@ router.post('/explore/related', function(req, res) {
     var date = new Date();
     var currYear = date.getFullYear();
 
-    db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {budgets: req.toObjectID(budget_id)}}, function(err, result) {
+    db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
         if (err) {
             throw err;
         }
