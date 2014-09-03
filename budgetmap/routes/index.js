@@ -30,11 +30,11 @@ router.post('/log', function(req, res){
 });
 
 router.get('/explore', function(req, res) {
-    res.render('explore', {title: 'Task C'});
+    res.render('explore', {title: 'Task C', user: req.session.user? JSON.stringify(req.session.user):"null"});
 });
 
 router.get('/empty', function(req, res) {
-    res.render('empty', {title: 'Task A'});
+    res.render('empty', {title: 'Task A', user: req.session.user? JSON.stringify(req.session.user):"null"});
 });
 
 router.post('/logout', function(req, res){

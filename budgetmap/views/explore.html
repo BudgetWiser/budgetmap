@@ -46,6 +46,11 @@
             onDeselect: deselectBudget
         }
         $(document).ready(function(){
+            var user = JSON.parse($("#user").text());
+            if (user){
+                $("#signin").text("Logout");
+                $("#nickname").text(user.nickname);
+            }
             $("#progress-modal").modal({
                 keyboard: false,
                 backdrop: "static"
@@ -93,6 +98,8 @@
                 treemap_config.data = budgets;
                 treemap = TreeMap(treemap_config);
                 treemap.create();
+
+
             });
             $('#left-content').resize(function(){
                 var elem = $(this);
@@ -101,7 +108,24 @@
             $('#new-issue').keypress(function(event) { return event.keyCode != 13; });
             $('#btn-service-search').click(searchService);
 
-
+            $('#signin').click(function(){
+                if (user){
+                    $.post("/logout", {
+                        user: user
+                    }, function(res){
+                        alert(user.nickname + " : 로그아웃 되었습니다.")
+                        //writeLog("user", "logout",  user.nickname);
+                        user = null;
+                        $("#signin").text("Sign In");
+                        $("#nickname").text("");
+                    }); 
+                }else{
+                    $('#auth-modal').modal("show");    
+                }
+                
+            });
+            $('#btn-signin').click(signin);
+            $('#btn-register').click(register);
             $("#btn-find_docs").click(function() {
                 var name = $("#selected_service").text();
                 console.log(name);
@@ -118,6 +142,59 @@
         function initialize(){
             deselectService(null);
             deselectBudget(null);
+        }
+        function signin(){
+            var email = $('#signin-form :input[name="signinEmail"]').val();
+            var password = $('#signin-form :input[name="signinPassword"]').val();
+
+            if (email == "" || password ==""){
+                $("#signin-fail").text("이메일 혹은 패스워드가 입력되지 않았습니다.").show().effect( "shake" ).delay(2000).fadeOut();
+                return;
+            }
+            $.post("/signin", 
+            {
+                email: email,
+                password: password
+            }, function(res){
+                if (res.code>0){
+                    $("#signin-fail").text(res.message).show().effect( "shake" ).delay(2000).fadeOut();
+                    return;
+                }
+                user = res.user;
+                //writeLog("user", "signin",  user.nickname);
+                $('#signin-form :input[name="signinEmail"]').val("");
+                $('#signin-form :input[name="signinPassword"]').val("");
+                $("#signin").text("Logout");
+                $("#nickname").text(user.nickname);
+                $("#auth-modal").modal("hide");
+            }); 
+        }
+        function register(){
+            var email = $('#register-form :input[name="registerEmail"]').val();
+            var nickname = $('#register-form :input[name="registerNickname"]').val();
+            var password = $('#register-form :input[name="registerPassword"]').val();
+
+            if (email == "" || nickname=="" || password ==""){
+                $("#register-fail").text("입력되지 않은 필드가 있습니다.").show().effect( "shake" ).delay(2000).fadeOut();
+                return;
+            }
+            $.post("/register", 
+            {
+                email: email,
+                nickname: nickname,
+                password: password
+            }, function(res){
+                if (res.code>0){
+                    $("#register-fail").text(res.message).show().effect( "shake" ).delay(2000).fadeOut();
+                    return;
+                }             
+                $('#register-form :input[name="registerEmail"]').val("");
+                $('#register-form :input[name="registerNickname"]').val("");
+                $('#register-form :input[name="registerPassword"]').val("");
+                $("#register-success").text(" 성공적으로 가입되었습니다. 로그인을 해주세요.").show().delay(2000).fadeOut();  
+                //$("#signin").text(res.user.nickname);
+                //$("#auth-modal").modal("hide");
+            });  
         }
         function selectBudget(d){
             deselectService(null); //de-select previously selected service
@@ -325,6 +402,14 @@
                     <li><a href="/">Task B</a></li>
                     <li><a href="/explore">Task C</a></li>
                 </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a id="nickname" href="javaScript:void(0);"></a>
+                    </li>
+                    <li>
+                        <a id="signin" href="javaScript:void(0);">Sign In</a>
+                    </li>
+                </ul>
             </div>
             <!-- /.navbar-collapse -->
         </div>
@@ -397,5 +482,83 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="auth-modal" tabindex="-1" role="dialog" aria-labelledby="authModelLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 id="auth-modal-title" class="modal-title" id="authModelLabel">로그인 또는 가입하기</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <form id="signin-form" role="form">
+                            <h2 class="form-signin-heading">로그인</h2>
+                            <div class="form-group">
+                                <label for="signinEmail">이메일 주소 입력</label>
+                                <input type="email" name="signinEmail" class="form-control" placeholder="Email address">
+                            </div>
+                            <div class="form-group">
+                                <label for="signinPassword">패스워드 입력</label>
+                                <input type="password" name="signinPassword" class="form-control" placeholder="Password">
+                            </div>        
+
+                        </form>
+                        <div id="signin-fail" class="alert alert-danger" role="alert" style="display:none">잘못된 입력입니다..</div>
+                    </div>
+                    <div class="col-md-6">
+
+                        <form id="register-form" role="form">
+                            <h2 class="form-signup-heading"><small>또는</small> 가입하기</h2>
+                            <div class="form-group">
+                                <label for="registerEmail">이메일 주소 입력</label>
+                                <div class="input-group">
+                                    <input type="email" class="form-control" id="registerEmail" name="registerEmail" placeholder="Enter Email" required>
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-asterisk"></span></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerNickname">닉네임 입력</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="registerNickname" id="registerNickname" placeholder="Enter Name" required>
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-asterisk"></span></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerPassword">패스워드 입력</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="registerPassword" name="registerPassword" placeholder="Input Password" required>
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-asterisk"></span></span>
+                                </div>
+                            </div>
+                        </form>
+                        <div id="register-fail" class="alert alert-danger" role="alert" style="display:none">잘못된 입력입니.</div>
+                        <div id="register-success" class="alert alert-info" role="alert" style="display:none">잘못된 입력입니.</div>
+                    </div>  
+                </div>         
+            </div>
+            <div class="modal-footer">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="btn-group btn-group-justified">      
+                            <div class="btn-group">          
+                                <button id="btn-signin" class="btn btn-large btn-primary" type="submit">Sign in</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="btn-group btn-group-justified">      
+                            <div class="btn-group">          
+                                <button id="btn-register" class="btn btn-large btn-success" type="submit">Register</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="user" style="display:none">{{user}}</div>
 </body>
 </html>
