@@ -520,7 +520,23 @@ var TreeMap = function(config){
 			.style("stroke-width", "0px");
 	}
 
-
+    chart.drawBorder = function(name) {
+        if (name) {
+            chart.drawBorder();
+            var rect = treeSVG.selectAll(".treemap-cell")
+                .filter(function(d) { return d.name == name }).select("rect");
+            rect.style("stroke", "black")
+                .style("stroke-width", "2px")
+                .style("opacity", 1);
+        } else {
+            treeSVG.selectAll(".treemap-cell")
+                .select("rect")
+                .style("stroke", "black")
+                .style("stroke-width", "0px")
+                .style("opacity", 0.3);
+        }
+    };
+    
 	chart.format = function(budget, depth){
 		if (arguments.length==1)	depth = 2;
 		depth--;
