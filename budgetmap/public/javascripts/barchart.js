@@ -181,7 +181,15 @@ var BarChart = function(config){
     //}, transPeriod);    
   }  
   chart.emphasize = function(dl){
-    if (!arguments.length) return emList;
+    if (!arguments.length) {
+      effetive = [];
+      data.forEach(function(d){
+        if (emList.indexOf(d)!=-1)
+          effetive.push(d);
+      });
+      return effetive;
+    }
+
     if (dl==null) return;
     emList = dl;
 
@@ -239,7 +247,7 @@ var BarChart = function(config){
       }
     }else{
       if (config.onSelect(d)){ // call selection callback)
-        chart.disableHighlight(selected);
+        //chart.disableHighlight(selected);
         selected = this;       
         $("#service-functions").css({"display": "inline-block"});
         $(this).attr("id", "selected_service");
@@ -257,20 +265,20 @@ var BarChart = function(config){
   chart.enableHighlight = function(elem) {
     if (elem==null) return;
     var g = d3.select(elem);
-    var trs = g.transition().duration(100);
-    trs.select("rect")
+    //var trs = g.transition().duration(100);
+    g.select("rect")
       .style("fill", "#addd8e")
-    trs.select("text")
+    g.select("text")
       .style("fill", "#d95f0e")
       .style("font-weight", "bold");
   }
   chart.disableHighlight = function(elem) {
     if (elem==null) return;
     var g = d3.select(elem);
-    var trs = g.transition().duration(100);
-    trs.select("rect")
+    //var trs = g.transition().duration(100);
+    g.select("rect")
       .style("fill", "#7fcdbb")
-    trs.select("text")
+    g.select("text")
       .style("fill", "#555753")
       .style("font-weight", "normal");  
   }

@@ -51,7 +51,11 @@
             onDeselect: deselectBudget
         }
         $(document).ready(function(){
-            
+            var user = JSON.parse($("#user").text());
+            if (user){
+                $("#signin").text("Logout");
+                $("#nickname").text(user.nickname);
+            }
             $("#progress-modal").modal({
                 keyboard: false,
                 backdrop: "static"
@@ -167,6 +171,7 @@
                         user: user
                     }, function(res){
                         alert(user.nickname + " : 로그아웃 되었습니다.")
+                        writeLog("user", "logout",  user.nickname);
                         user = null;
                         $("#signin").text("Sign In");
                         $("#nickname").text("");
@@ -186,6 +191,7 @@
             });
             $("#service-more-info").click(function() {
                 var url = constructSearchUrl($("#selected_service").text());
+                writeLog("service", "moreinfo", $("#selected_service").text());
                 window.open(url, '_blank');
             });
 
@@ -225,6 +231,17 @@
                 return 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
                 + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
         }
+        function writeLog(tag, action, target){
+
+            if (user==null) return;
+            console.log(tag+", "+action+", "+target);
+            $.post("log", {
+                tag: tag,
+                action: action,
+                target: target
+            });
+
+        }
         function signin(){
             var email = $('#signin-form :input[name="signinEmail"]').val();
             var password = $('#signin-form :input[name="signinPassword"]').val();
@@ -243,6 +260,7 @@
                     return;
                 }
                 user = res.user;
+                writeLog("user", "signin",  user.nickname);
                 $('#signin-form :input[name="signinEmail"]').val("");
                 $('#signin-form :input[name="signinPassword"]').val("");
                 $("#signin").text("Logout");
@@ -279,6 +297,7 @@
         }
         function selectBudget(d){
             if (services==service_list_map[d.name]) return;
+            writeLog("budget", "select", d.name);
             //fillter services by the selected budget
             services = service_list_map[d.name];
 
@@ -319,7 +338,7 @@
         
         function deselectBudget(d){
             //deselectService(null);
-
+            if (d!=null) writeLog("budget", "deselect",  d.name);
             //set to all services
             services = all_services;
 
@@ -400,17 +419,19 @@
             $("#service-modal").modal("show");
         }
         function overService(d){
-            if (services == all_services)   treemap.emphasize([budget_map[d.category_three]]);
+            if (services == all_services)   treemap.enableHighlightByData(budget_map[d.category_three]); //treemap.emphasize([budget_map[d.category_three]]);
         }
         function outService(d){
-            if (selected_issue){
+            treemap.disableHighlightByData(budget_map[d.category_three]);
+            /*if (selected_issue){
                 treemap.emphasize(em_budgets);    
             }else{
                 treemap.deemphasize();
-            }
+            }*/
             
         }
         function selectService(d){
+            writeLog("service", "select", d.service);
             previous_service = selected_service;
             selected_service = d;
             
@@ -441,6 +462,8 @@
         }
 
         function deselectService(d){
+
+            if (d!=null) writeLog("service", "deselect", d.service);
             selected_service = null;
             $('#issue-title').text("2014년 서울시 전체 예산");  
             $('#service-info').html("<h4>2014년 서울시 전체 예산</h4>"+
@@ -460,18 +483,18 @@
             em_services.push(selected_service);
             em_budgets.push(budget_map[selected_service.category_three]);
 
-            //select
-            barchart.select(selected_service);
-
             //emphasize
             barchart.emphasize(em_services);
             treemap.emphasize(em_budgets);
 
+            //select
+            barchart.select(selected_service);
+            
             //add issue
             var issue = issue_map[selected_issue.attr("data-issue-id")];
             $('#new-issue').val(issue.name); //set input box manually
             addIssue();
-
+            writeLog("issue", "connect", issue.name+", "+selected_service.service);
             //setTimeout(function(){
             $("#issue-service-result").show();
             $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
@@ -510,6 +533,7 @@
                     createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                     updateIssueTitle();
 
+                    writeLog("issue", "update", issue.name);
                     $.post("/issues/"+issue._id, 
                         {
                             budgets: issue.budgets
@@ -519,6 +543,7 @@
                     treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
 
                     //console.log(selected_service.issues);
+                    writeLog("service", "update", selected_service.service);
                     $.post("budgets/"+selected_service._id,
                         {
                             issues: selected_service.issues
@@ -542,8 +567,9 @@
                     createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                     updateIssueTitle();
 
-                    
+                    writeLog("issue", "create", issue.name);
                     if (selected_service!=null){//connect with budget on issue-creation
+                        writeLog("service", "update", selected_service.service);
                         selected_service.issues.push(issue._id);
                         treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
                         $.post("budgets/"+selected_service._id, {
@@ -579,6 +605,7 @@
             }
         }
         function deleteIssue(){
+
             console.log("removoing: "+ $("#delete-modal-info").attr("data-issue-id"));
             var issue = issue_map[$("#delete-modal-info").attr("data-issue-id")];
             if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
@@ -589,14 +616,18 @@
                 var selVal = $(':radio[name="delete-issue"]:checked').val();
                 console.log(selVal);
                 if (selVal=="disconnect"){ //delete only the connection
+                    writeLog("issue", "disconnect", issue.name + ", " + selected_service.service);
+                    
                     //remove connection
                     selected_service.issues.splice(selected_service.issues.indexOf(issue._id), 1);
                     issues.splice(issues.indexOf(issue), 1);
                     issue.budgets.splice(issue.budgets.indexOf(selected_service._id), 1);
+                    writeLog("issue", "update", issue.name);
                     $.post("issues/"+issue._id,
                     {
                         budgets: issue.budgets
                     });
+                    writeLog("service", "update", selected_service.service);
                     $.post("budgets/"+selected_service._id,
                     {
                         issues: selected_service.issues
@@ -611,7 +642,7 @@
                     return;
                 }
             }
-
+            writeLog("issue", "delete", issue.name);
             //remove issue completely
             $.ajax({
                 url: '/issues/'+issue._id,
@@ -639,6 +670,7 @@
                 //update issue-service connection
                 service.issues.splice(service.issues.indexOf(issue._id), 1);
                 budget_map[service.category_three].issue_size-=1;
+                writeLog("service", "update", service.service);
                 $.post("budgets/"+service._id,
                 {
                     issues: service.issues
@@ -653,7 +685,7 @@
         }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">예산 총액: '+(issue.budget_assigned==0? "0원": treemap.format(issue.budget_assigned))+'</span></a>');// data-issue-id="'+issue._id+'"
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">현재까지: '+(issue.budget_assigned==0? "0원": treemap.format(issue.budget_assigned))+'</span></a>');// data-issue-id="'+issue._id+'"
 
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
@@ -712,6 +744,7 @@
             return newElem;
         }
         function deselectIssue(){
+            writeLog("issue", "deselect", issue_map[selected_issue.attr('data-issue-id')].name);
             if (selected_issue==null) return;
             selected_issue.removeClass("list-group-item-info");
             treemap.deemphasize();
@@ -732,13 +765,13 @@
                 } 
                 deselectIssue(); 
             }
-            console.log("select");
+            
             selected_issue = $(this);           
 
             //find issue
             var id = selected_issue.attr('data-issue-id');
             var issue = issue_map[id];
-
+            writeLog("issue", "select", issue.name);
             //find budgetes             
             em_budgets = [];
             em_services = [];
@@ -765,7 +798,9 @@
 
         function searchService(){
             if (services==null) return;
+
             var query =  $('#service-search').val(); 
+            writeLog("service", "search", query);
             var filtered = [];
             for (var i in services){
                 var service = services[i];
@@ -966,7 +1001,7 @@
             <div class="modal-body">
                 <p id="delete-modal-info"></p> 
                 <form id="delete-modal-form" style="display:none">
-                    <input id="delete-modal-select1" type="radio" name="delete-issue" value="disconnect"> 이 사업에서만 이슈를 삭제합니다.<br>
+                    <input id="delete-modal-select1" type="radio" name="delete-issue" value="disconnect" checked> 이 사업에서만 이슈를 삭제합니다.<br>
                     <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete"> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
                 </form>
             </div>
@@ -1055,5 +1090,6 @@
         </div>
     </div>
 </div>
+<div id="user" style="display:none">{{user}}</div>
 </body>
 </html>

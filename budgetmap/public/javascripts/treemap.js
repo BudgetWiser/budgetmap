@@ -12,6 +12,7 @@ var TreeMap = function(config){
 	var x = d3.scale.linear().range([0, w]);
 	var y = d3.scale.linear().range([0, h]);
 
+	var data = null;//, prevData = null;
 	var selected = null, emList = null, emCategory = null;
 	var period = 500;
 	var treemap = d3.layout.treemap()
@@ -95,7 +96,8 @@ var TreeMap = function(config){
     	w = config.size.width - margin.left - margin.right;
 		h = config.size.height - margin.top - margin.bottom;
 
-		node = root = d;
+		//prevData = data;
+		node = root = data = d;
 
 	   	// Update scales
 	   	x = d3.scale.linear().range([0, w]);
@@ -157,8 +159,8 @@ var TreeMap = function(config){
 			.duration(period)
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
 			.attr("opacity", function(d){
-				if (emCategory)	return emCategory==d.category1? 1.0:0.5;
-				if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
+				//if (emCategory)	return emCategory==d.category1? 1.0:0.5;
+				//if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
 				return 1.0;
 			})
 			.each("end", function() { d3.select(this).attr("pointer-events", null); });
@@ -173,7 +175,7 @@ var TreeMap = function(config){
 		cell.select(".treemap-text").transition().duration(period)
 		  	.attr("x", function(d) { return d.dx / 2; })
 		  	.attr("y", function(d) { return d.dy / 2; })
-		  	.style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
+		  	.style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? (d.dy>24? 1:0) : 0; });
 		
 		cell.select(".treemap-sub-text").transition().duration(period)
 			.attr("x", function(d) { return d.dx; })
@@ -185,8 +187,8 @@ var TreeMap = function(config){
 		  	.attr("class", "treemap-cell")
 		  	.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
 			.attr("opacity", function(d){
-				if (emCategory)	return emCategory==d.category1? 1.0:0.5;
-				if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
+				//if (emCategory)	return emCategory==d.category1? 1.0:0.5;
+				//if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
 				return 1.0;
 			});
 
@@ -214,7 +216,7 @@ var TreeMap = function(config){
 		  	.text(function(d) { return d.name; })
 		  	.style("opacity", 0.0)
 		.transition().duration(period)
-		  	.style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
+		  	.style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? (d.dy>24? 1:0) : 0; });
 		//issue counts
 		entered.append("svg:text")
 			.attr("class", "treemap-sub-text")
@@ -329,14 +331,21 @@ var TreeMap = function(config){
 		if (!arguments.length) return emList;
 		if (dl==null) return;
 		emList = dl;
-    	chart.update(config.data, w, h);
+		treeSVG.selectAll(".treemap-cell")
+		.attr("opacity", function(d){
+			return emList.indexOf(d)!=-1? 1.0:0.5;
+		});
+    	//chart.update(data, w, h);
 	}
 	chart.deemphasize = function(){
 	    if (emList==null) return;
 	    emList = null;
-	    chart.update(config.data, w, h);
+		treeSVG.selectAll(".treemap-cell")
+		.attr("opacity", 1.0);
+	    //chart.update(data, w, h);
 	}
 	var legendClicked = null;
+	var rollbackData = null;
 	chart.legClick = function (d){
 		chart.disableHighlight(this);     
 		legendTip.hide(d, this);
@@ -359,14 +368,12 @@ var TreeMap = function(config){
 					newData.children.push(root.children[i])
 				}
 			}
-			console.log(newData);
+			rollbackData = data;
 			chart.update(newData, w, h);
 		}else{//if previously selected
 			//release selection (TODO: create a new legend for seeing all)
-			legendClicked = null;
-			
-			console.log(config.data)
-			chart.update(config.data, w, h);
+			legendClicked 	= null;
+			chart.update(rollbackData, w, h);
 		}
 	}
 	chart.legMouseOver = function (d){
@@ -379,6 +386,12 @@ var TreeMap = function(config){
   		chart.enableHighlight(this);		  		
   		legendTip.show(d, this);
   		//console.log(catName)
+		treeSVG.selectAll(".treemap-cell")
+			.filter(function(d) { return d.category1 == emCategory; })
+			.select("rect")
+			.style("stroke", "black")
+			.style("stroke-width", "2px");
+			/*
   		treeSVG.selectAll(".treemap-cell")
 		.attr("opacity", function(d){
 			//console.log(d)
@@ -387,20 +400,27 @@ var TreeMap = function(config){
 			}
 			return 0.5;
 		})
-		
+		*/
 
   	}
     chart.legMouseOut = function (d){
   		console.log("legMouseOut:" + (emList==null));
-  		emCategory = null;
   		// rollback to previous state
   		chart.disableHighlight(this);     
   		legendTip.hide(d, this);
 
+		treeSVG.selectAll(".treemap-cell")
+			.filter(function(d) { return (selected!=this) && (d.category1 == emCategory); })
+			.select("rect")
+			.style("stroke", "black")
+			.style("stroke-width", "0px");
+
+  		emCategory = null;
+  		/*
   		treeSVG.selectAll(".treemap-cell")  		
 		.attr("opacity",1.0)
 		
-
+		*/
   	}
 	chart.cellMouseOver = function (d){
 		console.log("cellMouseOver");
@@ -485,6 +505,21 @@ var TreeMap = function(config){
 		//trs.select("text").style("font-weight", "");
 		//trs.select("text").style("fill", "aliceblue");
 	}
+	chart.enableHighlightByData = function(data){
+		treeSVG.selectAll(".treemap-cell")
+			.filter(function(d) { return d.name == data.name })
+			.select("rect")
+			.style("stroke", "black")
+			.style("stroke-width", "2px");
+	}
+	chart.disableHighlightByData = function(data){
+		treeSVG.selectAll(".treemap-cell")
+			.filter(function(d) { return (selected!=this)&&(d.name == data.name) })
+			.select("rect")
+			.style("stroke", "black")
+			.style("stroke-width", "0px");
+	}
+
 
 	chart.format = function(budget, depth){
 		if (arguments.length==1)	depth = 2;
