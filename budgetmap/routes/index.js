@@ -4,6 +4,7 @@ var router  = express.Router();
 
 /* GET web pages. */
 router.get('/', function(req, res) {
+    console.log(req.session.useremail, 'START treemap');
   res.render('index', { title: 'Task B' });
 });
 
@@ -18,10 +19,12 @@ router.get('/budgetmap', function(req, res){
 });
 
 router.get('/explore', function(req, res) {
+    console.log(req.session.useremail, 'START explore');
     res.render('explore', {title: 'Task C'});
 });
 
 router.get('/empty', function(req, res) {
+    console.log(req.session.useremail, 'START empty');
     res.render('empty', {title: 'Task A'});
 });
 
