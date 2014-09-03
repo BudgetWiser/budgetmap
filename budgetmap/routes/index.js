@@ -4,8 +4,8 @@ var router  = express.Router();
 
 /* GET web pages. */
 router.get('/', function(req, res) {
+    console.log(req.session.useremail, 'START treemap');
     res.render('index', { title: 'Task B', user: req.session.user? JSON.stringify(req.session.user):"null" });  
-
 });
 
 router.get('/treemap', function(req, res) {
@@ -30,10 +30,12 @@ router.post('/log', function(req, res){
 });
 
 router.get('/explore', function(req, res) {
+    console.log(req.session.useremail, 'START explore');
     res.render('explore', {title: 'Task C', user: req.session.user? JSON.stringify(req.session.user):"null"});
 });
 
 router.get('/empty', function(req, res) {
+    console.log(req.session.useremail, 'START empty');
     res.render('empty', {title: 'Task A', user: req.session.user? JSON.stringify(req.session.user):"null"});
 });
 
