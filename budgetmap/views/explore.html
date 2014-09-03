@@ -19,7 +19,7 @@
     <script type="text/javascript" src="/libraries/bootstrap-typeahead/bootstrap3-typeahead.min.js"></script>
 
     <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
-    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script type="text/javascript" src="/javascripts/treemap_cp.js"></script>
     <script type="text/javascript" src="/javascripts/barchart.js"></script>
     <script type="text/javascript" src="/javascripts/explore.js"></script>
     <script type="text/javascript">
@@ -46,17 +46,34 @@
             onDeselect: deselectBudget
         }
         $(document).ready(function(){
-            initialize();
+            $("#progress-modal").modal({
+                keyboard: false,
+                backdrop: "static"
+            });
+            var issueLoaded     = false;
+            var budgetLoaded    = false;
+            var inc = 0;
+            var progress = setInterval(function(){ //Trick Progress
+                inc += inc>=100? 0:Math.floor((Math.random() * 10) + 1);;
+                 $("#progress-bar").css('width', inc+'%').attr('aria-valuenow', inc); 
+                if (issueLoaded && budgetLoaded){
+                    $("#progress-bar").css('width', "100%").attr('aria-valuenow', 100); 
+                    clearInterval(progress); 
+                    $("#progress-modal").modal("hide");
+                } 
+            }, 1000);
 
-            $.getJSON('/issues', function(data){
+            $.getJSON('/explore/issues', function(data){
+                issueLoaded = true;
                 all_issues = issues = data;
-                console.log('getjson', data);
                 displayIssues(data);
                 setAutocomplete(all_issues);
 
+                initialize();
             });
 
             $.getJSON('/budgets', function(data){
+                budgetLoaded = true;
                 console.log(data.budget);
                 budgets         = data.budget;
                 console.log(data.budget);
@@ -160,10 +177,18 @@
         }
         function createIssueElem(issue, pos){
             var newElem = null
+            var sum = 0;
+            for (var i=0; i<issue.related_val.length; i++) {
+                sum += issue.related_val[i];
+            }
+            var spantext = '<br /><span>0원</span>';
+            if (Explore.format(sum)) {
+                spantext = '<br /><span>'+Explore.format(sum)+'원</span>';
+            }
             if (pos=="end"){
-                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.related.length+'개</span></a>').appendTo('#issue-list');
+                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.related.length+'개</span>'+spantext+'</a>').appendTo('#issue-list');
             }else{
-                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.unrelated.length+'개</span></a>').prependTo('#issue-list');
+                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.unrelated.length+'개</span>'+spantext+'</a>').prependTo('#issue-list');
             }
             
             newElem.attr('data-issue-id', issue._id);
@@ -184,9 +209,15 @@
 
         }
         function selectIssue(){
+            Explore.max_reviewed = 50;
             Explore.num_reviewed = 0;
-            Explore.relativity = 0;
+            Explore.num_related = 0;
+            Explore.num_unrelated = 0;
             Explore.budget_reviewed = 0;
+            Explore.budget_related = 0;
+            Explore.budget_unrelated = 0;
+            Explore.treemap = treemap;
+
             if (selected_issue!=null){    
                 console.log("deselect");            
                 if (selected_issue.get(0)==this){ 
@@ -221,7 +252,7 @@
                 //    em_services.push(serv);
                 //} 
             }
-            treemap.emphasize(em_budgets);
+            //treemap.emphasize(em_budgets);
             if (barchart!=null)   barchart.emphasize(em_services);
             //console.log(issue.name);
             //console.log(em_budgets);
@@ -230,18 +261,20 @@
             $(".panel-primary strong").css("color", "#08298A");
             $("#issue-list-title strong").text(selected_issue.text().split('관련사업:')[0]);
             $("#issue-list-title strong").attr("data-issue-id", selected_issue.attr("data-issue-id"));
-            $("#progress").append('<p><span>내가 찾은 사업 수: </span><span id="num_reviewed">'
+            $("#progress").append('<p><span>현재까지 (개수): </span><span id="num_reviewed">'
                     + Explore.num_reviewed+'</span><span> / 권장 목표: '
                     + '<span id="max_reviewed">'+Explore.max_reviewed+'</span><span></span><br />'
                     + '<span>관련 있음: </span><span id="num_related">'
                     + Explore.num_related+'</span><span class="separator"> / </span><span>관련 없음: </span>'
                     + '<span id="num_unrelated">'+Explore.num_unrelated+'</span></p>');
-            $("#progress").append('<p><span>내가 본 예산 총액: </span><span id="budget_reviewed">'
+            $("#progress").append('<p color="#08298a"><span>총 연관 예산: </span><span id="budget_related_total">'
+                    +Explore.budget_related_total+'</span><span>원</span></p>');
+            $("#progress").append('<p><span>내가 검토한 예산: </span><span id="budget_reviewed">'
                     + Explore.budget_reviewed+'</span><span>원</span><br />'
                     + '<span>관련 있음: </span><span id="budget_related">'
-                    + Explore.budget_related+'</span><br />'
+                    + Explore.budget_related+'</span><span>원</span><br />'
                     + '<span>관련 없음: </span><span id="budget_unrelated">'
-                    + Explore.budget_unrelated+'</span></p>');
+                    + Explore.budget_unrelated+'</span><span>원</span></p>');
             $("#btn-back-section").css({"display": "inline-block"});
             $.ajax({
                 type: 'GET',
@@ -251,6 +284,7 @@
                     + 'id="data-candidate-init"></div>';
                 $("#issue-list").html(new_list);
                 Explore.pass(msg, "init");
+                Explore.hints_list = issue.hint;
             });
         }
 
@@ -282,20 +316,14 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/">BudgetMap</a>
+                <a class="navbar-brand" href="#">BudgetMap</a>
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
-                    <li><a href="/explore">Explore Task</a></li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    <li>
-                        <a href="#">About</a>
-                    </li>
-                    <li>
-                        <a href="#">Login</a>
-                    </li>
+                    <li><a href="empty">Task A</a></li>
+                    <li><a href="/">Task B</a></li>
+                    <li><a href="/explore">Task C</a></li>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
@@ -351,6 +379,22 @@
         </div>
 
 
+    </div>
+</div>
+<!-- Progress Modal -->
+<div class="modal fade" id="progress-modal" tabindex="-1" role="dialog" aria-labelledby="progress-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="progress-modal-label">서울시 예산 정보를 로딩 중입니다...</h4>
+            </div>
+            <div class="modal-body">
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                    </div>
+                </div>  
+            </div>
+        </div>
     </div>
 </div>
 </body>

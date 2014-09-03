@@ -5,24 +5,38 @@ Explore = {
     num_unrelated: 0,
     budget_reviewed: 0,
     budget_related: 0,
-    budget_unrelated: 0
+    budget_unrelated: 0,
+    hints_list: [],
+    hint_generator: 0,
+    hint_threshold: 7,
 };
 
-/*
- * TODO
- * - num_related, num_unrelated show
- * - progress objective reached
- * - 예산설명서
- * - 모범답안
- */
-
 Explore.pass = function(msg, old_id) {
+    var issue_id = $("#issue-list-title strong").attr("data-issue-id");
+    $.ajax({
+        type: 'POST',
+        url: "/explore/issues",
+        data: {
+            'issue': issue_id
+        },
+    }).done(function(msg) {
+        var sum = 0;
+        for (var i=0; i<msg['related_val'].length; i++) {
+            sum += msg['related_val'][i];
+        }
+        var val = '0';
+        if (Explore.format(sum)) {
+            val = Explore.format(sum);
+        }
+        $("#budget_related_total").text(Explore.format(sum));
+    });
     var item = $("#data-candidate-"+old_id);
     item.empty();
     item.attr('data-candidate-id', msg._id);
     item.attr('id', 'data-candidate-'+msg._id);
     var new_candidate = '<p><strong style="color: #08298A; cursor: pointer;">'
-        + msg.service + '</strong></p>'
+        + '<a href="'+Explore.searchUrl(msg.service)+'" target="_blank">'
+        + msg.service + '</a></strong></p>'
         + '<div id="candidate-detail" style="text-align: right; color: #848484">'
         + '<p><span class="explore-category" style="margin-top: 5px;">'
         + msg.one + '&nbsp; &gt; &nbsp;'
@@ -45,6 +59,8 @@ Explore.pass = function(msg, old_id) {
         + '관련 없음</button></div></div></div>';
     item.html(new_candidate);
 
+    Explore.treemap.drawBorder(msg.three);
+
     if (Explore.num_reviewed == Explore.max_reviewed) {
         alert("권장 목표를 모두 달성하였습니다! 찾아주신 사업은 연구자료로 소중히 사용됩니다.  감사합니다!");
         if (confirm("다음 권장 목표에 도전하시겠습니까")) {
@@ -55,13 +71,14 @@ Explore.pass = function(msg, old_id) {
         }
     }
 
+
     $("#data-candidate-"+msg._id+" #btn-related").click(function() {
-        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
         var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
         Explore.num_reviewed++;
         Explore.num_related++;
         Explore.budget_reviewed += msg.budget;
         Explore.budget_related += msg.budget;
+        Explore.hint_generator = 0;
         $("#num_reviewed").text(Explore.num_reviewed);
         $("#num_related").text(Explore.num_related);
         $("#budget_reviewed").text(Explore.format(Explore.budget_reviewed));
@@ -78,26 +95,43 @@ Explore.pass = function(msg, old_id) {
         });
     });
     $("#data-candidate-"+msg._id+" #btn-unrelated").click(function() {
-        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
         var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
         Explore.num_reviewed++;
         Explore.num_unrelated++;
         Explore.budget_reviewed += msg.budget;
         Explore.budget_unrelated += msg.budget;
+        Explore.hint_generator += Math.random();
         $("#num_reviewed").text(Explore.num_reviewed);
-        $("#num_unrelated").text(Explore.num_reviewed);
+        $("#num_unrelated").text(Explore.num_unrelated);
         $("#budget_reviewed").text(Explore.format(Explore.budget_reviewed));
         $("#budget_unrelated").text(Explore.format(Explore.budget_unrelated));
-        $.ajax({
-            type: 'POST',
-            url: "/explore/unrelated",
-            data: {
-                issue: issue_id,
-                service: service_id
-            },
-        }).done(function(msg) {
-            Explore.pass(msg, service_id);
-        });
+
+        if (Explore.hint_generator > Explore.hint_threshold) {
+            Explore.hint_generator = 0;
+            var rand_idx = Math.floor(Math.random() * Explore.hints_list.length);
+            var hint_id = Explore.hints_list[rand_idx];
+            delete Explore.hints_list[rand_idx];
+            $.ajax({
+                type: 'POST',
+                url: "/explore/pass",
+                data: {
+                   'hint': hint_id
+                },
+            }).done(function(msg) {
+                Explore.pass(msg, service_id);
+            });
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: "/explore/unrelated",
+                data: {
+                    issue: issue_id,
+                    service: service_id
+                },
+            }).done(function(msg) {
+                Explore.pass(msg, service_id);
+            });
+        }
     });
     $("#data-candidate-"+msg._id+" #btn-pass").click(function() {
         var old_id = $(this).parent().parent().parent().attr("data-candidate-id");
@@ -130,3 +164,8 @@ Explore.format = function(budget, depth) {
     }
     return budget == 0 ? "": Math.floor(budget/10000) + "만";
 };
+
+Explore.searchUrl = function(name) {
+                return 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
+                + name + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
+}
