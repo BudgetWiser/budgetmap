@@ -5,7 +5,7 @@ var router  = express.Router();
 /* GET web pages. */
 router.get('/', function(req, res) {
     console.log(req.session.useremail, 'START treemap');
-  res.render('index', { title: 'Task B' });
+    res.render('index', { title: 'Task B', user: req.session.user? JSON.stringify(req.session.user):"null" });  
 });
 
 router.get('/treemap', function(req, res) {
@@ -15,6 +15,17 @@ router.get('/treemap', function(req, res) {
 router.get('/budgetmap', function(req, res){
     res.render('index', {
         title: "Task B",
+    });
+});
+router.post('/log', function(req, res){
+    writeLog(req.db, req.session, req.body.tag, req.body.action, req.body.target, function(err, result){
+       if (err) {
+            return console.log('insert error', err);
+        }
+        
+        if (result) {
+            res.json({ code: 0,  message: 'successfully logged!' });
+        }
     });
 });
 
@@ -29,7 +40,9 @@ router.get('/empty', function(req, res) {
 });
 
 router.post('/logout', function(req, res){
-    req.session.useremail = null;
+    
+    req.session.useremail =  null;
+    req.session.user        = null;
     res.json({code: 0, message: "Logout Success"});
 });
 
@@ -51,6 +64,8 @@ router.post('/signin', function(req, res){
             if (result==true){
                 //session start
                 req.session.useremail = email;
+                req.session.user      = user;
+                
                 res.json({ code: 0, message: "Sign In Success!", user: user});
             }else{
                 res.json({ code: 2, message: "Password is Not Correct!" });
@@ -81,6 +96,7 @@ router.post('/register', function(req, res){
                         return console.log(new Date(), 'insert error', err);
                     }
                     if (result) {
+                        
                         res.json({ code: 0, message: 'Successfully Created!', user: result[0]});
                     }
 
@@ -94,6 +110,9 @@ router.post('/register', function(req, res){
 router.route('/issues/:id')
     //get issue by budget name
     .get(function(req, res){
+    
+        console.log(req.session.useremail);
+
         console.log(new Date(), req.session.useremail);
         var db = req.db;
         var budget_id = req.toObjectID(req.params.id);
@@ -102,12 +121,15 @@ router.route('/issues/:id')
             items.sort(function(a, b){
                 return b.budgets.length - a.budgets.length;
             });
+            
             res.json(items);
         });
     })
     //update issue with new budgets linked to it
     .post(function(req, res){
+
         console.log(new Date(), req.session.useremail);
+
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         var budgets = [];
@@ -124,12 +146,15 @@ router.route('/issues/:id')
             }
             
             if (result) {
+                
                 res.json({ message: 'successfully updated!'});
             }            
         });
     })
     .delete(function(req, res){
+
         console.log(new Date(), req.session.useremail);
+
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         db.collection('issues').remove({_id: issue_id}, function(err, result){
@@ -138,6 +163,7 @@ router.route('/issues/:id')
             }
             
             if (result) {
+                
                 res.json({ message: 'successfully updated!'});
             }            
         });
@@ -147,6 +173,7 @@ router.route('/issues/:id')
 router.route('/issues')
     //retrieve all the issues
     .get(function(req, res){
+
         if (req.session.useremail){
             console.log('treemap', new Date(), req.session.useremail, "lists all issues");
         }
@@ -155,10 +182,12 @@ router.route('/issues')
             items.sort(function(a, b){
                 return b.budgets.length - a.budgets.length;
             });
+            
             res.json(items);
         });
     })
     //create a new issue
+
     .post(function(req, res){
         if (req.session.useremail){
             console.log('treemap', new Date(), req.session.useremail, "created a new issue");
@@ -195,6 +224,7 @@ router.route('/issues')
             }
             
             if (result) {
+                
                 res.json({ message: 'successfully created!', result: result});
             }
 
@@ -206,6 +236,7 @@ router.route('/issues')
 
 //update budget with new issues added
 router.post('/budgets/:id',function(req, res){
+
     if (req.session.useremail){
         console.log('treemap', new Date(), req.session.useremail, "created a new issue");
     }
@@ -223,6 +254,7 @@ router.post('/budgets/:id',function(req, res){
         }
         //console.log(result);
         if (result) {
+            
             res.json({ message: 'successfully updated!'});
         }      
     });
@@ -395,6 +427,7 @@ router.get('/budgets', function(req, res){
             });
         }
         //console.log(services)
+        
         res.json({budget: seoulBudget, services: services});
         
     })
@@ -529,4 +562,24 @@ router.post('/explore/unrelated', function(req, res) {
  * End of explorer task functions.
  */
 
+function writeLog(db, session, tag, action, target, callback){
+    console.log(session.useremail+", " + action + ", " + target);
+    if (session.useremail==null)    return;
+    if (arguments.length==4){
+        callback = function(err, result){
+            if (err) {
+                return console.log('insert error', err);
+            }
+        }
+    }
+    db.collection('logs').insert({
+        user        : session.useremail,
+        tag         : tag,
+        action      : action,
+        target      : target,
+        time        : (new Date()).getTime()
+
+    }, callback);
+
+}
 module.exports = router;
