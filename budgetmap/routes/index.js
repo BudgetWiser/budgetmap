@@ -65,7 +65,7 @@ router.post('/register', function(req, res){
     //duplicate email check
     db.collection('users').find({email: email}).toArray(function(err, items){
         if (err){
-            return console.log('insert error', err);
+            return console.log(new Date(), 'insert error', err);
         }
         if (items.length>0){
             res.json({ code: 1, message: "Email Already Exists!" });
@@ -75,7 +75,7 @@ router.post('/register', function(req, res){
                 var newUser = {email: email, password: hash, nickname:nickname};
                 db.collection('users').insert(newUser, function(err, result) {
                     if (err) {
-                        return console.log('insert error', err);
+                        return console.log(new Date(), 'insert error', err);
                     }
                     if (result) {
                         res.json({ code: 0, message: 'Successfully Created!', user: result[0]});
@@ -91,7 +91,7 @@ router.post('/register', function(req, res){
 router.route('/issues/:id')
     //get issue by budget name
     .get(function(req, res){
-        console.log(req.session.useremail);
+        console.log(new Date(), req.session.useremail);
         var db = req.db;
         var budget_id = req.toObjectID(req.params.id);
 
@@ -104,20 +104,20 @@ router.route('/issues/:id')
     })
     //update issue with new budgets linked to it
     .post(function(req, res){
-        console.log(req.session.useremail);
+        console.log(new Date(), req.session.useremail);
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         var budgets = [];
         for (var i in req.body.budgets){ // convert to objectID
             budgets.push(req.toObjectID(req.body.budgets[i]));
         }
-        console.log('update', budgets);
+        console.log(new Date(), 'update', budgets);
 
         //update issue
         
         db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets} }, function(err, result){
             if (err) {
-                return console.log('insert error', err);
+                return console.log(new Date(), 'insert error', err);
             }
             
             if (result) {
@@ -126,12 +126,12 @@ router.route('/issues/:id')
         });
     })
     .delete(function(req, res){
-        console.log(req.session.useremail);
+        console.log(new Date(), req.session.useremail);
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         db.collection('issues').remove({_id: issue_id}, function(err, result){
             if (err) {
-                return console.log('insert error', err);
+                return console.log(new Date(), 'insert error', err);
             }
             
             if (result) {
@@ -145,7 +145,7 @@ router.route('/issues')
     //retrieve all the issues
     .get(function(req, res){
         if (req.session.useremail){
-            console.log('treemap', req.session.useremail, "lists all issues");
+            console.log('treemap', new Date(), req.session.useremail, "lists all issues");
         }
         var db = req.db;
         db.collection('issues').find().toArray(function(err, items){
@@ -158,7 +158,7 @@ router.route('/issues')
     //create a new issue
     .post(function(req, res){
         if (req.session.useremail){
-            console.log('treemap', req.session.useremail, "created a new issue");
+            console.log('treemap', new Date(), req.session.useremail, "created a new issue");
         }
         var db = req.db;
         var budgets = [], related = [], unrelated = [];
@@ -188,7 +188,7 @@ router.route('/issues')
         };
         db.collection('issues').insert(new_issue, function(err, result) {
             if (err) {
-                return console.log('insert error', err);
+                return console.log(new Date(), 'insert error', err);
             }
             
             if (result) {
@@ -204,7 +204,7 @@ router.route('/issues')
 //update budget with new issues added
 router.post('/budgets/:id',function(req, res){
     if (req.session.useremail){
-        console.log('treemap', req.session.useremail, "created a new issue");
+        console.log('treemap', new Date(), req.session.useremail, "created a new issue");
     }
     var db = req.db;
     var budget_id = req.toObjectID(req.params.id);    
@@ -216,7 +216,7 @@ router.post('/budgets/:id',function(req, res){
     //console.log(issues);
     db.collection('budgets').update({_id: budget_id}, { '$set': { issues: issues} }, function(err, result){
         if (err) {
-            return console.log('insert error', err);
+            return console.log(new Date(), 'insert error', err);
         }
         //console.log(result);
         if (result) {
@@ -226,7 +226,7 @@ router.post('/budgets/:id',function(req, res){
 });
 router.get('/budgets', function(req, res){
     if (req.session.useremail){
-        console.log('treemap', req.session.useremail, "created a new issue");
+        console.log('treemap', new Date(), req.session.useremail, "created a new issue");
     }
     var db = req.db;
     var date = new Date();
@@ -235,7 +235,7 @@ router.get('/budgets', function(req, res){
     currYear = currYear.toString();
     prevYear = prevYear.toString();
     db.collection('budgets').find({ year: { '$in': [ prevYear, currYear ] } }).toArray(function(err, items){
-        console.log(items.length + ' budget records returned');
+        console.log(new Date(), items.length + ' budget records returned');
         
         var seoulBudget = {
             name: "seoul-budget-"+currYear,
@@ -452,7 +452,7 @@ router.route('/explore/issues')
                 return b.related.length - a.related.length;
             });
             if (req.session.useremail) {
-                console.log('explore', req.session.useremail, "listed all issues");
+                console.log('explore', new Date(), req.session.useremail, "listed all issues");
             }
             res.json(items);
         });
@@ -472,13 +472,13 @@ router.route('/explore/issues')
 router.route('/explore/pass')
     .get(function(req, res) {
         if (req.session.useremail) {
-            console.log('explore', req.session.useremail, "moved on to next service");
+            console.log('explore', new Date(), req.session.useremail, "moved on to next service");
         }
         router.pass(req, res);
     })
     .post(function(req, res) {
         if (req.session.useremail) {
-            console.log('explore', req.session.useremail, "used a hint");
+            console.log('explore', new Date(), req.session.useremail, "used a hint");
         }
         router.pass(req, res, req.body.hint);
     });
@@ -493,7 +493,7 @@ router.post('/explore/related', function(req, res) {
         {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
         if (err) throw err;
         if (req.session.useremail) {
-            console.log(req.session.useremail, "reported a related service", budget_id);
+            console.log('explore', new Date(), req.session.useremail, "reported a related service", budget_id);
         }
     });
     db.collection('budgets').findOne({_id: req.toObjectID(budget_id)},
@@ -502,7 +502,6 @@ router.post('/explore/related', function(req, res) {
             db.collection('issues').update({_id: req.toObjectID(issue_id)},
                 {'$push': {related_val: item.budget_assigned}}, function(err, result) {
                     if(err) throw err;
-                    console.log('budget', item.budget_assigned);
             });
     });
     router.pass(req, res);
@@ -518,7 +517,7 @@ router.post('/explore/unrelated', function(req, res) {
         {'$push': {unrelated: budget_id}}, function(err, result) {
         if (err) throw err;
         if (req.session.useremail) {
-            console.log(req.session.useremail, "reported an unrelated service", budget_id);
+            console.log('explore', new Date(), req.session.useremail, "reported an unrelated service", budget_id);
         }
         router.pass(req, res);
     });
