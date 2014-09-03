@@ -177,10 +177,18 @@
         }
         function createIssueElem(issue, pos){
             var newElem = null
+            var sum = 0;
+            for (var i=0; i<issue.related_val.length; i++) {
+                sum += issue.related_val[i];
+            }
+            var spantext = '<br /><span>0원</span>';
+            if (Explore.format(sum)) {
+                spantext = '<br /><span>'+Explore.format(sum)+'원</span>';
+            }
             if (pos=="end"){
-                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.related.length+'개</span></a>').appendTo('#issue-list');
+                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.related.length+'개</span>'+spantext+'</a>').appendTo('#issue-list');
             }else{
-                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.unrelated.length+'개</span></a>').prependTo('#issue-list');
+                newElem = $('<a href="#" class="list-group-item issue-item">'+issue.name+'<span class="badge">관련사업: '+issue.unrelated.length+'개</span>'+spantext+'</a>').prependTo('#issue-list');
             }
             
             newElem.attr('data-issue-id', issue._id);
@@ -259,6 +267,8 @@
                     + '<span>관련 있음: </span><span id="num_related">'
                     + Explore.num_related+'</span><span class="separator"> / </span><span>관련 없음: </span>'
                     + '<span id="num_unrelated">'+Explore.num_unrelated+'</span></p>');
+            $("#progress").append('<p color="#08298a"><span>총 연관 예산: </span><span id="budget_related_total">'
+                    +Explore.budget_related_total+'</span><span>원</span></p>');
             $("#progress").append('<p><span>내가 검토한 예산: </span><span id="budget_reviewed">'
                     + Explore.budget_reviewed+'</span><span>원</span><br />'
                     + '<span>관련 있음: </span><span id="budget_related">'

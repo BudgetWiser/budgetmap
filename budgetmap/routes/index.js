@@ -444,18 +444,30 @@ router.pass = function(req, res, hint) {
     }
 };
 
-router.get('/explore/issues', function(req, res) {
-    var db = req.expl;
-    db.collection('issues').find().toArray(function(err, items) {
-        items.sort(function(a, b) {
-            return b.related.length - a.related.length;
+router.route('/explore/issues')
+    .get(function(req, res) {
+        var db = req.expl;
+        db.collection('issues').find().toArray(function(err, items) {
+            items.sort(function(a, b) {
+                return b.related.length - a.related.length;
+            });
+            if (req.session.useremail) {
+                console.log('explore', req.session.useremail, "listed all issues");
+            }
+            res.json(items);
         });
-        if (req.session.useremail) {
-            console.log('explore', req.session.useremail, "listed all issues");
-        }
-        res.json(items);
+    })
+// Sum of ObjectId(issue_id).related
+    .post(function(req, res) {
+        var db = req.expl;
+        var issue_id = req.toObjectID(req.body.issue);
+        var budget_list = [];
+        var sum = 0;
+
+        db.collection('issues').findOne({_id: issue_id}, function(err, item) {
+            res.json({'related_val': item.related_val});
+        });
     });
-});
 
 router.route('/explore/pass')
     .get(function(req, res) {
@@ -483,8 +495,17 @@ router.post('/explore/related', function(req, res) {
         if (req.session.useremail) {
             console.log(req.session.useremail, "reported a related service", budget_id);
         }
-        router.pass(req, res);
     });
+    db.collection('budgets').findOne({_id: req.toObjectID(budget_id)},
+        function(err, item) {
+            if (err) throw err;
+            db.collection('issues').update({_id: req.toObjectID(issue_id)},
+                {'$push': {related_val: item.budget_assigned}}, function(err, result) {
+                    if(err) throw err;
+                    console.log('budget', item.budget_assigned);
+            });
+    });
+    router.pass(req, res);
 });
 
 

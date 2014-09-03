@@ -12,6 +12,24 @@ Explore = {
 };
 
 Explore.pass = function(msg, old_id) {
+    var issue_id = $("#issue-list-title strong").attr("data-issue-id");
+    $.ajax({
+        type: 'POST',
+        url: "/explore/issues",
+        data: {
+            'issue': issue_id
+        },
+    }).done(function(msg) {
+        var sum = 0;
+        for (var i=0; i<msg['related_val'].length; i++) {
+            sum += msg['related_val'][i];
+        }
+        var val = '0';
+        if (Explore.format(sum)) {
+            val = Explore.format(sum);
+        }
+        $("#budget_related_total").text(Explore.format(sum));
+    });
     var item = $("#data-candidate-"+old_id);
     item.empty();
     item.attr('data-candidate-id', msg._id);
@@ -55,7 +73,6 @@ Explore.pass = function(msg, old_id) {
 
 
     $("#data-candidate-"+msg._id+" #btn-related").click(function() {
-        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
         var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
         Explore.num_reviewed++;
         Explore.num_related++;
@@ -78,7 +95,6 @@ Explore.pass = function(msg, old_id) {
         });
     });
     $("#data-candidate-"+msg._id+" #btn-unrelated").click(function() {
-        var issue_id = $("#issue-list-title strong").attr("data-issue-id");
         var service_id = $(this).parent().parent().parent().attr("data-candidate-id");
         Explore.num_reviewed++;
         Explore.num_unrelated++;
