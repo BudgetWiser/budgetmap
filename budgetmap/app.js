@@ -19,6 +19,12 @@ var session = require('express-session');
 
 var app = express();
 
+//socket.io
+
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+require('./routes/socket')(io);
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'html');
@@ -80,4 +86,4 @@ app.use(function(err, req, res, next) {
 });
 
 
-module.exports = app;
+module.exports = server;

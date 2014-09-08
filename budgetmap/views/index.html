@@ -23,8 +23,12 @@
     <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
     <script type="text/javascript" src="/javascripts/treemap.js"></script>
     <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
+
     
     <script type="text/javascript">
+        var socket = io.connect('http://localhost:11111');
+
         var user = null;
         var selected_service = null, previous_service = null;
         var selected_issue  = null;
@@ -51,6 +55,7 @@
             onDeselect: deselectBudget
         }
         $(document).ready(function(){
+            socket.emit('my other event', { my: 'fuckyou' });
             var user = JSON.parse($("#user").text());
             if (user){
                 $("#signin").text("Logout");
@@ -151,6 +156,9 @@
                     displayIssues(data);
 
                     initialize();
+
+                    socket.on('update issue', updateIssue);
+                    socket.on('update connection', updateConnection);
                 });
 
             });
@@ -311,17 +319,9 @@
             //draw barchart
             barchart.update(services, barchart_config.width, barchart_config.height);
             
-            //show issue counts on top
-            if (selected_issue!=null){
-                 //setTimeout(function(){
-                    barchart.emphasize(em_services);  
-                    var id = selected_issue.attr('data-issue-id');
-                    var issue = issue_map[id];
-                    $("#issue-service-result").show();
-                    $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
-                //}, 750);
-             
-            }
+
+            emphasizeServices(em_services);
+
             if (selected_service && services.indexOf(selected_service)==-1){
                 deselectService(null);
             }
@@ -352,17 +352,7 @@
             //draw barchart
             barchart.update(services, barchart_config.width, barchart_config.height);
 
-            //show issue counts on top
-            if (selected_issue!=null){
-                //setTimeout(function(){
-
-                    barchart.emphasize(em_services);  
-                    var id = selected_issue.attr('data-issue-id');
-                    var issue = issue_map[id];
-                    $("#issue-service-result").show();
-                    $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
-                //}, 750);
-            }    
+            emphasizeServices(em_services);
 
 
             //maintain previously selected service, if possible
@@ -371,6 +361,17 @@
             //}else{            
             //    deselectService(null); //de-select previously selected service
             //}    
+        }
+        function emphasizeServices(service_list){
+            //show issue counts on top
+            if (selected_issue!=null){                
+                barchart.emphasize(service_list);  
+                var id = selected_issue.attr('data-issue-id');
+                var issue = issue_map[id];
+                $("#issue-service-result").show();
+                $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+             
+            }            
         }
         function serviceName(service){
             return service.service;//service.service.split(".")[1];
@@ -503,6 +504,7 @@
             $("#service-modal").modal("hide");
 
         }
+        // creating a new issue and connecting issue & service happens in this function
         function addIssue(){
             var issue_name = $('#new-issue').val();
 
@@ -535,19 +537,24 @@
 
                     writeLog("issue", "update", issue.name);
                     $.post("/issues/"+issue._id, 
-                        {
-                            budgets: issue.budgets
-                        }); 
-                    //update service
-                    selected_service.issues.push(issue._id)
-                    treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
+                    {
+                        budgets: issue.budgets
+                    }, function(res){
 
-                    //console.log(selected_service.issues);
-                    writeLog("service", "update", selected_service.service);
-                    $.post("budgets/"+selected_service._id,
+                        //update service
+                        selected_service.issues.push(issue._id)
+                        treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
+
+                        //console.log(selected_service.issues);
+                        writeLog("service", "update", selected_service.service);
+                        $.post("budgets/"+selected_service._id,
                         {
                             issues: selected_service.issues
+                        }, function(res){
+                            socket.emit("new connection", { issue: issue, service: selected_service})
                         });
+
+                    });                 
                 }                    
             }else{//create a new issue
                 $.post("/issues", {
@@ -555,9 +562,12 @@
                     year: curr_year,
                     budgets: selected_service==null? []:[selected_service._id]
                 }, function(res){   
-                    issue = res.result[0];    
+                    issue = res.result;    
                     issue.budget_assigned = 0;
                     issue.budget_assigned += selected_service==null? 0:selected_service.budget_assigned;  
+
+                    // notify other clients on new issue
+                    socket.emit("new issue", issue);
 
                     //update issue lists
                     issues.push(issue); 
@@ -574,7 +584,11 @@
                         treemap.increaseIssueCnt(selected_service.category_three);//update treemap issue count
                         $.post("budgets/"+selected_service._id, {
                             issues: selected_service.issues
-                        })
+                        }, function(res){
+                            // notify other clients on new connection
+                            socket.emit("new connection", { issue: issue, service: selected_service})
+                        });
+
                     }
                 })
 
@@ -791,7 +805,7 @@
             console.log(em_services);
             selected_issue.addClass("list-group-item-info"); 
             treemap.emphasize(em_budgets);
-            if (barchart!=null)   barchart.emphasize(em_services);
+            emphasizeServices(em_services);
             $("#issue-service-result").show();
             $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
         }
@@ -824,6 +838,40 @@
                 var issue = issue_map[id];
                 $("#issue-service-result").show();
                 $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+            }
+        }
+        //when new issue is created by others
+        function updateIssue(issue){
+
+            console.log('update issue');
+            console.log(issue);
+
+            all_issues.push(issue);
+            issue_map[issue._id] = issue;
+
+            issue.budget_assigned = 0;
+            if (selected_service==null || 
+                (selected_service!=null && issue.budgets.length==1 && issue.budgets[0] == selected_service._id)){
+                issue.budget_assigned += selected_service!=null? selected_service.budget_assigned : 0;
+                issues.push(issue);
+                createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                updateIssueTitle();
+            }
+            //budgetmap update (issue count)
+        }
+        function updateConnection(data){
+            console.log('update connection');
+            console.log(data);
+
+            var issue   = issue_map[data.issue._id];
+            var service = service_map[data.service._id];
+            service.issues.push(issue._id);
+            treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+            if (selected_issue!=null){
+                if (services.indexOf(service)!=-1){                    
+                    em_services.push(service);
+                    emphasizeServices(em_services);
+                }                
             }
         }
     </script>

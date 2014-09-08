@@ -60,7 +60,7 @@ router.post('/signin', function(req, res){
             res.json({ code: 1, message: "No Such Email Found!" });
         }
         var user = items[0]; // there must be one user matching the email
-        bcrypt.compare(password, user.password, function(err, result) {
+        bcrypt.compare(password, user.가word, function(err, result) {
             if (result==true){
                 //session start
                 req.session.useremail = email;
@@ -225,7 +225,7 @@ router.route('/issues')
             
             if (result) {
                 
-                res.json({ message: 'successfully created!', result: result});
+                res.json({ message: 'successfully created!', result: result[0]});
             }
 
         });
@@ -254,7 +254,6 @@ router.post('/budgets/:id',function(req, res){
         }
         //console.log(result);
         if (result) {
-            
             res.json({ message: 'successfully updated!'});
         }      
     });
