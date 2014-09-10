@@ -298,7 +298,7 @@ var BarChart = function(config){
         return format(val) + "억 " + chart.format(rest, depth);
     }else if ((val = Math.floor(budget/10000000))>0){//1천
         var rest = budget-val*10000000; 
-        return format(val) + "천 " + chart.format(rest, depth);
+        return format(val) + "천만 " + chart.format(rest, depth);
     }
     return budget==0? "": format(Math.floor(budget/10000)) + "만원";; 
 

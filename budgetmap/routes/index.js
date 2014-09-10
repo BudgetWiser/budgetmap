@@ -18,7 +18,7 @@ router.get('/budgetmap', function(req, res){
     });
 });
 router.post('/log', function(req, res){
-    writeLog(req.db, req.session, req.body.tag, req.body.action, req.body.target, function(err, result){
+    writeLog(req.db, req.ip, req.body.tag, req.body.action, req.body.target, function(err, result){
        if (err) {
             return console.log('insert error', err);
         }
@@ -128,19 +128,28 @@ router.route('/issues/:id')
     //update issue with new budgets linked to it
     .post(function(req, res){
 
-        console.log(new Date(), req.session.useremail);
-
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
+        //var budgets = [];
         var budgets = [];
         for (var i in req.body.budgets){ // convert to objectID
-            budgets.push(req.toObjectID(req.body.budgets[i]));
+            budgets.push({
+                id: req.toObjectID(req.body.budgets[i].id),
+                related: parseInt(req.body.budgets[i].related),
+                pass: parseInt(req.body.budgets[i].pass),
+                unrelated: parseInt(req.body.budgets[i].unrelated)
+            });
         }
-        console.log(new Date(), 'update', budgets);
 
+        var stats = { 
+            tot_budget: parseInt(req.body.stats.tot_budget),
+            tot_users: parseInt(req.body.stats.tot_users),
+            tot_related: parseInt(req.body.stats.tot_related), 
+            tot_unrelated: parseInt(req.body.stats.tot_unrelated),  
+            tot_pass: parseInt(req.body.stats.tot_pass)
+        }
         //update issue
-        
-        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets} }, function(err, result){
+        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets, stats: stats} }, function(err, result){
             if (err) {
                 return console.log(new Date(), 'insert error', err);
             }
@@ -193,13 +202,17 @@ router.route('/issues')
             console.log('treemap', new Date(), req.session.useremail, "created a new issue");
         }
         var db = req.db;
-        var budgets = [], related = [], unrelated = [];
-        if (req.body.budgets){ 
-            for (var i in req.body.budgets){ // convert to objectID
-                budgets.push(req.toObjectID(req.body.budgets[i]));
-                console.log(budgets);
-            }
+        //var budgets = [], related = [], unrelated = [];
+        var budgets = [];
+        for (var i in req.body.budgets){ // convert to objectID
+            budgets.push({
+                id: req.toObjectID(req.body.budgets[i].id),
+                related: parseInt(req.body.budgets[i].related),
+                pass: parseInt(req.body.budgets[i].pass),
+                unrelated: parseInt(req.body.budgets[i].unrelated)
+            });
         }
+        /*
         if (req.body.related) {
             for (var i in req.body.related) {
                 budgets.push(req.toObjectID(req.body.related[i]));
@@ -210,13 +223,20 @@ router.route('/issues')
                 budgets.push(req.toObjectID(req.body.unrelated[i]));
             }
         }
-        console.log(budgets);
+        console.log(budgets);*/
         var new_issue = {
             name: req.body.name,
             year: req.body.year,
             budgets: budgets,
-            related: related,
-            unrelated: unrelated
+            stats : { 
+                tot_budget: parseInt(req.body.stats.tot_budget),
+                tot_users: parseInt(req.body.stats.tot_users),
+                tot_related: parseInt(req.body.stats.tot_related), 
+                tot_unrelated: parseInt(req.body.stats.tot_unrelated),  
+                tot_pass: parseInt(req.body.stats.tot_pass)
+            }
+            //related: related,
+            //unrelated: unrelated
         };
         db.collection('issues').insert(new_issue, function(err, result) {
             if (err) {
@@ -561,9 +581,9 @@ router.post('/explore/unrelated', function(req, res) {
  * End of explorer task functions.
  */
 
-function writeLog(db, session, tag, action, target, callback){
-    console.log(session.useremail+", " + action + ", " + target);
-    if (session.useremail==null)    return;
+function writeLog(db, ip, tag, action, target, callback){
+    console.log(ip+", " + action + ", " + target);
+    //if (session.useremail==null)    return;
     if (arguments.length==4){
         callback = function(err, result){
             if (err) {
@@ -572,7 +592,7 @@ function writeLog(db, session, tag, action, target, callback){
         }
     }
     db.collection('logs').insert({
-        user        : session.useremail,
+        user        : ip,
         tag         : tag,
         action      : action,
         target      : target,
