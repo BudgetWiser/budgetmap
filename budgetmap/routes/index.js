@@ -143,7 +143,7 @@ router.route('/issues/:id')
 
         var stats = { 
             tot_budget: parseInt(req.body.stats.tot_budget),
-            tot_users: parseInt(req.body.stats.tot_users),
+            //tot_users: parseInt(req.body.stats.tot_users),
             tot_related: parseInt(req.body.stats.tot_related), 
             tot_unrelated: parseInt(req.body.stats.tot_unrelated),  
             tot_pass: parseInt(req.body.stats.tot_pass)
@@ -230,7 +230,7 @@ router.route('/issues')
             budgets: budgets,
             stats : { 
                 tot_budget: parseInt(req.body.stats.tot_budget),
-                tot_users: parseInt(req.body.stats.tot_users),
+                //tot_users: parseInt(req.body.stats.tot_users),
                 tot_related: parseInt(req.body.stats.tot_related), 
                 tot_unrelated: parseInt(req.body.stats.tot_unrelated),  
                 tot_pass: parseInt(req.body.stats.tot_pass)
@@ -582,7 +582,7 @@ router.post('/explore/unrelated', function(req, res) {
  */
 
 function writeLog(db, ip, tag, action, target, callback){
-    console.log(ip+", " + action + ", " + target);
+    console.log(ip+", " + tag + ", " + action + ", " + target);
     //if (session.useremail==null)    return;
     if (arguments.length==4){
         callback = function(err, result){
