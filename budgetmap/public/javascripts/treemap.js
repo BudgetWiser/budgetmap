@@ -333,7 +333,7 @@ var TreeMap = function(config){
 		emList = dl;
 		treeSVG.selectAll(".treemap-cell")
 		.attr("opacity", function(d){
-			return emList.indexOf(d)!=-1? 1.0:0.5;
+			return emList.indexOf(d)!=-1? 1.0:0.4;
 		});
     	//chart.update(data, w, h);
 	}
