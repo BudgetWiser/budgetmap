@@ -4,21 +4,48 @@ var router  = express.Router();
 
 /* GET web pages. */
 router.get('/', function(req, res) {
-  res.render('index', { title: 'Budgetmap' });
+    console.log(req.session.useremail, 'START treemap');
+    res.render('index', { title: 'Task B', user: req.session.user? JSON.stringify(req.session.user):"null" });  
 });
 
 router.get('/treemap', function(req, res) {
   res.render('treemap', { title: 'Budget-Vis Test' });
 });
+
 router.get('/budgetmap', function(req, res){
     res.render('index', {
-        title: "budgetmap",
+        title: "Task B",
     });
 });
+router.post('/log', function(req, res){
+    writeLog(req.db, req.ip, req.body.tag, req.body.action, req.body.target, function(err, result){
+       if (err) {
+            return console.log('insert error', err);
+        }
+        
+        if (result) {
+            res.json({ code: 0,  message: 'successfully logged!' });
+        }
+    });
+});
+
+router.get('/explore', function(req, res) {
+    console.log(req.session.useremail, 'START explore');
+    res.render('explore', {title: 'Task C', user: req.session.user? JSON.stringify(req.session.user):"null"});
+});
+
+router.get('/empty', function(req, res) {
+    console.log(req.session.useremail, 'START empty');
+    res.render('empty', {title: 'Task A', user: req.session.user? JSON.stringify(req.session.user):"null"});
+});
+
 router.post('/logout', function(req, res){
-    req.session.useremail = null;
+    
+    req.session.useremail =  null;
+    req.session.user        = null;
     res.json({code: 0, message: "Logout Success"});
 });
+
 router.post('/signin', function(req, res){
     var db = req.db;
     var email = req.body.email;
@@ -33,10 +60,12 @@ router.post('/signin', function(req, res){
             res.json({ code: 1, message: "No Such Email Found!" });
         }
         var user = items[0]; // there must be one user matching the email
-        bcrypt.compare(password, user.password, function(err, result) {
+        bcrypt.compare(password, user.가word, function(err, result) {
             if (result==true){
                 //session start
                 req.session.useremail = email;
+                req.session.user      = user;
+                
                 res.json({ code: 0, message: "Sign In Success!", user: user});
             }else{
                 res.json({ code: 2, message: "Password is Not Correct!" });
@@ -54,7 +83,7 @@ router.post('/register', function(req, res){
     //duplicate email check
     db.collection('users').find({email: email}).toArray(function(err, items){
         if (err){
-            return console.log('insert error', err);
+            return console.log(new Date(), 'insert error', err);
         }
         if (items.length>0){
             res.json({ code: 1, message: "Email Already Exists!" });
@@ -64,9 +93,10 @@ router.post('/register', function(req, res){
                 var newUser = {email: email, password: hash, nickname:nickname};
                 db.collection('users').insert(newUser, function(err, result) {
                     if (err) {
-                        return console.log('insert error', err);
+                        return console.log(new Date(), 'insert error', err);
                     }
                     if (result) {
+                        
                         res.json({ code: 0, message: 'Successfully Created!', user: result[0]});
                     }
 
@@ -76,15 +106,14 @@ router.post('/register', function(req, res){
     });
 });
 
-router.get('/explore', function(req, res) {
-    res.render('explore', {title: 'Budgetmap'});
-});
-
 /* RESTFUL DATA API : ISSUES */
 router.route('/issues/:id')
     //get issue by budget name
     .get(function(req, res){
+    
         console.log(req.session.useremail);
+
+        console.log(new Date(), req.session.useremail);
         var db = req.db;
         var budget_id = req.toObjectID(req.params.id);
 
@@ -92,42 +121,58 @@ router.route('/issues/:id')
             items.sort(function(a, b){
                 return b.budgets.length - a.budgets.length;
             });
+            
             res.json(items);
         });
     })
     //update issue with new budgets linked to it
     .post(function(req, res){
-        console.log(req.session.useremail);
+
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
+        //var budgets = [];
         var budgets = [];
         for (var i in req.body.budgets){ // convert to objectID
-            budgets.push(req.toObjectID(req.body.budgets[i]));
+            budgets.push({
+                id: req.toObjectID(req.body.budgets[i].id),
+                related: parseInt(req.body.budgets[i].related),
+                pass: parseInt(req.body.budgets[i].pass),
+                unrelated: parseInt(req.body.budgets[i].unrelated)
+            });
         }
-        console.log('update', budgets);
 
+        var stats = { 
+            tot_budget: parseInt(req.body.stats.tot_budget),
+            //tot_users: parseInt(req.body.stats.tot_users),
+            tot_related: parseInt(req.body.stats.tot_related), 
+            tot_unrelated: parseInt(req.body.stats.tot_unrelated),  
+            tot_pass: parseInt(req.body.stats.tot_pass)
+        }
         //update issue
-        
-        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets} }, function(err, result){
+        db.collection('issues').update({_id: issue_id}, { '$set': { budgets: budgets, stats: stats} }, function(err, result){
             if (err) {
-                return console.log('insert error', err);
+                return console.log(new Date(), 'insert error', err);
             }
             
             if (result) {
+                
                 res.json({ message: 'successfully updated!'});
             }            
         });
     })
     .delete(function(req, res){
-        console.log(req.session.useremail);
+
+        console.log(new Date(), req.session.useremail);
+
         var db = req.db;
         var issue_id = req.toObjectID(req.params.id);
         db.collection('issues').remove({_id: issue_id}, function(err, result){
             if (err) {
-                return console.log('insert error', err);
+                return console.log(new Date(), 'insert error', err);
             }
             
             if (result) {
+                
                 res.json({ message: 'successfully updated!'});
             }            
         });
@@ -137,30 +182,37 @@ router.route('/issues/:id')
 router.route('/issues')
     //retrieve all the issues
     .get(function(req, res){
+
         if (req.session.useremail){
-            console.log(req.session.useremail + "created a new issue");
+            console.log('treemap', new Date(), req.session.useremail, "lists all issues");
         }
         var db = req.db;
         db.collection('issues').find().toArray(function(err, items){
             items.sort(function(a, b){
                 return b.budgets.length - a.budgets.length;
             });
+            
             res.json(items);
         });
     })
     //create a new issue
+
     .post(function(req, res){
         if (req.session.useremail){
-            console.log(req.session.useremail + "created a new issue");
+            console.log('treemap', new Date(), req.session.useremail, "created a new issue");
         }
         var db = req.db;
-        var budgets = [], related = [], unrelated = [];
-        if (req.body.budgets){ 
-            for (var i in req.body.budgets){ // convert to objectID
-                budgets.push(req.toObjectID(req.body.budgets[i]));
-                console.log(budgets);
-            }
+        //var budgets = [], related = [], unrelated = [];
+        var budgets = [];
+        for (var i in req.body.budgets){ // convert to objectID
+            budgets.push({
+                id: req.toObjectID(req.body.budgets[i].id),
+                related: parseInt(req.body.budgets[i].related),
+                pass: parseInt(req.body.budgets[i].pass),
+                unrelated: parseInt(req.body.budgets[i].unrelated)
+            });
         }
+        /*
         if (req.body.related) {
             for (var i in req.body.related) {
                 budgets.push(req.toObjectID(req.body.related[i]));
@@ -171,21 +223,29 @@ router.route('/issues')
                 budgets.push(req.toObjectID(req.body.unrelated[i]));
             }
         }
-        console.log(budgets);
+        console.log(budgets);*/
         var new_issue = {
             name: req.body.name,
             year: req.body.year,
             budgets: budgets,
-            related: related,
-            unrelated: unrelated
+            stats : { 
+                tot_budget: parseInt(req.body.stats.tot_budget),
+                //tot_users: parseInt(req.body.stats.tot_users),
+                tot_related: parseInt(req.body.stats.tot_related), 
+                tot_unrelated: parseInt(req.body.stats.tot_unrelated),  
+                tot_pass: parseInt(req.body.stats.tot_pass)
+            }
+            //related: related,
+            //unrelated: unrelated
         };
         db.collection('issues').insert(new_issue, function(err, result) {
             if (err) {
-                return console.log('insert error', err);
+                return console.log(new Date(), 'insert error', err);
             }
             
             if (result) {
-                res.json({ message: 'successfully created!', result: result});
+                
+                res.json({ message: 'successfully created!', result: result[0]});
             }
 
         });
@@ -196,8 +256,9 @@ router.route('/issues')
 
 //update budget with new issues added
 router.post('/budgets/:id',function(req, res){
+
     if (req.session.useremail){
-        console.log(req.session.useremail + "created a new issue");
+        console.log('treemap', new Date(), req.session.useremail, "created a new issue");
     }
     var db = req.db;
     var budget_id = req.toObjectID(req.params.id);    
@@ -209,7 +270,7 @@ router.post('/budgets/:id',function(req, res){
     //console.log(issues);
     db.collection('budgets').update({_id: budget_id}, { '$set': { issues: issues} }, function(err, result){
         if (err) {
-            return console.log('insert error', err);
+            return console.log(new Date(), 'insert error', err);
         }
         //console.log(result);
         if (result) {
@@ -219,7 +280,7 @@ router.post('/budgets/:id',function(req, res){
 });
 router.get('/budgets', function(req, res){
     if (req.session.useremail){
-        console.log(req.session.useremail + "created a new issue");
+        console.log('treemap', new Date(), req.session.useremail, "created a new issue");
     }
     var db = req.db;
     var date = new Date();
@@ -228,7 +289,7 @@ router.get('/budgets', function(req, res){
     currYear = currYear.toString();
     prevYear = prevYear.toString();
     db.collection('budgets').find({ year: { '$in': [ prevYear, currYear ] } }).toArray(function(err, items){
-        console.log(items.length + ' budget records returned');
+        console.log(new Date(), items.length + ' budget records returned');
         
         var seoulBudget = {
             name: "seoul-budget-"+currYear,
@@ -385,6 +446,7 @@ router.get('/budgets', function(req, res){
             });
         }
         //console.log(services)
+        
         res.json({budget: seoulBudget, services: services});
         
     })
@@ -393,265 +455,150 @@ router.get('/budgets', function(req, res){
 /*
  * Explorer task functions
  * VERSION 14-08-26: Pure random
- * VERSION 14-08-28: Pure random + weighed unrelated
+ * VERSION 14-08-28: Pure random + remove service=='기본경비'
+ * VERSION 14-09-02: Remove budget==0
  */
-router.get('/explore/pass', function(req, res) {
-    var db = req.db;
-    var date = new Date();
-    var currYear = date.getFullYear();
 
-    db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-        var rand_idx;
-        do {
-            rand_idx = Math.floor(Math.random() * items.length);
-        } while (items[rand_idx].service.indexOf('기본경비') == 0);
-        console.log(rand_idx);
-        var item = items[rand_idx];
-        var new_candidate = {
-            '_id': item._id,
-            'one': item.category_one,
-            'three': item.category_three,
-            'service': item.service,
-            'department': item.department,
-            'team': item.team,
-            'budget': item.budget_assigned
-        }
-        res.json(new_candidate);
+router.pass = function(req, res, hint) {
+    var db = req.expl;
+    var date = new Date();
+    var currYear = date.getFullYear().toString();
+
+    if (hint) {
+        db.collection('budgets').findOne({year: currYear, _id: req.toObjectID(hint)}, function(err, item) {
+            var new_candidate = {
+                '_id': item._id,
+                'one': item.category_one,
+                'three': item.category_three,
+                'service': item.service,
+                'department': item.department,
+                'team': item.team,
+                'budget': item.budget_assigned
+            }
+            res.json(new_candidate);
+        });
+    } else {
+        db.collection('budgets').find({year: currYear}).toArray(function(err, items) {
+            var rand_idx;
+            do {
+                rand_idx = Math.floor(Math.random() * items.length);
+            } while (items[rand_idx].service.indexOf('기본경비') == 0
+                || items[rand_idx].budget_assigned == 0);
+            var item = items[rand_idx];
+            var new_candidate = {
+                '_id': item._id,
+                'one': item.category_one,
+                'three': item.category_three,
+                'service': item.service,
+                'department': item.department,
+                'team': item.team,
+                'budget': item.budget_assigned
+            }
+            res.json(new_candidate);
+        });
+    }
+};
+
+router.route('/explore/issues')
+    .get(function(req, res) {
+        var db = req.expl;
+        db.collection('issues').find().toArray(function(err, items) {
+            items.sort(function(a, b) {
+                return b.related.length - a.related.length;
+            });
+            if (req.session.useremail) {
+                console.log('explore', new Date(), req.session.useremail, "listed all issues");
+            }
+            res.json(items);
+        });
+    })
+// Sum of ObjectId(issue_id).related
+    .post(function(req, res) {
+        var db = req.expl;
+        var issue_id = req.toObjectID(req.body.issue);
+        var budget_list = [];
+        var sum = 0;
+
+        db.collection('issues').findOne({_id: issue_id}, function(err, item) {
+            res.json({'related_val': item.related_val});
+        });
     });
-});
+
+router.route('/explore/pass')
+    .get(function(req, res) {
+        if (req.session.useremail) {
+            console.log('explore', new Date(), req.session.useremail, "moved on to next service");
+        }
+        router.pass(req, res);
+    })
+    .post(function(req, res) {
+        if (req.session.useremail) {
+            console.log('explore', new Date(), req.session.useremail, "used a hint");
+        }
+        router.pass(req, res, req.body.hint);
+    });
 
 
 router.post('/explore/related', function(req, res) {
-    var db = req.db;
+    var db = req.expl;
     var issue_id = req.body.issue;
     var budget_id = req.body.service;
-    var date = new Date();
-    var currYear = date.getFullYear();
 
-    db.collection('issues').update({_id: req.toObjectID(issue_id)}, {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
-        if (err) {
-            throw err;
-        }
-        else {
-            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-                var rand_idx;
-                do {
-                    rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service.indexOf('기본경비') == 0);
-                var item = items[rand_idx];
-                var new_candidate = {
-                    '_id': item._id,
-                    'one': item.category_one,
-                    'two': item.category_two,
-                    'three': item.category_three,
-                    'service': item.service,
-                    'department': item.department,
-                    'team': item.team,
-                    'budget': item.budget_assigned
-                }
-                console.log('new_candidate', new_candidate);
-                res.json(new_candidate);
-            });
+    db.collection('issues').update({_id: req.toObjectID(issue_id)}, 
+        {'$push': {related: req.toObjectID(budget_id)}}, function(err, result) {
+        if (err) throw err;
+        if (req.session.useremail) {
+            console.log('explore', new Date(), req.session.useremail, "reported a related service", budget_id);
         }
     });
+    db.collection('budgets').findOne({_id: req.toObjectID(budget_id)},
+        function(err, item) {
+            if (err) throw err;
+            db.collection('issues').update({_id: req.toObjectID(issue_id)},
+                {'$push': {related_val: item.budget_assigned}}, function(err, result) {
+                    if(err) throw err;
+            });
+    });
+    router.pass(req, res);
 });
 
 
 router.post('/explore/unrelated', function(req, res) {
-    var db = req.db;
+    var db = req.expl;
     var issue_id = req.toObjectID(req.body.issue);
     var budget_id = req.toObjectID(req.body.service);
-    var date = new Date();
-    var currYear = date.getFullYear();
 
-    db.collection('issues').update({_id: issue_id}, {'$push': {unrelated: budget_id}}, function(err, result) {
-        if (err) {
-            throw err;
-        } else {
-            db.collection('budgets').find({year:currYear.toString()}).toArray(function(err, items) {
-                var rand_idx;
-                do {
-                    rand_idx = Math.floor(Math.random() * items.length);
-                } while (items[rand_idx].service.indexOf('기본경비') == 0);
-                var item = items[rand_idx];
-                var new_candidate = {
-                    '_id': item._id,
-                    'one': item.category_one,
-                    'two': item.category_two,
-                    'three': item.category_three,
-                    'service': item.service,
-                    'department': item.department,
-                    'team': item.team,
-                    'budget': item.budget_assigned
-                }
-                console.log('new_candidate', new_candidate);
-                res.json(new_candidate);
-            });
+    db.collection('issues').update({_id: issue_id}, 
+        {'$push': {unrelated: budget_id}}, function(err, result) {
+        if (err) throw err;
+        if (req.session.useremail) {
+            console.log('explore', new Date(), req.session.useremail, "reported an unrelated service", budget_id);
         }
+        router.pass(req, res);
     });
 });
 /*
  * End of explorer task functions.
  */
 
-
-/*
-router.get('/issue/:id', function(req, res){
-    var db = req.db;
-    if (req.params.id === 'list') {
-        db.collection("issue").find().toArray(function(err, items) {
-            var result = [];
-            for (var i in items) {
-                var budget_ids = items[i]._budget_id || null;
-                result.push({
-                    _id: items[i]._id,
-                    name: items[i].name,
-                    _budget_ids: budget_ids
-                });
+function writeLog(db, ip, tag, action, target, callback){
+    console.log(ip+", " + tag + ", " + action + ", " + target);
+    //if (session.useremail==null)    return;
+    if (arguments.length==4){
+        callback = function(err, result){
+            if (err) {
+                return console.log('insert error', err);
             }
-            res.json(result.sort());
-            console.log("/issue/list: Generated new list");
-        });
-    } else {
-        db.collection("issue").find({
-            _budget_id: {$in: [req.params.id]}
-        }).toArray(function(err, items){
-            var result = [];
-            for (i in items) {
-                var budget_ids = items[i]._budget_id || null;
-                result.push({
-                    _id: items[i]._id,
-                    name: items[i].name,
-                    _budget_ids: budget_ids
-                });
-            }
-            res.json(result);
-        });
-    }
-});
-
-router.get('/budget/kvpairs', function(req, res) {
-    var db = req.db;
-    
-    db.collection("seoul_budget").find().toArray(function(err, items) {
-        var result = {};
-        for (var i in items) {
-            result[items[i]._id] = items[i].name;
         }
-        //console.log(result);
-        res.json(result);
-    });
-});
-
-router.post('/issue/add', function(req, res){
-    var db = req.db;
-    var data = req.body;
-    if (data.issue == null || data.issue == '') {
-        console.log("ERROR /issue/add: no issue entered");
-        res.json({success: 0, errcode: "No issue entered / How did you get here?"});
-    } else {
-        db.collection("issue").findOne({name: data.issue}, function(err, result) {
-            if (err) {
-                console.log("ERROR /issue/add: error querying issue from DB");
-                res.json({success: 0, errcode: "Internal DB errorr"});
-            } else if (!result) {
-                var insert_query = {};
-                if (data.budget_id == '') {
-                    insert_query = {
-                        name: data.issue
-                    }
-                } else {
-                    insert_query = {
-                        name: data.issue,
-                        _budget_id: [req.toObjectID(data.budget_id)]
-                    }
-                }
-                db.collection("issue").insert(insert_query, function(err, result) {
-                    if (err) {
-                        console.log("ERROR /issue/add: failed logging issue to DB: " + data.issue);
-                        res.json({success: 0, errcode: "DB insert error"});
-                    } else {
-                        console.log("/issue/add: Logged new issue_names entry: " + result.name);
-                        res.json({success: 1, errcode: "DB insert success"});
-                    }
-                });
-            } else {
-                if (data.budget_id == '' || result._budget_id.toString().indexOf(req.toObjectID(data.budget_id)) > -1) {
-                    console.log("ERROR /issue/add: issue-budget relation already exists");
-                    res.json({success: 0, errcode: "Budget-Issue relation already exists"});
-                } else {
-                    db.collection("issue").update({
-                        name: data.issue,
-                    }, {'$push': {
-                        _budget_id: req.toObjectID(data.budget_id)
-                    }}, function(err) {
-                       if (err) {
-                           console.log("ERROR /issue/add: failed updating budget_id to DB");
-                           res.json({success: 0, errcode: "DB update error"});
-                       } else {
-                           console.log("/issue/add: Appended new budget_id: " + data.budget_id);
-                           res.json({success: 1, errcode: "Db update success"});
-                       }
-                    });
-                }
-            }
-        });
     }
-});
+    db.collection('logs').insert({
+        user        : ip,
+        tag         : tag,
+        action      : action,
+        target      : target,
+        time        : (new Date()).getTime()
 
-router.post('/issue/search', function(req, res) {
-    var db = req.db;
-    var budgetspider = req.budgetspider;
-    var data = req.body;
-    
-    if (data.query == null || data.query == '') {
-        console.log("ERROR /issue/search: Invalid query");
-        res.json({success: 0, errcode: "Invalid query"});
-    } else {
-        db.collection("search_index").findOne({
-            query: data.query
-        }, function(err, result) {
-            if (err) {
-                console.log("ERROR /issue/search: Error querying search index from DB");
-                res.json({success: 0, errcode: "Internal DB error"});
-            } else if (!result) {
-                query = '/*' + data.query + '/*';
+    }, callback);
 
-                budgetspider.collection("budgetspider").find({
-                    service: {$regex: query}
-                }).toArray(function(err, items) {
-                    for (var i in items) {
-                        delete items[i].start_date;
-                        delete items[i].end_date;
-                        delete items[i].budget_summary;
-                        delete items[i].budget_current;
-                        delete items[i].budget_contract;
-                        delete items[i].budget_spent;
-                    }
-                    db.collection("search_index").insert({
-                        query: data.query,
-                        results: items
-                    }, function(err, newQuery) {
-                        if (err) {
-                            console.log("ERROR /issue/search inserting search index");
-                            res.json({success: 0, errcode: "DB insert error"});
-                        }
-                        else {
-                            console.log("/issue/search: Inserted new search index");
-                            var result = {
-                                query: data.query,
-                                result: newQuery
-                            };
-                            res.json({success: 1, errcode: "DB insert success", result: newQuery[0]});
-                        }
-                    });
-                });
-            } else {
-                console.log("/issue/search: Previous search index found");
-                res.json({success: 1, errcode: "Search success", result: result});
-            }
-        });
-    }
-});
-*/
+}
 module.exports = router;

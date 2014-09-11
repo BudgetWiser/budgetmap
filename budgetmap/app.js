@@ -10,12 +10,20 @@ var users = require('./routes/users');
 
 // mongodb settings
 var mongo = require('mongoskin');
+
 //var db = mongo.db("mongodb://143.248.234.88:17027/budgetmap_proto", {native_parser: true});
-var db = mongo.db("mongodb://143.248.234.88:27017/budgetmap_explore_1", {native_parser: true});
+var db = mongo.db("mongodb://143.248.234.88:27017/budgetmap_develop", {native_parser: true});
+var expl = mongo.db("mongodb://143.248.234.88:27017/budgetmap_develop_explore", {native_parse: true});
 var budgetspider = mongo.db("mongodb://143.248.234.88:27017/budgetspider", {native_parser: true});
 var session = require('express-session');
 
 var app = express();
+
+//socket.io
+
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+require('./routes/socket')(io);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -38,6 +46,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // db settings
 app.use(function(req, res, next){
     req.db = db;
+    req.expl = expl;
     req.toObjectID = mongo.helper.toObjectID;
     next();
 });
@@ -77,4 +86,4 @@ app.use(function(err, req, res, next) {
 });
 
 
-module.exports = app;
+module.exports = server;
