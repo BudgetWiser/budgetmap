@@ -1321,6 +1321,10 @@
                 createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                 updateIssueTitle();
             }
+            if (rel.related){
+                em_budgets.push(budget_map[service.category_three]);
+                treemap.emphasize(em_budgets);            
+            }
             if (selected_issue && (issue_map[selected_issue.attr("data-issue-id")]._id == issue._id)){
                 
                 if (services.indexOf(service)!=-1 && rel.related==1){                    
