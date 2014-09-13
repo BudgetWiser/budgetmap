@@ -824,7 +824,7 @@
         }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" class="badge">관련사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// data-issue-id="'+issue._id+'"
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span id="issue-related" class="badge">관련사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
 
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
@@ -1447,7 +1447,7 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> : 주어진 사회이슈에 관련있는 사업들을 담아 예산 지도를 완성해 보세요! <small>이슈를 클릭하고 연관사업을 클릭해 보세요</small></h5>
+                <h5 style="padding-top:8px;color:#888a85"> : 주어진 사회이슈에 관련있는 사업들을 담아 예산 지도를 완성해 보세요! <small>이슈를 클릭하고 연관사업을 클릭해 보세요</small> (<a href="javaScript:void(0);">도움말</a>)</h5>
                 <!--<ul class="nav navbar-nav">
                     
                     <li><a href="/empty">Task A</a></li>
@@ -1455,18 +1455,18 @@
                     <li><a href="/explore">Task C</a></li>
                 
                 </ul>-->
-                <ul class="nav navbar-nav navbar-right">
+                <!--<ul class="nav navbar-nav navbar-right">
                     <li>
                         <a href="javaScript:void(0);">Help</a>
                     </li>
-                    <!--
+                    
                     <li>
                         <a id="nickname" href="javaScript:void(0);"></a>
                     </li>
                     <li>
                         <a id="signin" href="javaScript:void(0);">Sign In</a>
-                    </li>-->
-                </ul>
+                    </li>
+                </ul>-->
             </div>
             <!-- /.navbar-collapse -->
         </div>
@@ -1512,13 +1512,13 @@
                         <div id="service-info"></div>
                         <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
                     </div>
-                    <div class="btn-group btn-group-justified">
+                    <!--<div class="btn-group btn-group-justified">
                         <div class="btn-group">
                             <button id="btn-new-issue" type="button" class="btn btn-info">
                                 <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
                             </button> 
                          </div>
-                    </div>
+                    </div>-->
                     <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
                     </h4>   
                     <div id="issue-list" class="list-group" style="height:530px;; overflow-y:auto;">
