@@ -1,19 +1,25 @@
 function getRecommendedService(issue, filter, recent_history){
     var FRUSTRATION_THRESHOLD = 5;
     console.log("getRecommendedService Start Time:", new Date());
+    // Deep copy recent_history
+    var history = [];
+    for (var i in recent_history) {
+        history.push(recent_history[i]);
+    }
     var frustration = 0;
-    for (var i in recent_history.reverse()) {
-        if (recent_history[i] == 1) break;
-        if (recent_history[i] == 3) {
+    for (var i in history.reverse()) {
+        if (history[i] == 1) break;
+        if (history[i] == 3) {
             frustration += Math.random();
         }
     }
     // Defrustration: show from already added list
     if (frustration > FRUSTRATION_THRESHOLD) {
-    var budgets_list = [];
+        var budgets_list = [];
         for (var i in issue.budgets) {
             for (var j in all_services) {
-                if (issue.budgets[i].id === all_services[j]._id) {
+                if (issue.budgets[i].id === all_services[j]._id
+                        && issue.budgets[i].related > 0) {
                     budgets_list.push(all_services[j]);
                     break;
                 }
@@ -47,11 +53,9 @@ function getRecommendedService(issue, filter, recent_history){
         }
         if (serv_list.length) return getRandomService(issue, serv_list);
     }
-    console.log("getRecommendedService End Time:", new Date());
     return getRandomService(issue, all_services);
 }
 function getRandomService(issue, filter_list) {
-    console.log("filter size", filter_list.length);
     var rand_idx = -1, valid = true, count=0;
     do {
         rand_idx = Math.floor(Math.random() * filter_list.length);
@@ -76,8 +80,6 @@ function getRandomService(issue, filter_list) {
         }
         // counter to avoid infinite loop
         count++;
-        console.log("issue.budgets", issue.budgets);
-        console.log("all_services[i]", all_services[rand_idx]);
     } while (!valid && count < 10);
     if (valid && count < 10) {
         console.log("getRecommendedService End Time:", new Date());
