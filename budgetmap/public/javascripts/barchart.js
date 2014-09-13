@@ -55,24 +55,44 @@ var BarChart = function(config){
   chart.create = function(){
     this.update(data, width, height);    
   }
+
+  var curPage = [];
+  var pages = [];
+  var pageIdx = 0;
+  var MAX_PAGE = 500;
   chart.update = function(d, w, h){
     console.log("update barchart");
     data = d;
     if (emList!=null){
       newData = [];
-      emList.forEach(function(d){ 
+      emList.forEach(function(d){ //emphasized elements first
         if (data.indexOf(d)!=-1){
           newData.push(d); 
         }  
       });
-      data.forEach(function(d){   if (emList.indexOf(d)==-1)  newData.push(d); });
+      data.forEach(function(d){   if (emList.indexOf(d)==-1)  newData.push(d); }); // and the rest follows
       data = newData;
     }else{
       data.sort(function(a, b){
           return b.budget_assigned - a.budget_assigned;
       });
     }
+    pages = [];
+    var page = [];
+    for (var i in data){
+      page.push(data[i]);
+      if (page.length>=MAX_PAGE){
+        pages.push(page);
+        page = [];
+      }
+    }
+    if (data.length%MAX_PAGE!=0)  pages.push(page);
+    console.log(emList);
+    console.log(pages);
+    pageIdx = 0;
+    curPage = pages[pageIdx]; //draw page 1 first
 
+    //
     //update emphasize items
     /*
     if (emList!=null){
@@ -94,12 +114,13 @@ var BarChart = function(config){
     y.domain([0, d3.max(data.map(function(d) { return d.budget_assigned; }))]);
     //console.log(x(data[0].service));
     // Canvas Size update
-    d3.select(config.container).select(".barchart").style("height", fullHeight + "px");
-    d3.select(config.container).select("svg").attr("height", fullHeight);
+    var pageHeight = outerPadding*2 + (barPadding + barSize)*curPage.length;
+    d3.select(config.container).select(".barchart").style("height", pageHeight + "px");
+    d3.select(config.container).select("svg").attr("height", pageHeight);
 
     // Join new data with old elements, if any.
     var bars = focus.selectAll(".barchart-bar")
-      .data(data, function(d) { return d._id; });
+      .data(curPage, function(d) { return d._id; });
 
     bars.on("mouseover", chart.mouseOver)
           .on("mouseout", chart.mouseOut)
@@ -161,7 +182,15 @@ var BarChart = function(config){
         return d.service;
       });
 
-
+    d3.select(config.container).select(".barchart").select(".more").remove();
+    if (pages.length>1){//add 'load more...'       
+      
+      d3.select(config.container).select(".barchart")
+        .append("xhtml:a")
+        .attr("class", "more")
+        .text(pages[1].length+" 개 사업 더 불러오기...")
+        .on("click", chart.loadMorePage);
+    }
     //setTimeout(function(){
       // recover previously emphasized elements
       //var period = 0;
@@ -180,6 +209,64 @@ var BarChart = function(config){
       }, period);*/
     //}, transPeriod);    
   }  
+  chart.loadMorePage = function(){
+    console.log('loadMorePage');
+    pageIdx++;
+    if (pageIdx>=pages.length) return;
+
+    curPage = pages[pageIdx];
+    var pageHeight = outerPadding*2 + (barPadding + barSize)*curPage.length;
+    var chartHeight = parseInt(d3.select(config.container).select(".barchart").style("height")) + pageHeight;
+    var svgHeight = parseInt(d3.select(config.container).select("svg").attr("height")) + pageHeight;
+    console.log(chartHeight);
+    console.log(svgHeight)
+    d3.select(config.container).select(".barchart").style("height", chartHeight + "px");
+    d3.select(config.container).select("svg").attr("height", svgHeight);
+
+    // Join new data with old elements, if any.
+
+    var bars = focus.selectAll(".barchart-bar")
+      .data(curPage, function(d) { return d._id; });
+
+    // Create new elements as needed.  
+    var entered = bars.enter().append("g")
+      .attr("class", "barchart-bar")
+      .attr("transform", "translate(0,0)")
+
+    entered.on("mouseover", chart.mouseOver)
+          .on("mouseout", chart.mouseOut)
+          .on("click", chart.mouseClick);
+
+    entered.attr("pointer-events", "none")
+      .transition()
+      .duration(transPeriod)
+      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }) //((barSize+barPadding)*i)
+      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.6); })
+      .each("end", function() { d3.select(this).attr("pointer-events", null); });
+
+    entered.append("rect")
+      .attr("class", "barchart-rect")
+      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("height", barSize)
+    
+    entered.append("text")
+      .attr("class", "barchart-text")
+      .attr("x", 0)
+      .attr("y", barSize/2)
+      .attr("dx", "0.25em")
+      .attr("dy", "0.25em")
+      .attr("text-anchor", "start")
+      .text(function(d){      
+        return d.service;
+      });    
+
+    //reached the end of pages. remove 'more' button.    
+    if ((pageIdx+1)<pages.length){
+      d3.select(config.container).select(".barchart").select(".more").text(pages[pageIdx+1].length+" 개 사업 더 불러오기...");
+    }else{
+      d3.select(config.container).select(".barchart").select(".more").remove();
+    }
+  }
   chart.emphasize = function(dl){
     if (!arguments.length) {
       effetive = [];

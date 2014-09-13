@@ -5,7 +5,7 @@ var router  = express.Router();
 /* GET web pages. */
 router.get('/', function(req, res) {
     console.log(req.session.useremail, 'START treemap');
-    res.render('index', { title: 'Task B', user: req.session.user? JSON.stringify(req.session.user):"null" });  
+    res.render('index', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null" });  
 });
 
 router.get('/treemap', function(req, res) {
