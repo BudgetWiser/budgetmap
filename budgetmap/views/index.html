@@ -23,6 +23,7 @@
     <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
     <script type="text/javascript" src="/javascripts/treemap.js"></script>
     <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="/javascripts/recommend.js"></script>
     <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
 
     
@@ -989,8 +990,8 @@
                 }
             }
             return service;
-        }*/
-        //
+        }
+        
         function getRecommendedService(issue, allServices, exploreHistory){
             console.log("getRecommendedService Start Time:", new Date());
             var flow = Math.floor(Math.random() * 5);
@@ -1049,7 +1050,7 @@
             } while (!valid);
             console.log("getRecommendedService End Time:", new Date());
             return filter_list[rand_idx]
-        }
+        }*/
         function removeExploreTask(issueElem){
             issueElem.find("#explore-task-container").slideUp("fast").remove();
         }
