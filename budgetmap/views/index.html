@@ -824,7 +824,7 @@
         }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span id="issue-related" class="badge">관련사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" class="badge">관련사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
 
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
@@ -843,9 +843,11 @@
                     if (selected_service!=null){
                         $("#delete-modal-info").html("<h4>"+serviceName(selected_service)+"<small> 사업에서 </small></h4><h4>"+issue.name+"<small> 이슈를 삭제합니다.</small></h4>");
                         $("#delete-modal-form").show();
+                        $("#delete-modal-confirm").removeAttr("disabled");
                     }else{
-                        $("#delete-modal-info").html("<h4>"+issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");
+                        $("#delete-modal-info").html("<h4>죄송합니다. 현재는 테스트 중으로 이슈를 삭제할 수 없습니다. 사업과의 연결 해제만 가능합니다.");//+issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");
                         $("#delete-modal-form").hide();
+                        $("#delete-modal-confirm").attr("disabled", "disabled");
                     }                  
                     $("#delete-modal").modal("show");
                 })
@@ -1108,7 +1110,7 @@
                     budget_related: 0,
                     budget_unrelated: 0,
                     budget_pass: 0,
-                    max_reviewed: 50,
+                    max_reviewed: 10,
                     num_reviewed: 0,
                     num_related: 0,
                     num_pass: 0,
@@ -1119,10 +1121,10 @@
             var exploreElem = $('<div id="explore-task-container">'
                 + '<div style="text-align: right;"><a id="toggle-explore-task">'+(expand? '예산 탐색 그만하기': '예산 탐색 도전하기')+'</a></div>'
                 + '<div id="explore-task" class="jumbotron" style="margin:0px; padding:5px; background-color:white;">'
-                    + '<div class="text-muted"><strong>Q.선택된 이슈와 관련있는 사업인가요?</strong></div>'
+                    + '<div class="text-muted"><strong>Q.선택된 이슈와 관련있는 사업인가요?</strong></div><br>'
                     //+ '<div class="text-muted"><strong>관련이 있을 만한 사업 정보:</strong></div>'
                     + '<a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
-                    + service.service + '</a>'
+                    + '<strong>'+ service.service + '</strong></a>'
                     + '<div id="explore-candidate" class="text-muted text-right">'
                         + service.category_one + ' > ' + service.category_three + '<br>'
                         + service.department + '<br>'
@@ -1187,8 +1189,7 @@
             var exStats = explore[issue._id];
             var exploreElem = e.data.elem;
             if (exStats.num_reviewed == exStats.max_reviewed) {
-                alert("권장 목표를 모두 달성하였습니다! 찾아주신 사업은 연구자료로 소중히 사용됩니다.  감사합니다!");
-                if (confirm("다음 권장 목표에 도전하시겠습니까")) {
+                if (confirm("권장 목표를 모두 달성하였습니다! " + issue.name + " 이슈에 대해서 우리가 궁금해하던 예산을 알아내는데 기여하셨습니다! 관련 있는 사업도, 관련 없는 사업도 모두 중요한 정보랍니다. 그럼 한번 더 도전해보실래요? ")) {
                     exStats.max_reviewed *= 2;
                 } else {
                    return true;
@@ -1447,7 +1448,7 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> : 주어진 사회이슈에 관련있는 사업들을 담아 예산 지도를 완성해 보세요! <small>이슈를 클릭하고 연관사업을 클릭해 보세요</small> (<a href="javaScript:void(0);">도움말</a>)</h5>
+                <h5 style="padding-top:8px;color:#888a85"> : 주어진 사회이슈에 관련있는 사업들을 담아 예산 지도를 완성해 보세요! <small>이슈를 클릭하고 연관사업을 클릭해 보세요</small> (<a href="http://goo.gl/lLq2QT" target="_blank">도움말</a>)</h5>
                 <!--<ul class="nav navbar-nav">
                     
                     <li><a href="/empty">Task A</a></li>
@@ -1512,13 +1513,13 @@
                         <div id="service-info"></div>
                         <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
                     </div>
-                    <!--<div class="btn-group btn-group-justified">
+                    <div class="btn-group btn-group-justified">
                         <div class="btn-group">
-                            <button id="btn-new-issue" type="button" class="btn btn-info">
+                            <button id="btn-new-issue" type="button" class="btn btn-info" disabled="disabled">
                                 <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
                             </button> 
                          </div>
-                    </div>-->
+                    </div
                     <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
                     </h4>   
                     <div id="issue-list" class="list-group" style="height:530px;; overflow-y:auto;">
@@ -1614,7 +1615,7 @@
                 <p id="delete-modal-info"></p> 
                 <form id="delete-modal-form" style="display:none">
                     <input id="delete-modal-select1" type="radio" name="delete-issue" value="disconnect" checked> 이 사업에서만 이슈를 삭제합니다.<br>
-                    <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete"> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
+                    <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete" disabled> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
                 </form>
             </div>
             <div class="modal-footer">
