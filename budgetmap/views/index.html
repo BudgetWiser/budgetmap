@@ -38,7 +38,8 @@
         var service_map = {}, issue_map = {}, budget_map = {}, service_list_map = {};
         var em_services = null;
         var em_budgets  = null;
-        var explore = {};
+        var explore = {}, exploreHistory = [];
+        var votes = {};
         var barchart_config = {
             container : "#service-chart",
             size :  { width: 250, height: 750},
@@ -118,7 +119,7 @@
                 //create service chart
                 barchart_config.data = services = all_services;
                 barchart = BarChart(barchart_config);
-                barchart.create(); 
+                //barchart.create(); //will be created at 'initialize'
 
                 //Load Issues
                 $.getJSON('/issues', function(data){
@@ -159,8 +160,11 @@
 
                     initialize();
 
-                    socket.on('update issue', updateIssue);
-                    socket.on('update connection', updateConnection);
+                    socket.on('new issue', onNewIssue);
+                    socket.on('update issue', onUpdateIssue);
+                    socket.on('delete issue', onDeleteIssue);
+                    socket.on('new connection', onNewConnection);
+                    socket.on('delete connection', onDeleteConnection);
                 });
 
             });
@@ -455,9 +459,16 @@
                 "<tr><td>예산 </td><td>: "+treemap.format(d.budget_assigned)+"</td></tr>" +
                 "</tbody></table>");
             issues = [];
+            console.log(d.issues);
             for (var i in d.issues){
-                issues.push(issue_map[d.issues[i]]);
+                var issue = issue_map[d.issues[i]];
+                var rel = findRelation(issue, selected_service);
+                if (rel.related) issues.push(issue);
             }
+            //sort issues
+            issues.sort(function(a, b){
+                return b.budgets.length - a.budgets.length;
+            });
             displayIssues(issues);        
             $("#service-more-info").show();
             return true;        
@@ -487,22 +498,27 @@
                 issue   = e.data.issue;
             }
             
-            //emphasize
+            //emphasize only if related>0
             if (services.indexOf(service)!=-1) {
-                em_services.push(service);
-                barchart.emphasize(em_services);
+                if (!e.data || e.data.related){
+                    em_services.push(service);
+                    //barchart.emphasize(em_services);
+                    emphasizeServices(em_services);
+                }
                 if (!e.data) barchart.select(service); //auto select
             }
-            em_budgets.push(budget_map[service.category_three]);
-            treemap.emphasize(em_budgets);            
+            if (!e.data || e.data.related){
+                em_budgets.push(budget_map[service.category_three]);
+                treemap.emphasize(em_budgets);            
+            }
             
             //add issue
             $('#new-issue').val(issue.name); //set input box manually
             addIssue.call(this, e);
             writeLog("issue", "connect", issue.name+", "+service.service);
             //setTimeout(function(){
-            $("#issue-service-result").show();
-            $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
+            //$("#issue-service-result").show();
+            //$("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
             //}, 100);
 
             $("#service-modal").modal("hide");
@@ -534,40 +550,61 @@
 
             if (issue!=null){ //update an existing issue
                 //console.log(selected_service);
-                if (service == null || service.issues.indexOf(issue._id)!=-1){
+
+                var relExists = findRelation(issue, service);
+                if (service == null || (service.issues.indexOf(issue._id)!=-1 && relExists.related && !e.data)){
                     $( "#new-issue-fail" ).text("이미 등록된 이슈가 있습니다.").show().effect( "shake" ).delay(2000).fadeOut();
                     return;
                 }else{
                     //update issues
                     var rel = {
-                        id          : service._id,
-                        related     : related,
-                        unrelated   : unrelated,
-                        pass        : pass
-                    };
-                    issue.budgets.push(rel);
-                    issue.stats.tot_budget += service.budget_assigned;
-                    issue.stats.tot_related += related;
-                    issue.stats.tot_unrelated += unrelated;
-                    issue.stats.tot_pass += pass;
+                            id          : service._id,
+                            related     : related,
+                            unrelated   : unrelated,
+                            pass        : pass
+                        };  
+                    if (relExists) {
+                        rel = relExists;
+                        rel.related     += related;
+                        rel.unrelated   += unrelated;
+                        rel.pass        += pass;
+
+                    }else{                  
+                        issue.budgets.push(rel);
+                    }
+                    console.log("related:" + (rel.related?1:0));
+                    if (rel.related) issue.stats.tot_budget += service.budget_assigned;
+
+                    issue.stats.tot_related     += related;
+                    issue.stats.tot_unrelated   += unrelated;
+                    issue.stats.tot_pass        += pass;
                     //issue.stats.tot_users += 1;
-                    if (issues.indexOf(issue)==-1)  issues.push(issue);
-                    createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
-                    updateIssueTitle();
+                    if (issues.indexOf(issue)==-1)  {
+                        issues.push(issue);
+                        createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                        updateIssueTitle();
+                    }else{
+                        $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget)));
+                        /*
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button').text("관련있음("+rel.related+")");
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("모르겠음("+rel.pass+")");
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').find('button').text("관련없음("+rel.unrelated+")");   */
+                    }              
 
                     writeLog("issue", "update", issue.name);
                     console.log(issue);
+                    $("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
+
                     $.post("/issues/"+issue._id, 
                     {
                         budgets:    issue.budgets,
                         stats:      issue.stats
                     }, function(res){
+                        //update service                        
+                        if (rel.related) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
 
-                        //update service
-                        service.issues.push(issue._id)
-                        treemap.increaseIssueCnt(service.category_three);//update treemap issue count
-
-                        //console.log(service.issues);
+                        if (relExists==null)    service.issues.push(issue._id);
+                            
                         writeLog("service", "update", service.service);
                         $.post("budgets/"+service._id,
                         {
@@ -575,6 +612,7 @@
                         }, function(res){
                             socket.emit("new connection", { issue: issue, service: service})
                         });
+                        
 
                     });                 
                 }                    
@@ -626,7 +664,7 @@
 
             }
             $('#new-issue').val(""); 
-            $( "#new-issue-success" ).text(issue_name+" 이슈가 성공적으로 등록되었습니다.").show().delay(2000).fadeOut();       
+            $( "#new-issue-success" ).text(issue_name+" 이슈가 성공적으로 등록되었습니다.").show().delay(2000).fadeOut();      
             $("#issue-modal").modal("hide");
         }
         function updateAutocomplete(issues){
@@ -671,7 +709,7 @@
                     var rel = findRelation(issue, selected_service);
                     issue.budgets.splice(issue.budgets.indexOf(rel), 1);
 
-                    issue.stats.tot_budget      -= selected_service.budget_assigned;
+                    if (rel.related) issue.stats.tot_budget      -= selected_service.budget_assigned;
                     issue.stats.tot_related     -= rel.related;
                     issue.stats.tot_unrelated   -= rel.unrelated;
                     issue.stats.tot_pass        -= rel.pass;
@@ -695,6 +733,7 @@
                     treemap.updateIssueCnt();
                     updateIssueTitle();
                     $("#delete-modal").modal("hide");
+                    socket.emit("delete connection", { issue: issue, service: selected_service})
                     return;
                 }
             }
@@ -737,11 +776,13 @@
 
             updateIssueTitle();
 
+            socket.emit("delete issue", issue)
+
             $("#delete-modal").modal("hide");
         }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span class="badge">관련사업: '+issue.budgets.length+'개</span><br><span class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// data-issue-id="'+issue._id+'"
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" class="badge">관련사업: '+issue.budgets.length+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// data-issue-id="'+issue._id+'"
 
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
@@ -789,6 +830,7 @@
             // if this issue list is for the selected service
             if (selected_service){
                 var rel = findRelation(issue, selected_service);
+                console.log(rel);
                 if (rel){
                     newElem.append('<div class="btn-group btn-group-justified">'
                         + '<div data-type="1" class="vote-rel btn-group btn-group-sm"><button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="동의하시나요?">관련있음('+rel.related+')</button></div>'
@@ -796,13 +838,23 @@
                         + '<div data-type="3" class="vote-rel btn-group btn-group-sm"><button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="동의하시나요?">관련없음('+rel.unrelated+')</button></div>'
                         + '</div>');
                     newElem.find(".vote-rel").click(function(e){
+                        var rel = findRelation(issue, selected_service);//get relation when clicked, don't use closure
                         e.stopPropagation();
+                        if (votes[selected_service._id] && votes[selected_service._id][issue._id]){
+                            alert("이미 의견을 제출하셨습니다.");
+                            return;
+                        }
+                        if (votes[selected_service._id]==null)  votes[selected_service._id] = {};
+                        if (votes[selected_service._id][issue._id]==null) votes[selected_service._id][issue._id] = 1;
+
+                        
                         var type = $(this).attr("data-type");
                         var button = $(this).find("button");
                         switch(type){
                             case "1": 
                                 rel.related+=1;   
                                 issue.stats.tot_related+=1; 
+                                if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
                                 button.text("관련있음("+rel.related+")");    
                                 writeLog("vote", "related", issue.name + ", " + selected_service.service);
                             break;
@@ -825,6 +877,9 @@
                         {
                             budgets: issue.budgets,
                             stats: issue.stats
+                        }, function(res){
+                            // notify other clients on new connection
+                            socket.emit("update issue", issue)
                         });
                         return true;
                     })
@@ -892,6 +947,7 @@
             em_services = [];
             var exists = {};
             for (var i in issue.budgets){
+                if (issue.budgets[i].related==0)    continue;//emphase only if related
                 var serv = service_map[issue.budgets[i].id];
                 if (exists[serv.category_three]== null){
                     exists[serv.category_three] = 1;
@@ -914,6 +970,7 @@
 
             addExploreTask(selected_issue);
         }
+        /*
         function getRecommendedService(issue, filter){
 
 
@@ -932,6 +989,66 @@
                 }
             }
             return service;
+        }*/
+        //
+        function getRecommendedService(issue, allServices, exploreHistory){
+            console.log("getRecommendedService Start Time:", new Date());
+            var flow = Math.floor(Math.random() * 5);
+         
+            if (flow == 0) {
+                // Choose from popular related category
+                var cat_list = [], serv_list = [];
+                for (var i in issue.budgets) {
+                    var sel = null;
+                    for (var j in allServices) {
+                        if (issue.budgets[i].id === all_services[j]._id
+                                && issue.budgets[i].related > 0
+                                && issue.budgets[i].unrelated == 0) {
+                            sel = all_services[j];
+                            break;
+                        }
+                    }
+                    if (!sel) continue;
+                    if (cat_list.indexOf(sel.category_three) == -1) {
+                        cat_list.push(sel.category_three);
+                    }
+                }
+                for (var i in all_services) {
+                    if (cat_list.indexOf(all_services[i].category_three) != -1) {
+                        serv_list.push(all_services[i]);
+                    }
+                }
+                if (serv_list.length) return getRandomService(issue, serv_list);
+            }
+            console.log("getRecommendedService End Time:", new Date());
+            return getRandomService(issue, all_services);
+        }
+        function getRandomService(issue, filter_list) {
+            console.log("filter size", filter_list.length);
+            var rand_idx = -1, valid = true;
+            do {
+                rand_idx = Math.floor(Math.random() * filter_list.length);
+                for (var i in issue.budgets) {
+                    if (issue.budgets[i].id === filter_list[rand_idx]._id) {
+                        if (issue.budgets[i].unrelated > 1) {
+                            console.log("invalid of previous votes");
+                            valid = false;
+                        }
+                    }
+                    if (filter_list[rand_idx].budget_assigned === 0) {
+                        console.log("invalid of budget assigned");
+                        valid = false;
+                    }
+                    if (filter_list[rand_idx].service.indexOf('기본경비') === 0) {
+                        console.log("invalid of service name");
+                        valid = false;
+                    }
+                }
+                console.log("issue.budgets", issue.budgets);
+                console.log("all_services[i]", all_services[rand_idx]);
+            } while (!valid);
+            console.log("getRecommendedService End Time:", new Date());
+            return filter_list[rand_idx]
         }
         function removeExploreTask(issueElem){
             issueElem.find("#explore-task-container").slideUp("fast").remove();
@@ -941,7 +1058,7 @@
             // simple algorithm to be replaced
             var id = issueElem.attr('data-issue-id');
             var issue = issue_map[id];
-            var service = getRecommendedService(issue);  
+            var service = getRecommendedService(issue, all_services, exploreHistory);  
 
             if (explore[issue._id] ==null){
                 explore[issue._id] = {
@@ -960,20 +1077,8 @@
             var exploreElem = $('<div id="explore-task-container">'
                 + '<div style="text-align: right;"><a id="toggle-explore-task">'+(expand? '예산 탐색 그만하기': '관련된 예산 탐색하기')+'</a></div>'
                 + '<div id="explore-task" class="jumbotron" style="margin:0px; padding:5px; background-color:white;">'
-                    + '<div id="explore-stats" class="text-muted">'                        
-                        + '<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
-                        + '<div class="text-right">'                
-                            + '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
-                            + '<span>' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
-                            //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
-                            + '<u>내가 검토한 예산: ' + treemap.format(exStats.budget_reviewed) + '</u><br>'
-                            + '<span>관련있음(' + exStats.num_related + '개): '+ treemap.format(exStats.budget_related) + '</span><br>'
-                            + '<span>모르겠음(' + exStats.num_pass + '개): ' + treemap.format(exStats.budget_pass) + '</span><br>'
-                            + '<span>관련없음(' + exStats.num_unrelated+'개): ' + treemap.format(exStats.budget_unrelated) + '</span><br>'
-                            + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
-                        + '</div>'
-                    + "</div><br>"//end of stats
-                    + '<div class="text-muted"><strong>관련이 있을 법한 사업 정보:</strong></div>'
+                    + '<div class="text-muted"><strong>Q.선택된 이슈와 관련있는 사업인가요?</strong></div>'
+                    //+ '<div class="text-muted"><strong>관련이 있을 만한 사업 정보:</strong></div>'
                     + '<a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
                     + service.service + '</a>'
                     + '<div id="explore-candidate" class="text-muted text-right">'
@@ -982,7 +1087,7 @@
                         + service.team + '<br>'
                         + treemap.format(service.budget_assigned)
                     + '</div><br>' //end of candidate detail
-                    + '<div class="text-muted"><strong>Q.선택된 이슈와 관련있는 사업인가요?</strong></div>'
+                    
                     + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
                     + '<div class="btn-group">'
                         + '<button type="submit" class="btn btn-default" id="btn-related" style="font-size: 12px;">'
@@ -993,7 +1098,21 @@
                         + '<div class="btn-group">'
                         + '<button type="submit" class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
                         + '관련 없음</button>'
-                    + '</div></div>' //end of button group
+                    + '</div></div><br>' //end of button group
+                    + '<div id="explore-stats" class="text-muted">'      
+                        //+ '<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
+                        + '<div class="text-right">'                
+                            //+ '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
+                            //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
+                            //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
+                            + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
+                            + '<u>내가 검토한 예산: ' + treemap.format(exStats.budget_reviewed) + '</u><br>'
+                            + '<span>관련있음(' + exStats.num_related + '개): '+ treemap.format(exStats.budget_related) + '</span><br>'
+                            + '<span>모르겠음(' + exStats.num_pass + '개): ' + treemap.format(exStats.budget_pass) + '</span><br>'
+                            + '<span>관련없음(' + exStats.num_unrelated+'개): ' + treemap.format(exStats.budget_unrelated) + '</span><br>'
+                        + '</div>'
+                    + "</div>"//end of stats
+    
                 + '</div>');
             
             exploreElem.click(function(e){  e.stopPropagation();   })
@@ -1037,17 +1156,21 @@
             
             exStats.num_reviewed    += 1;
             exStats.budget_reviewed       += e.data.service.budget_assigned;
+            if (exploreHistory.length>=50)  exploreHistory.splice(0, 1);
             if (e.data.related){
                 exStats.budget_related      += e.data.service.budget_assigned;
                 writeLog("explore", "related", issue.name + ", " + e.data.service.service);
+                exploreHistory.push(1);
             }
             if (e.data.pass){
                 exStats.budget_pass         += e.data.service.budget_assigned;
                 writeLog("explore", "pass", issue.name + ", " + e.data.service.service);
+                exploreHistory.push(2);
             }   
             if (e.data.unrelated){
                 exStats.budget_unrelated    += e.data.service.budget_assigned;
                 writeLog("explore", "unrelated", issue.name + ", " + e.data.service.service);
+                exploreHistory.push(3);
             }   
             exStats.num_related     += e.data.related;
             exStats.num_unrelated   += e.data.unrelated;
@@ -1056,7 +1179,7 @@
             
             connectIssue.call(this, e);
 
-            var newService = getRecommendedService(e.data.issue, [e.data.service]);
+            var newService = getRecommendedService(e.data.issue, all_services, exploreHistory);
             exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
             exploreElem.find("#explore-search").attr("data-service-id", newService._id);
             exploreElem.find("#explore-search").text(newService.service);
@@ -1067,16 +1190,16 @@
 
             
             exploreElem.find("#explore-stats").html(
-                '<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
-                + '<div class="text-right">'                
-                    + '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
-                    + '<span>' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
+                //'<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
+                '<div class="text-right">'                
+                    //+ '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
+                    //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
                     //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
+                    + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
                     + '<u>내가 검토한 예산: ' + treemap.format(exStats.budget_reviewed) + '</u><br>'
                     + '<span>관련있음(' + exStats.num_related + '개): '+ treemap.format(exStats.budget_related) + '</span><br>'
                     + '<span>모르겠음(' + exStats.num_pass + '개): ' + treemap.format(exStats.budget_pass) + '</span><br>'
                     + '<span>관련없음(' + exStats.num_unrelated+'개): ' + treemap.format(exStats.budget_unrelated) + '</span><br>'
-                    + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
                 + '</div>'
                 );         
         }
@@ -1111,9 +1234,9 @@
             }
         }
         //when new issue is created by others
-        function updateIssue(issue){
+        function onNewIssue(issue){
 
-            console.log('update issue');
+            console.log('new issue');
             console.log(issue);
 
             all_issues.push(issue);
@@ -1122,27 +1245,133 @@
             issue.stats.tot_budget = 0;
             if (selected_service==null || 
                 (selected_service!=null && issue.budgets.length==1 && issue.budgets[0].id == selected_service._id)){
-                issue.stats.tot_budget += selected_service!=null? selected_service.budget_assigned : 0;
+                issue.stats.tot_budget += selected_service!=null? selected_service.budget_assigned : 0; // related is always 1 when created
                 issues.push(issue);
                 createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                 updateIssueTitle();
             }
             //budgetmap update (issue count)
         }
-        function updateConnection(data){
-            console.log('update connection');
-            console.log(data);
+        function onUpdateIssue(data){
+            console.log('update issue');
+            var issue = issue_map[data._id];
+            issue.budgets   = data.budgets;
+            issue.stats     = data.stats;
+            if (issues.indexOf(issue)!=-1 && selected_service){
+                var rel = findRelation(issue, selected_service);
+                console.log('update count');
+                console.log(rel);
+                //console.log($('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button'));
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button').text("관련있음("+rel.related+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("모르겠음("+rel.pass+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').find('button').text("관련없음("+rel.unrelated+")");    
+            }
+            
+        }
+        function onDeleteIssue(data){
+                        
+            console.log('delete issue');
+            var issue = issue_map[data._id];
+            if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
+                deselectIssue();
+            }
+            delete issue_map[issue._id];
+            var idx = issues.indexOf(issue);
+            if (idx!=-1)  issues.splice(idx, 1);
+            idx = all_issues.indexOf(issue);
+            if (idx!=-1) all_issues.splice(idx, 1);
 
+            //remove issue displayed
+            $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+
+            //remove connections
+            for (var i in issue.budgets){
+                var service = service_map[issue.budgets[i].id];
+
+                //update issue-service connection
+                service.issues.splice(service.issues.indexOf(issue._id), 1);
+                budget_map[service.category_three].issue_size-=1;
+            }
+            //update treemap issue count
+            treemap.updateIssueCnt();
+
+            updateIssueTitle();
+        }
+        function onNewConnection(data){
+            console.log('new connection');
+            console.log(data);
+            
             var issue   = issue_map[data.issue._id];
             var service = service_map[data.service._id];
-            service.issues.push(issue._id);
-            treemap.increaseIssueCnt(service.category_three);//update treemap issue count
-            if (selected_issue!=null){
-                if (services.indexOf(service)!=-1){                    
+            var rel = findRelation(issue, service);
+
+            //update service
+            if (rel == null) service.issues.push(issue._id);
+            if (rel&&rel.related) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+
+            //update issue                       
+            issue.budgets   = data.issue.budgets;
+            issue.stats     = data.issue.stats;
+
+            rel = findRelation(issue, service);
+
+            if (selected_service==service){
+                issues.push(issue);
+                createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                updateIssueTitle();
+            }
+            if (selected_issue && (issue_map[selected_issue.attr("data-issue-id")]._id == issue._id)){
+                
+                if (services.indexOf(service)!=-1 && rel.related==1){                    
                     em_services.push(service);
                     emphasizeServices(em_services);
-                }                
+                }  
+                $("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
             }
+            if (issues.indexOf(issue)!=-1){
+                //update the total budget connected
+                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget)));
+                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('관련사업: '+issue.budgets.length+'개')
+            }
+        }
+        function onDeleteConnection(data){
+            console.log('delete connection');
+            console.log(data);
+            
+            var issue   = issue_map[data.issue._id];
+            var service = service_map[data.service._id];
+            var rel = findRelation(issue, service);
+
+            if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
+                deselectIssue();
+            }
+
+           //remove connection
+            service.issues.splice(service.issues.indexOf(issue._id), 1);
+            if (all_issues!=issues){
+                issues.splice(issues.indexOf(issue), 1);
+                //remove issue displayed
+                $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+            }
+            var rel = findRelation(issue, service);
+            issue.budgets.splice(issue.budgets.indexOf(rel), 1);
+
+            if (rel.related) issue.stats.tot_budget      -= service.budget_assigned;
+            issue.stats.tot_related     -= rel.related;
+            issue.stats.tot_unrelated   -= rel.unrelated;
+            issue.stats.tot_pass        -= rel.pass;
+
+            if (issues.indexOf(issue)!=-1){
+                //update the total budget connected
+                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget)));
+                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('관련사업: '+issue.budgets.length+'개')
+            }
+           
+            
+            //update treemap issue count
+            budget_map[service.category_three].issue_size-=1;
+            treemap.updateIssueCnt();
+            updateIssueTitle();
         }
     </script>
 </head>
@@ -1158,14 +1387,17 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#">BudgetMap</a>
+                <a class="navbar-brand" href="javaScript:void(0);">BudgetMap</a>
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
-            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
+                <h4 style="padding-top:7px;">서울시 사업 예산과 관련된 이슈를 공유해 보세요!</h4>
                 <!--<ul class="nav navbar-nav">
+                    
                     <li><a href="/empty">Task A</a></li>
                     <li><a href="/">Task B</a></li>
                     <li><a href="/explore">Task C</a></li>
+                
                 </ul>-->
                 <!--<ul class="nav navbar-nav navbar-right">
                     <li>
@@ -1191,7 +1423,7 @@
                 <div class="row">
                     <div id="budget-area" class="col-md-8">
                         <h4 class="page-header" style="margin-top:0px;">서울시 예산 지도(2014)
-                            <small> 서울시 사업 예산과 관련된 이슈를 공유해 보세요!</small>
+                            <small> * 선택한 예산 다시 한번 클릭하면 해제가 됩니다.</small>
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
                     </div>
