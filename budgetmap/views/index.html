@@ -229,6 +229,7 @@
         function initialize(){
             deselectService(null);
             deselectBudget(null);
+            updateIssueCount();
         }
         function generateGuide(){
             $("#service-info").addClass("bootstro")
@@ -516,8 +517,8 @@
         }
         function calcIssues(service){
             var issues = [];
-            for (var i in d.issues){
-                var issue = issue_map[d.issues[i]];
+            for (var i in service.issues){
+                var issue = issue_map[service.issues[i]];
                 var rel = findRelation(issue, service);
                 if (rel.related!=0 && rel.related>=rel.unrelated) issues.push(issue);
             }
@@ -686,7 +687,7 @@
                         stats:      issue.stats
                     }, function(res){
                         //update service                        
-                        if (rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        //if (rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
 
                         if (relExists==null)    service.issues.push(issue._id);
                             
@@ -736,7 +737,8 @@
                     if (service!=null){//connect with budget on issue-creation
                         writeLog("service", "update", service.service);
                         service.issues.push(issue._id);
-                        treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        //treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        updateIssueCount();
                         $.post("budgets/"+service._id, {
                             issues: service.issues
                         }, function(res){
@@ -763,6 +765,38 @@
         function updateIssueTitle(){
             selected_service==null? $('#issue-list-title').text("전체 사회이슈("+(all_issues? all_issues.length : 0)+"개)") 
                 : $('#issue-list-title').text("연관 사회이슈("+(issues? issues.length : 0) +"개)");
+        }
+        function updateIssueCount(){
+            console.log("updateIssueCount");
+            var temp = {};
+            for (var i in budget_map){
+                budget_map[i].issue_size = 0;
+                temp[budget_map[i].name] = {};
+            }
+            for (var i in all_services){
+                var service = all_services[i];
+                var budget = budget_map[all_services[i].category_three];
+                
+                for (var j in service.issues){
+                    var issue = issue_map[service.issues[j]];
+                    var rel = findRelation(issue, service);
+                    if (rel==null){
+                        console.log("alert: " + service.service);
+                    }
+                    if (!rel) continue;
+                    if (rel.related!=0 && rel.related>=rel.unrelated){
+                        if (temp[budget.name][issue._id]==null){
+                            temp[budget.name][issue._id] = issue._id;
+                            budget.issue_size +=1;
+                        }
+                    }
+                }
+            }
+            for (var i in budget_map){
+                console.log(budget_map[i].issue_size);
+            }
+
+            treemap.updateIssueCnt();
         }
         function displayIssues(data){
             if (data==null) return;
@@ -814,8 +848,9 @@
                     //remove issue displayed
                     $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
                     //update treemap issue count
-                    budget_map[selected_service.category_three].issue_size-=1;
-                    treemap.updateIssueCnt();
+                    //budget_map[selected_service.category_three].issue_size-=1;
+                    //treemap.updateIssueCnt();
+                    updateIssueCount();
                     updateIssueTitle();
                     $("#delete-modal").modal("hide");
                     socket.emit("delete connection", { issue: issue, service: selected_service})
@@ -857,7 +892,8 @@
                 });
             }
             //update treemap issue count
-            treemap.updateIssueCnt();
+            //treemap.updateIssueCnt();
+            updateIssueCount();
 
             updateIssueTitle();
 
@@ -952,25 +988,24 @@
 
                         
                         var type = $(this).attr("data-type");
-                        var button = $(this).find("button");
                         switch(type){
                             case "1": 
                                 rel.related+=1;   
                                 issue.stats.tot_related+=1; 
                                 //if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
-                                button.text("관련있음("+rel.related+")");    
+                                $(this).text("관련있음("+rel.related+")");    
                                 writeLog("vote", "related", issue.name + ", " + selected_service.service);
                             break;
                             case "2": 
                                 rel.pass+=1;      
                                 issue.stats.tot_pass+=1;       
-                                button.text("모르겠음("+rel.pass+")"); 
+                                $(this).text("모르겠음("+rel.pass+")"); 
                                 writeLog("vote", "pass", issue.name + ", " + selected_service.service);
                             break;
                             case "3": 
                                 rel.unrelated+=1; 
                                 issue.stats.tot_unrelated+=1;  
-                                button.text("관련없음("+rel.unrelated+")");  
+                                $(this).text("관련없음("+rel.unrelated+")");  
                                 writeLog("vote", "unrelated", issue.name + ", " + selected_service.service);
                             break;
                         }
@@ -1008,7 +1043,7 @@
             return newElem;
         }
         function findRelation(issue, service){
-            if (service==null)  return null;
+            if (service==null || issue==null)  return null;
             for (var i in issue.budgets){
                 if (issue.budgets[i].id == service._id) return issue.budgets[i];
             }
@@ -1287,9 +1322,9 @@
                 console.log('update count');
                 console.log(rel);
                 //console.log($('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button'));
-                $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button').text("관련있음("+rel.related+")");
-                $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("모르겠음("+rel.pass+")");
-                $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').find('button').text("관련없음("+rel.unrelated+")");    
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').text("관련있음("+rel.related+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').text("모르겠음("+rel.pass+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').text("관련없음("+rel.unrelated+")");    
             }
             
         }
@@ -1315,10 +1350,11 @@
 
                 //update issue-service connection
                 service.issues.splice(service.issues.indexOf(issue._id), 1);
-                budget_map[service.category_three].issue_size-=1;
+                //budget_map[service.category_three].issue_size-=1;
             }
             //update treemap issue count
-            treemap.updateIssueCnt();
+            //treemap.updateIssueCnt();
+            updateIssueCount();
 
             updateIssueTitle();
         }
@@ -1332,7 +1368,8 @@
 
             //update service
             if (rel == null) service.issues.push(issue._id);
-            if (rel&&rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+            //if (rel&&rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+            updateIssueCount();
 
             //update issue                       
             issue.budgets   = data.issue.budgets;
@@ -1400,8 +1437,9 @@
            
             
             //update treemap issue count
-            budget_map[service.category_three].issue_size-=1;
-            treemap.updateIssueCnt();
+            //budget_map[service.category_three].issue_size-=1;
+            //treemap.updateIssueCnt();
+            updateIssueCount();
             updateIssueTitle();
         }
         function onConnectedUsers(numConn){
@@ -1436,7 +1474,7 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련있는 사업들을 담아 예산지도를 완성해 보세요!(<a href="https://www.evernote.com/shard/s463/sh/92e7af9a-0a7b-43cd-8390-89134f62450d/c1a3f393d598614f4cb69d32297e8c6b" target="_blank">도움말</a>) - <span id="connect-users"></span><span id="survey-link" style="margin-left: 420px; font-size:16px;"><a href="#" target="_blank">설문조사 참여 </a></h5>
+                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련있는 사업들을 담아 예산지도를 완성해 보세요!(<a href="https://www.evernote.com/shard/s463/sh/92e7af9a-0a7b-43cd-8390-89134f62450d/c1a3f393d598614f4cb69d32297e8c6b" target="_blank">도움말</a>) - <span id="connect-users"></span><span id="survey-link" style="margin-left: 420px; font-size:16px;"><a href="https://qtrial2014.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank">설문조사 참여 </a></h5>
                 <!--<ul class="nav navbar-nav">
                     <li><a href="/empty">Task A</a></li>
                     <li><a href="/">Task B</a></li>
