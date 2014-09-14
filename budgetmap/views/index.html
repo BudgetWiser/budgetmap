@@ -520,6 +520,7 @@
             for (var i in service.issues){
                 var issue = issue_map[service.issues[i]];
                 var rel = findRelation(issue, service);
+                console.log(rel);
                 if (rel.related!=0 && rel.related>=rel.unrelated) issues.push(issue);
             }
             //sort issues
@@ -551,6 +552,7 @@
                 "<tr><td>예산 </td><td>: "+treemap.format(d.budget_assigned)+"</td></tr>" +
                 "</tbody></table>");
             issues = calcIssues(d);
+            console.log(d);
             displayIssues(issues);        
             $("#service-more-info").show();
             return true;        
@@ -1544,7 +1546,7 @@
                                 <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
                             </button> 
                          </div>
-                    </div
+                    </div>
                     <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
                     </h4>   
                     <!--<div  style="height:530px;; overflow-y:auto;">-->
