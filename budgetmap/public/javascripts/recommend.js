@@ -1,4 +1,4 @@
-function getRecommendedService(issue, filter, recent_history){
+function getRecommendedService(issue, filter, recent_history, explored){
     var FRUSTRATION_THRESHOLD = 5;
     console.log("getRecommendedService Start Time:", new Date());
     // Deep copy recent_history

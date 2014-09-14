@@ -40,6 +40,7 @@
         var em_services = null;
         var em_budgets  = null;
         var explore = {}, exploreHistory = [];
+        var explored = [];
         var votes = {};
         var barchart_config = {
             container : "#service-chart",
@@ -1215,6 +1216,7 @@
                 }
             }
             e.data.service = service_map[exploreElem.find("#explore-search").attr("data-service-id")];
+            explored.push(e.data.service);
             
             exStats.num_reviewed    += 1;
             exStats.budget_reviewed       += e.data.service.budget_assigned;
@@ -1241,7 +1243,7 @@
             
             connectIssue.call(this, e);
 
-            var newService = getRecommendedService(e.data.issue, all_services, exploreHistory);
+            var newService = getRecommendedService(e.data.issue, all_services, exploreHistory, explored);
             exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
             exploreElem.find("#explore-search").attr("data-service-id", newService._id);
             exploreElem.find("#explore-search").text(newService.service);
