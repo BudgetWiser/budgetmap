@@ -3,7 +3,7 @@
 @import url(http://fonts.googleapis.com/css?family=Source+Sans+Pro);
 
 body {
-    font: 12px 'Nanum Gothic', "Helvetica Neue", Helvetica, "Noto Sans Korean", 'Source Sans Pro', serif;
+    font: 12px "NanumGothic", "나눔고딕", "Malgun Gothic", "맑은 고딕", sans-serif;
     color: #555753;
     margin: 0px;
 }

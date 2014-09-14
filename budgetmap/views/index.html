@@ -3,12 +3,14 @@
     <title>{{title}}</title>
 
 
-    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+    
+    
     <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
     <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
     <link rel="stylesheet" type="text/css" href="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.css">
-    <link rel="stylesheet" type="text/css" href="/libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css">    
+    <link rel="stylesheet" type="text/css" href="/libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css"> 
     <link rel="stylesheet" type="text/css" href="/libraries/bootstro/bootstro.min.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
 
     <script type="text/javascript" src="/libraries/colorbrewer.js"></script>
     <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
@@ -59,7 +61,7 @@
             onDeselect: deselectBudget
         }
         $(document).ready(function(){
-
+            //$("body").attr("font-family", "'Nanum Gothic', "Helvetica Neue", Helvetica, "Noto Sans Korean", 'Source Sans Pro', serif")
             socket.on('connectedUsers', onConnectedUsers);
             $("[data-toggle=tooltip]").tooltip();
 
@@ -1499,11 +1501,11 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/">BudgetMap</a>
+                <a class="navbar-brand" href="/"><strong>BudgetMap</strong></a>
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련이 있는 사업들을 담아 예산지도를 완성해 보세요! (<a href="https://www.evernote.com/shard/s183/sh/1440ee02-bf23-43d2-b935-b57b6cac0a35/cc3cfdb7fb2eafd11a4fc14958249c38" target="_blank">도움말</a>) - <span id="connect-users"></span><span id="survey-link" style="margin-left: 250px; font-size:16px;"><a href="https://qtrial2014.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank">설문조사 참여</a></h5>
+                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련이 있는 사업들을 담아 예산지도를 완성해 보세요! (<a href="https://www.evernote.com/shard/s183/sh/1440ee02-bf23-43d2-b935-b57b6cac0a35/cc3cfdb7fb2eafd11a4fc14958249c38" target="_blank">도움말</a>) - <span id="connect-users"></span><span style="margin-left: 200px; color:#555753; font-size:12px;"><a  id="survey-link" style="font-size:16px;" href="https://qtrial2014.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank">설문조사 참여</a></h5>
                 <!--<ul class="nav navbar-nav">
                     <li><a href="/empty">Task A</a></li>
                     <li><a href="/">Task B</a></li>
