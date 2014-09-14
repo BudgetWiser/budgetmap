@@ -3,7 +3,7 @@
     <title>{{title}}</title>
 
 
-    
+    <link rel="icon" href="/images/favicon.ico">
     
     <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
     <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
@@ -62,6 +62,11 @@
         }
         $(document).ready(function(){
             //$("body").attr("font-family", "'Nanum Gothic', "Helvetica Neue", Helvetica, "Noto Sans Korean", 'Source Sans Pro', serif")
+            $("#budgetmap-logo").hover(function(){
+                $(this).find("img").css("opacity", 1.0);
+            }, function(){
+                $(this).find("img").css("opacity", 0.5);
+            });
             socket.on('connectedUsers', onConnectedUsers);
             $("[data-toggle=tooltip]").tooltip();
 
@@ -233,6 +238,7 @@
             deselectService(null);
             deselectBudget(null);
             updateIssueCount();
+
         }
         function generateGuide(){
             $("#service-info").addClass("bootstro")
@@ -249,7 +255,7 @@
 
             $("#service-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 사업 목록")
-                .attr("data-bootstro-content", "선택한 분야에 대 상세 사업 목록을 볼 수 있어요!")
+                .attr("data-bootstro-content", "선택한 분야에 속하는 상세 사업 목록을 볼 수 있어요!")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 2)
 
@@ -1510,7 +1516,7 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/"><strong>BudgetMap</strong></a>
+                <a class="navbar-brand" href="/" id="budgetmap-logo" ><img  src="/images/favicon.ico" width="25" height="25" class="img-rounded" > <strong>BudgetMap</strong></a>
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
