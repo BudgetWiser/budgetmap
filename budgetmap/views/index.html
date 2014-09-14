@@ -40,7 +40,7 @@
         var em_services = null;
         var em_budgets  = null;
         var explore = {}, exploreHistory = [];
-        var explored = [];
+        var explored = {};
         var votes = {};
         var barchart_config = {
             container : "#service-chart",
@@ -1216,7 +1216,8 @@
                 }
             }
             e.data.service = service_map[exploreElem.find("#explore-search").attr("data-service-id")];
-            explored.push(e.data.service);
+            if (explored[issue._id]==null)   explored[issue._id] = [];
+            explored[issue._id].push(e.data.service);
             
             exStats.num_reviewed    += 1;
             exStats.budget_reviewed       += e.data.service.budget_assigned;
