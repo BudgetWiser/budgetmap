@@ -1276,12 +1276,13 @@
                 );   
             if (exStats.num_reviewed == exStats.max_reviewed) {
                 if (confirm("권장 목표를 모두 달성했습니다! " + issue.name + " 이슈에 대해서 궁금하던 예산을 알아내는데 기여하셨습니다! 관련이 있는 사업도, 관련이 없는 사업도 모두 중요한 정보입니다. 그럼 한번 더 도전해 볼까요? ")) {
-                    exStats.max_reviewed += exStats.max_reviewed;
+                    exStats.max_reviewed += 10;
                 } else {
-                    $('[data-issue-id=' + issue._id + ']').find("#toggle-explore-task").click();
-                    exStats.max_reviewed += exStats.max_reviewed;
-                    return true;
+                    exStats.max_reviewed += 10;
+                    exploreElem.find("#toggle-explore-task").click();                    
                 }
+
+                exploreElem.find("#explore-stats mark").text('현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개');
             }
 
             var newService = getRecommendedService(e.data.issue, all_services, exploreHistory, explored);
