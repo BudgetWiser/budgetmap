@@ -925,7 +925,7 @@
         }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"  data-toggle="tooltip" data-placement="left" title="아 씨발"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" style="font-size:10px;" class="badge">연관사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+calcIssueBudget(issue)+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"  data-toggle="tooltip" data-placement="left" ><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" style="font-size:10px;" class="badge">연관사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+calcIssueBudget(issue)+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
 
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
@@ -973,6 +973,7 @@
                 $(elem).remove();
             });
             */
+            newElem.attr("title", "'"+issue.name+"'의 범위는 스스로 정의하셔도 좋습니다.");
             newElem.attr('data-issue-id', issue._id);
             newElem.tooltip({container: 'body'});
             // if this issue list is for the selected service
@@ -1226,43 +1227,40 @@
             var exStats = explore[issue._id];
             var exploreElem = e.data.elem;
 
-            if (exStats.num_reviewed == exStats.max_reviewed) {
-                if (confirm("권장 목표를 모두 달성했습니다! " + issue.name + " 이슈에 대해서 궁금하던 예산을 알아내는데 기여하셨습니다! 관련이 있는 사업도, 관련이 없는 사업도 모두 중요한 정보입니다. 그럼 한번 더 도전해 볼까요? ")) {
-                    exStats.max_reviewed += exStats.max_reviewed;
-                } else {
-                   return true;
+
+            if (exStats.num_reviewed< exStats.max_reviewed){
+                e.data.service = service_map[exploreElem.find("#explore-search").attr("data-service-id")];
+                if (explored[issue._id]==null)   explored[issue._id] = [];
+                explored[issue._id].push(e.data.service);
+                
+                
+                exStats.budget_reviewed       += e.data.service.budget_assigned;
+                if (exploreHistory.length>=50)  exploreHistory.splice(0, 1);
+                if (e.data.related){
+                    exStats.budget_related      += e.data.service.budget_assigned;
+                    writeLog("explore", "related", issue.name + ", " + e.data.service.service);
+                    exploreHistory.push(1);
                 }
-            }
-            e.data.service = service_map[exploreElem.find("#explore-search").attr("data-service-id")];
-            if (explored[issue._id]==null)   explored[issue._id] = [];
-            explored[issue._id].push(e.data.service);
-            
-            
-            exStats.budget_reviewed       += e.data.service.budget_assigned;
-            if (exploreHistory.length>=50)  exploreHistory.splice(0, 1);
-            if (e.data.related){
-                exStats.budget_related      += e.data.service.budget_assigned;
-                writeLog("explore", "related", issue.name + ", " + e.data.service.service);
-                exploreHistory.push(1);
-            }
-            if (e.data.pass){
-                exStats.budget_pass         += e.data.service.budget_assigned;
-                writeLog("explore", "pass", issue.name + ", " + e.data.service.service);
-                exploreHistory.push(2);
-            }   
-            if (e.data.unrelated){
-                exStats.budget_unrelated    += e.data.service.budget_assigned;
-                writeLog("explore", "unrelated", issue.name + ", " + e.data.service.service);
-                exploreHistory.push(3);
-            }   
-            exStats.num_related     += e.data.related;
-            exStats.num_unrelated   += e.data.unrelated;
-            exStats.num_pass        += e.data.pass;
+                if (e.data.pass){
+                    exStats.budget_pass         += e.data.service.budget_assigned;
+                    writeLog("explore", "pass", issue.name + ", " + e.data.service.service);
+                    exploreHistory.push(2);
+                }   
+                if (e.data.unrelated){
+                    exStats.budget_unrelated    += e.data.service.budget_assigned;
+                    writeLog("explore", "unrelated", issue.name + ", " + e.data.service.service);
+                    exploreHistory.push(3);
+                }   
+                exStats.num_related     += e.data.related;
+                exStats.num_unrelated   += e.data.unrelated;
+                exStats.num_pass        += e.data.pass;
 
-            
-            connectIssue.call(this, e);
+                
+                connectIssue.call(this, e);
 
-            exStats.num_reviewed    += 1;
+
+                exStats.num_reviewed    += 1;
+            }
             exploreElem.find("#explore-stats").html(
                 //'<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
                 '<div class="text-right">'                
@@ -1276,8 +1274,14 @@
                     + '<span>관련없음(' + exStats.num_unrelated+'개): ' + (exStats.budget_unrelated==0? '0원':treemap.format(exStats.budget_unrelated)) + '</span><br>'
                 + '</div>'
                 );   
-
-
+            if (exStats.num_reviewed == exStats.max_reviewed) {
+                if (confirm("권장 목표를 모두 달성했습니다! " + issue.name + " 이슈에 대해서 궁금하던 예산을 알아내는데 기여하셨습니다! 관련이 있는 사업도, 관련이 없는 사업도 모두 중요한 정보입니다. 그럼 한번 더 도전해 볼까요? ")) {
+                    exStats.max_reviewed += exStats.max_reviewed;
+                } else {
+                    removeExploreTask($('[data-issue-id=' + issue._id + ']'));
+                    return true;
+                }
+            }
 
             var newService = getRecommendedService(e.data.issue, all_services, exploreHistory, explored);
             exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
