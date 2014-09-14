@@ -409,7 +409,7 @@
             // set up service chart panel
             $("#service-chart").scrollTop(0);
             //$("#service-chart").empty();
-            $("#service-chart-title").text("서울시 사업목록 ("+services.length+"개)");
+            $("#service-chart-title").text("서울시 사업 목록 ("+services.length+"개)");
             $("#service-search-group").show(); 
             $("#service-search-result").hide();   
 
@@ -471,7 +471,7 @@
             console.log(service)
             var items = [];
             if (service!=null){
-                $("#issue-modal-info").html("<h4>" + serviceName(service) + " <small>사업 관련된 사회이슈를 입력해 주세요.</small></h4>");
+                $("#issue-modal-info").html("<h4>" + serviceName(service) + " <small>사업 관련된 사회 이슈를 입력해 주세요.</small></h4>");
                 for (var i in all_issues){
                     var exist = false;
                     for (var j in issues){
@@ -483,7 +483,7 @@
                     if (exist==false)   items.push(all_issues[i]); 
                 }
             }else{
-                $("#issue-modal-info").html("<h4>2014년 서울시 전체 예산<small>과 관련된 사회이슈를 입력해 주세요.</small></h4>");
+                $("#issue-modal-info").html("<h4>2014년 서울시 전체 예산<small>과 관련된 사회 이슈를 입력해 주세요.</small></h4>");
             }
             console.log(items);
             updateAutocomplete(items);
@@ -651,7 +651,7 @@
                 //console.log(selected_service);
 
                 var relExists = findRelation(issue, service);
-                if (service == null || (service.issues.indexOf(issue._id)!=-1 && relExists.related && !e.data)){
+                if (service == null || (service.issues.indexOf(issue._id)!=-1 && relExists && relExists.related && !e.data)){
                     $( "#new-issue-fail" ).text("이미 등록된 이슈가 있습니다.").show().effect( "shake" ).delay(2000).fadeOut();
                     return;
                 }else{
@@ -777,8 +777,8 @@
             $('#new-issue').typeahead({source: source, highlight: true});
         }
         function updateIssueTitle(){
-            selected_service==null? $('#issue-list-title').text("전체 사회이슈("+(all_issues? all_issues.length : 0)+"개)") 
-                : $('#issue-list-title').text("연관 사회이슈("+(issues? issues.length : 0) +"개)");
+            selected_service==null? $('#issue-list-title').text("전체 사회 이슈("+(all_issues? all_issues.length : 0)+"개)") 
+                : $('#issue-list-title').text("연관 사회 이슈("+(issues? issues.length : 0) +"개)");
         }
         function updateIssueCount(){
             console.log("updateIssueCount");
@@ -1569,7 +1569,7 @@
                         <div id="service-info"></div>
                         <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
                     </div>
-                    <div class="btn-group btn-group-justified">
+                    <div class="btn-group btn-group-justified" data-toggle="tooltip" data-placement="left" title="지금은 지원하지 않는 기능입니다.">
                         <div class="btn-group">
                             <button id="btn-new-issue" type="button" class="btn btn-info" disabled="disabled">
                                 <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
@@ -1629,7 +1629,7 @@
             <p id="issue-modal-info"></p> 
             <div id="new-issue-form">
                 <div class="input-group"  style="width:100%">
-                    <input id="new-issue" data-provide="typeahead" type="text" class="form-control" placeholder="사회이슈를 입력 해주세요..." style="width:100%" autocomplete="off">
+                    <input id="new-issue" data-provide="typeahead" type="text" class="form-control" placeholder="사회 이슈를 입력 해주세요..." style="width:100%" autocomplete="off">
                 </div>                                
                 <div id="new-issue-fail" class="alert alert-danger" role="alert" style="display:none">이슈를 올바르게 입력해주세요.</div>
                 <div id="new-issue-success" class="alert alert-success" role="alert" style="display:none">이슈를 추가하였습니다.</div>
