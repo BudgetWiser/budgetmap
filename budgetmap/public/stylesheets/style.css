@@ -1,6 +1,9 @@
 @import url(http://fonts.googleapis.com/css?family=Open+Sans:400,700);
+@import url(http://fonts.googleapis.com/earlyaccess/nanumgothic.css);
+@import url(http://fonts.googleapis.com/css?family=Source+Sans+Pro);
+
 body {
-    font: 12px "Helvetica Neue", Helvetica, "Noto Sans Korean", "Nanum Gothic", sans-serif;
+    font: 12px 'Nanum Gothic', "Helvetica Neue", Helvetica, "Noto Sans Korean", 'Source Sans Pro', serif;
     color: #555753;
     margin: 0px;
 }

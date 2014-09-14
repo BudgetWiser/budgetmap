@@ -235,7 +235,7 @@
         function generateGuide(){
             $("#service-info").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 예산")
-                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는 지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴 볼 수 있어요.")
+                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴볼 수 있어요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 0)
 
@@ -247,13 +247,13 @@
 
             $("#service-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 사업 목록")
-                .attr("data-bootstro-content", "선택한 분야에 대해 상세 사업 목록을 볼 수 있어요!")
+                .attr("data-bootstro-content", "선택한 분야에 대 상세 사업 목록을 볼 수 있어요!")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 2)
 
             $("#issue-area").addClass("bootstro")
                 .attr("data-bootstro-title", "사회 이슈 별 예산지도 만들기")
-                .attr("data-bootstro-content", "사회 이슈를 선택하고 연관있는 사업들을 클릭하여 예산지도를 완성해 보세요.")
+                .attr("data-bootstro-content", "사회 이슈를 선택하고 연관이 있는 사업들을 클릭하여 예산지도를 완성해 보세요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 3)
 
@@ -373,7 +373,7 @@
             // set up service chart panel
             $("#service-chart").scrollTop(0);
             //$("#service-chart").empty();
-            $("#service-chart-title").text(d.name+" 관련 사업목록("+services.length+"개)");
+            $("#service-chart-title").text(d.name+" 관련 사업 목록 ("+services.length+"개)");
             $("#service-search-group").show(); 
             $("#service-search-result").hide();   
 
@@ -407,7 +407,7 @@
             // set up service chart panel
             $("#service-chart").scrollTop(0);
             //$("#service-chart").empty();
-            $("#service-chart-title").text("서울시 사업목록("+services.length+"개)");
+            $("#service-chart-title").text("서울시 사업목록 ("+services.length+"개)");
             $("#service-search-group").show(); 
             $("#service-search-result").hide();   
 
@@ -452,11 +452,13 @@
                 }
                 em_services.push(serv);
             }
-
+            em_services.sort(function(a, b){
+                return b.budget_assigned - a.budget_assigned;
+            });
             treemap.emphasize(em_budgets);
             barchart.emphasize(em_services);  
             $("#issue-service-result").show();
-            $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");            
+            $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");            
         }
         function serviceName(service){
             return service.service;//service.service.split(".")[1];
@@ -584,14 +586,15 @@
             }
             
             //emphasize only if related>0
-            if (services.indexOf(service)!=-1) {
-                /*if (!e.data || e.data.related){
+            /*if (services.indexOf(service)!=-1) {
+                if (!e.data || e.data.related){
                     em_services.push(service);
                     //barchart.emphasize(em_services);
                     emphasizeServices(em_services);
-                }*/
-                if (!e.data) barchart.select(service); //auto select
-            }
+                }
+                
+            }*/
+
             /*if (!e.data || e.data.related){
                 em_budgets.push(budget_map[service.category_three]);
                 treemap.emphasize(em_budgets);            
@@ -601,6 +604,12 @@
             $('#new-issue').val(issue.name); //set input box manually
             addIssue.call(this, e);
             updateEmphasize();
+
+            if (!e.data) {
+                //barchart.select(service); //auto select
+                console.log("select")
+            }
+
             writeLog("issue", "connect", issue.name+", "+service.service);
             //setTimeout(function(){
             //$("#issue-service-result").show();
@@ -676,7 +685,7 @@
                         $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
                         /*
                         $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button').text("관련있음("+rel.related+")");
-                        $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("모르겠음("+rel.pass+")");
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("아리송함("+rel.pass+")");
                         $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').find('button').text("관련없음("+rel.unrelated+")");   */
                     }              
 
@@ -794,9 +803,6 @@
                         }
                     }
                 }
-            }
-            for (var i in budget_map){
-                console.log(budget_map[i].issue_size);
             }
 
             treemap.updateIssueCnt();
@@ -971,12 +977,13 @@
                 if (rel){
                     newElem.append('<div class="btn-group btn-group-justified">'
                         + '<a role="button" data-type="1"  class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >관련있음('+rel.related+')</a>'
-                        + '<a role="button" data-type="2" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >모르겠음('+rel.pass+')</a>'
+                        + '<a role="button" data-type="2" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >아리송함('+rel.pass+')</a>'
                         + '<a role="button" data-type="3" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >관련없음('+rel.unrelated+')</a>'
                         + '</div>');
-                   newElem.find("[data-type=1]").attr("title", issue.name+" 이슈와 "+selected_service.service + " 사업이 관련 있다고 생각하시나요? (괄호 안 숫자는 동의한 사람 수)");
-                    newElem.find("[data-type=2]").attr("title", issue.name+" 이슈와 "+selected_service.service + " 사업이 관련 있는지 잘 모르겠나요? (괄호 안 숫자는 동의한 사람 수)");
-                    newElem.find("[data-type=3]").attr("title", issue.name+" 이슈와 "+selected_service.service + " 사업이 관련 없다고 생각하시나요? (괄호 안 숫자는 동의한 사람 수)");
+                    newElem.find("[data-type=1]").attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");
+                    newElem.find("[data-type=2]").attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
+                    newElem.find("[data-type=3]").attr("title", rel.unrelated + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련없다고 생각합니다.");
+                    $("[data-toggle='tooltip']").tooltip('destroy');
                     $("[data-toggle='tooltip']").tooltip({container: 'body'});
  
                     newElem.find(".vote-rel").click(function(e){
@@ -996,22 +1003,27 @@
                                 rel.related+=1;   
                                 issue.stats.tot_related+=1; 
                                 //if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
-                                $(this).text("관련있음("+rel.related+")");    
+                                $(this).text("관련있음("+rel.related+")"); 
+                                $(this).attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");   
                                 writeLog("vote", "related", issue.name + ", " + selected_service.service);
                             break;
                             case "2": 
                                 rel.pass+=1;      
                                 issue.stats.tot_pass+=1;       
-                                $(this).text("모르겠음("+rel.pass+")"); 
+                                $(this).text("아리송함("+rel.pass+")"); 
+                                $(this).attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
                                 writeLog("vote", "pass", issue.name + ", " + selected_service.service);
                             break;
                             case "3": 
                                 rel.unrelated+=1; 
                                 issue.stats.tot_unrelated+=1;  
-                                $(this).text("관련없음("+rel.unrelated+")");  
+                                $(this).text("관련없음("+rel.unrelated+")"); 
+                                $(this).attr("title", rel.unrelated + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련없다고 생각합니다."); 
                                 writeLog("vote", "unrelated", issue.name + ", " + selected_service.service);
                             break;
                         }
+                        $("[data-toggle='tooltip']").tooltip('destroy');
+                        $("[data-toggle='tooltip']").tooltip({container: 'body'});
 
                         
                         $.post("/issues/"+issue._id, 
@@ -1144,7 +1156,7 @@
             var exploreElem = $('<div id="explore-task-container">'
                 + '<div style="text-align: right;"><a id="toggle-explore-task">'+(expand? '예산 탐색 그만하기': '예산 탐색 도전하기')+'</a></div>'
                 + '<div id="explore-task" class="jumbotron" style="margin:0px; padding:5px; background-color:white;">'
-                    + '<div class="text-muted"><strong>선택된 이슈와 관련있는 사업인가요?</strong></div><br>'
+                    + '<div class="text-muted"><strong>선택된 이슈와 관련이 있나요?</strong></div><br>'
                     //+ '<div class="text-muted"><strong>관련이 있을 만한 사업 정보:</strong></div>'
                     + '<strong><a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
                     + service.service + '</a></strong>'
@@ -1159,7 +1171,7 @@
                         + '<a class="btn btn-default" id="btn-related" style="font-size: 12px;">'
                         + '관련 있음</a>'
                         + '<a class="btn btn-default" id="btn-pass" style="font-size: 12px;">'
-                        + '모르겠음</a>'
+                        + '아리송함</a>'
                         + '<a class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
                         + '관련 없음</a>'
                     + '</div><br>' //end of button group
@@ -1170,10 +1182,10 @@
                             //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
                             //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
                             + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
-                            + '<u>내가 검토한 예산: ' + treemap.format(exStats.budget_reviewed) + '</u><br>'
-                            + '<span>관련있음(' + exStats.num_related + '개): '+ treemap.format(exStats.budget_related) + '</span><br>'
-                            + '<span>모르겠음(' + exStats.num_pass + '개): ' + treemap.format(exStats.budget_pass) + '</span><br>'
-                            + '<span>관련없음(' + exStats.num_unrelated+'개): ' + treemap.format(exStats.budget_unrelated) + '</span><br>'
+                            + '<u>내가 검토한 예산: ' + (exStats.budget_reviewed==0? '0원':treemap.format(exStats.budget_reviewed)) + '</u><br>'
+                            + '<span>관련있음(' + exStats.num_related + '개): '+ (exStats.budget_related==0? '0원':treemap.format(exStats.budget_related)) + '</span><br>'
+                            + '<span>아리송함(' + exStats.num_pass + '개): ' + (exStats.budget_pass==0? '0원':treemap.format(exStats.budget_pass)) + '</span><br>'
+                            + '<span>관련없음(' + exStats.num_unrelated+'개): ' + (exStats.budget_unrelated==0? '0원':treemap.format(exStats.budget_unrelated)) + '</span><br>'
                         + '</div>'
                     + "</div>"//end of stats
     
@@ -1208,9 +1220,10 @@
             var issue = e.data.issue;
             var exStats = explore[issue._id];
             var exploreElem = e.data.elem;
+
             if (exStats.num_reviewed == exStats.max_reviewed) {
-                if (confirm("권장 목표를 모두 달성하였습니다! " + issue.name + " 이슈에 대해서 우리가 궁금해하던 예산을 알아내는데 기여하셨습니다! 관련 있는 사업도, 관련 없는 사업도 모두 중요한 정보랍니다. 그럼 한번 더 도전해보실래요? ")) {
-                    exStats.max_reviewed *= 2;
+                if (confirm("권장 목표를 모두 달성했습니다! " + issue.name + " 이슈에 대해서 궁금하던 예산을 알아내는데 기여하셨습니다! 관련이 있는 사업도, 관련이 없는 사업도 모두 중요한 정보입니다. 그럼 한번 더 도전해 볼까요? ")) {
+                    exStats.max_reviewed += exStats.max_reviewed;
                 } else {
                    return true;
                 }
@@ -1219,7 +1232,7 @@
             if (explored[issue._id]==null)   explored[issue._id] = [];
             explored[issue._id].push(e.data.service);
             
-            exStats.num_reviewed    += 1;
+            
             exStats.budget_reviewed       += e.data.service.budget_assigned;
             if (exploreHistory.length>=50)  exploreHistory.splice(0, 1);
             if (e.data.related){
@@ -1244,6 +1257,23 @@
             
             connectIssue.call(this, e);
 
+            exStats.num_reviewed    += 1;
+            exploreElem.find("#explore-stats").html(
+                //'<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
+                '<div class="text-right">'                
+                    //+ '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
+                    //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
+                    //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
+                    + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
+                    + '<u>내가 검토한 예산: ' + (exStats.budget_reviewed==0? '0원':treemap.format(exStats.budget_reviewed)) + '</u><br>'
+                    + '<span>관련있음(' + exStats.num_related + '개): '+ (exStats.budget_related==0? '0원':treemap.format(exStats.budget_related)) + '</span><br>'
+                    + '<span>아리송함(' + exStats.num_pass + '개): ' + (exStats.budget_pass==0? '0원':treemap.format(exStats.budget_pass)) + '</span><br>'
+                    + '<span>관련없음(' + exStats.num_unrelated+'개): ' + (exStats.budget_unrelated==0? '0원':treemap.format(exStats.budget_unrelated)) + '</span><br>'
+                + '</div>'
+                );   
+
+
+
             var newService = getRecommendedService(e.data.issue, all_services, exploreHistory, explored);
             exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
             exploreElem.find("#explore-search").attr("data-service-id", newService._id);
@@ -1254,19 +1284,7 @@
                 + newService.team + '<br>');
 
             
-            exploreElem.find("#explore-stats").html(
-                //'<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
-                '<div class="text-right">'                
-                    //+ '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
-                    //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
-                    //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
-                    + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
-                    + '<u>내가 검토한 예산: ' + treemap.format(exStats.budget_reviewed) + '</u><br>'
-                    + '<span>관련있음(' + exStats.num_related + '개): '+ treemap.format(exStats.budget_related) + '</span><br>'
-                    + '<span>모르겠음(' + exStats.num_pass + '개): ' + treemap.format(exStats.budget_pass) + '</span><br>'
-                    + '<span>관련없음(' + exStats.num_unrelated+'개): ' + treemap.format(exStats.budget_unrelated) + '</span><br>'
-                + '</div>'
-                );         
+      
         }
         function searchService(){
             if (services==null) return;
@@ -1295,7 +1313,7 @@
                 var id = selected_issue.attr('data-issue-id');
                 var issue = issue_map[id];
                 $("#issue-service-result").show();
-                $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+                $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
             }
         }
         //when new issue is created by others
@@ -1327,9 +1345,15 @@
                 console.log('update count');
                 console.log(rel);
                 //console.log($('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button'));
+
                 $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').text("관련있음("+rel.related+")");
-                $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').text("모르겠음("+rel.pass+")");
-                $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').text("관련없음("+rel.unrelated+")");    
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').text("아리송함("+rel.pass+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').text("관련없음("+rel.unrelated+")");   
+                $('[data-issue-id=' + issue._id + ']').find("[data-type=1]").attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");
+                $('[data-issue-id=' + issue._id + ']').find("[data-type=2]").attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
+                $('[data-issue-id=' + issue._id + ']').find("[data-type=3]").attr("title", rel.unrelated + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련없다고 생각합니다."); 
+                $("[data-toggle='tooltip']").tooltip('destroy');
+                $("[data-toggle='tooltip']").tooltip({container: 'body'});
             }
             
         }
@@ -1479,7 +1503,7 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련있는 사업들을 담아 예산지도를 완성해 보세요!(<a href="https://www.evernote.com/shard/s463/sh/92e7af9a-0a7b-43cd-8390-89134f62450d/c1a3f393d598614f4cb69d32297e8c6b" target="_blank">도움말</a>) - <span id="connect-users"></span><span id="survey-link" style="margin-left: 420px; font-size:16px;"><a href="https://qtrial2014.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank">설문조사 참여 </a></h5>
+                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련이 있는 사업들을 담아 예산지도를 완성해 보세요! (<a href="https://www.evernote.com/shard/s183/sh/1440ee02-bf23-43d2-b935-b57b6cac0a35/cc3cfdb7fb2eafd11a4fc14958249c38" target="_blank">도움말</a>) - <span id="connect-users"></span><span id="survey-link" style="margin-left: 300px; font-size:16px;"><a href="https://qtrial2014.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank">설문조사 참여</a></h5>
                 <!--<ul class="nav navbar-nav">
                     <li><a href="/empty">Task A</a></li>
                     <li><a href="/">Task B</a></li>
@@ -1509,8 +1533,8 @@
             <div class="col-md-9">
                 <div class="row">
                     <div id="budget-area" class="col-md-8">
-                        <h4 class="page-header" style="margin-top:0px;">서울시 예산 분야(2014)
-                            <small> <strong>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다. </strong></small>                            
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2014)</div>
+                            <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
                     </div>
