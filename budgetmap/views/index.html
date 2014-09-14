@@ -982,9 +982,9 @@
                 console.log(rel);
                 if (rel){
                     newElem.append('<div class="btn-group btn-group-justified">'
-                        + '<a role="button" data-type="1"  class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >관련있음('+rel.related+')</a>'
-                        + '<a role="button" data-type="2" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >아리송함('+rel.pass+')</a>'
-                        + '<a role="button" data-type="3" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >관련없음('+rel.unrelated+')</a>'
+                        + '<a role="button" data-type="1"  class="vote-rel btn btn-default" style="font-size: 11px;" data-toggle="tooltip" data-placement="top" >관련있음('+rel.related+')</a>'
+                        + '<a role="button" data-type="2" class="vote-rel btn btn-default" style="font-size: 11px;" data-toggle="tooltip" data-placement="top" >아리송함('+rel.pass+')</a>'
+                        + '<a role="button" data-type="3" class="vote-rel btn btn-default" style="font-size: 11px;" data-toggle="tooltip" data-placement="top" >관련없음('+rel.unrelated+')</a>'
                         + '</div>');
                     newElem.find("[data-type=1]").attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");
                     newElem.find("[data-type=2]").attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
@@ -1174,11 +1174,11 @@
                     + '</div><br>' //end of candidate detail
                     
                     + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
-                        + '<a class="btn btn-default" id="btn-related" style="font-size: 12px;">'
+                        + '<a class="btn btn-default" id="btn-related" style="font-size: 11px;">'
                         + '관련 있음</a>'
-                        + '<a class="btn btn-default" id="btn-pass" style="font-size: 12px;">'
+                        + '<a class="btn btn-default" id="btn-pass" style="font-size: 11px;">'
                         + '아리송함</a>'
-                        + '<a class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
+                        + '<a class="btn btn-default" id="btn-unrelated" style="font-size: 11px;">'
                         + '관련 없음</a>'
                     + '</div><br>' //end of button group
                     + '<div id="explore-stats" class="text-muted">'      
