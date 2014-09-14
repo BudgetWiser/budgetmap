@@ -1279,6 +1279,7 @@
                     exStats.max_reviewed += exStats.max_reviewed;
                 } else {
                     removeExploreTask($('[data-issue-id=' + issue._id + ']'));
+                    exStats.max_reviewed += exStats.max_reviewed;
                     return true;
                 }
             }
