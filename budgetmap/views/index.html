@@ -58,6 +58,8 @@
             onDeselect: deselectBudget
         }
         $(document).ready(function(){
+
+            socket.on('connectedUsers', onConnectedUsers);
             $("[data-toggle=tooltip]").tooltip();
 
             var user = JSON.parse($("#user").text());
@@ -216,6 +218,7 @@
                 $('#service-search').val("");
                 $('#service-search-result').hide();
                 barchart.update(services, barchart_config.width, barchart_config.height)
+                updateEmphasize();
             })
         });
 
@@ -229,14 +232,14 @@
         }
         function generateGuide(){
             $("#service-info").addClass("bootstro")
-                .attr("data-bootstro-title", "서울시 예산 지도")
+                .attr("data-bootstro-title", "서울시 예산")
                 .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는 지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴 볼 수 있어요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 0)
 
             $("#budget-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 예산 분야")
-                .attr("data-bootstro-content", "우선, 예산 지도 상의 관심 있는 분야를 선택해 보세요.")
+                .attr("data-bootstro-content", "우선 예산지도 상의 관심 있는 분야를 선택해 보세요.")
                 .attr("data-bootstro-placement", "right")
                 .attr("data-bootstro-step", 1)
 
@@ -247,8 +250,8 @@
                 .attr("data-bootstro-step", 2)
 
             $("#issue-area").addClass("bootstro")
-                .attr("data-bootstro-title", "사회이슈 별 예산지도 만들기")
-                .attr("data-bootstro-content", "사회이슈를 선택하고 연관 있는 사업들을 클릭하여 예산 지도를 완성해 보세요.")
+                .attr("data-bootstro-title", "사회 이슈 별 예산지도 만들기")
+                .attr("data-bootstro-content", "사회 이슈를 선택하고 연관있는 사업들을 클릭하여 예산지도를 완성해 보세요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 3)
 
@@ -257,6 +260,12 @@
                 .attr("data-bootstro-content", "직접 탐색이 힘드시다면, 쉽게 퀴즈처럼 풀어보세요. 우선 열개 정도만 풀어 보시는 건 어떨까요?")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 4)
+            $("#survey-link").addClass("bootstro")
+                .attr("data-bootstro-title", "설문조사 참여")
+                .attr("data-bootstro-content", "사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!")
+                .attr("data-bootstro-placement", "bottom")
+                .attr("data-bootstro-step", 5)
+
 
             var open = 0;
             bootstro.start(".bootstro", { 
@@ -277,6 +286,10 @@
                         $('[data-issue-id='+issues[0]._id+']').click();
                         $('#toggle-explore-task').click();    
                         open = 1
+                    }
+                    if (info.idx==5){
+                        $('[data-issue-id='+issues[0]._id+']').click();
+                        open = 0;                       
                     }
                 }
 
@@ -366,7 +379,8 @@
             barchart.update(services, barchart_config.width, barchart_config.height);
             
 
-            emphasizeServices(em_services);
+            //emphasizeServices(em_services);
+            updateEmphasize();
 
             if (selected_service && services.indexOf(selected_service)==-1){
                 deselectService(null);
@@ -398,8 +412,8 @@
             //draw barchart
             barchart.update(services, barchart_config.width, barchart_config.height);
 
-            emphasizeServices(em_services);
-
+            //emphasizeServices(em_services);
+            updateEmphasize();
 
             //maintain previously selected service, if possible
             //if (selected_service && services.indexOf(selected_service)!=-1){
@@ -415,9 +429,32 @@
                 var id = selected_issue.attr('data-issue-id');
                 var issue = issue_map[id];
                 $("#issue-service-result").show();
-                $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+                $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
              
             }            
+        }
+        function updateEmphasize(){
+            if (selected_issue==null)    return;
+            var id = selected_issue.attr('data-issue-id');
+            var issue = issue_map[id];
+
+            em_budgets = [];
+            em_services = [];
+            var exists = {};
+            for (var i in issue.budgets){
+                if (issue.budgets[i].related==0 || issue.budgets[i].related < issue.budgets[i].unrelated)    continue;//emphase only if related>unrelated
+                var serv = service_map[issue.budgets[i].id];
+                if (exists[serv.category_three]== null){
+                    exists[serv.category_three] = 1;
+                    em_budgets.push(budget_map[serv.category_three]);
+                }
+                em_services.push(serv);
+            }
+
+            treemap.emphasize(em_budgets);
+            barchart.emphasize(em_services);  
+            $("#issue-service-result").show();
+            $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");            
         }
         function serviceName(service){
             return service.service;//service.service.split(".")[1];
@@ -450,8 +487,8 @@
         }
         function populateServiceModal(issue_name, service){
             $("#service-modal-info").html(
-                "<h4>"+serviceName(service)+"<small> 사업 관련 사회이슈에 </small></h4>" + 
-                "<h4>"+issue_name+"<small> 이슈를 추가합니다. </small></h4><hr>"+
+                "<h4>"+serviceName(service)+"<small> 사업 관련 사회 이슈에 </small></h4>" + 
+                "<h4>"+issue_name+"<small> 을 추가합니다. </small></h4><hr>"+
                 "<h4>"+serviceName(service)+"</h4>"+
                 "<table><tbody>"+
                 "<tr><td>대분류 </td><td>: "+service.category_one+"</td></tr>" +
@@ -477,6 +514,19 @@
             }*/
             
         }
+        function calcIssues(service){
+            var issues = [];
+            for (var i in d.issues){
+                var issue = issue_map[d.issues[i]];
+                var rel = findRelation(issue, service);
+                if (rel.related!=0 && rel.related>=rel.unrelated) issues.push(issue);
+            }
+            //sort issues
+            issues.sort(function(a, b){
+                return b.budgets.length - a.budgets.length;
+            });
+            return issues;
+        }
         function selectService(d){
             writeLog("service", "select", d.service);
             previous_service = selected_service;
@@ -499,17 +549,7 @@
                 "<tr><td>그룹 </td><td>: "+d.team+"</td></tr>" +
                 "<tr><td>예산 </td><td>: "+treemap.format(d.budget_assigned)+"</td></tr>" +
                 "</tbody></table>");
-            issues = [];
-            console.log(d.issues);
-            for (var i in d.issues){
-                var issue = issue_map[d.issues[i]];
-                var rel = findRelation(issue, selected_service);
-                if (rel.related) issues.push(issue);
-            }
-            //sort issues
-            issues.sort(function(a, b){
-                return b.budgets.length - a.budgets.length;
-            });
+            issues = calcIssues(d);
             displayIssues(issues);        
             $("#service-more-info").show();
             return true;        
@@ -541,26 +581,29 @@
             
             //emphasize only if related>0
             if (services.indexOf(service)!=-1) {
-                if (!e.data || e.data.related){
+                /*if (!e.data || e.data.related){
                     em_services.push(service);
                     //barchart.emphasize(em_services);
                     emphasizeServices(em_services);
-                }
+                }*/
                 if (!e.data) barchart.select(service); //auto select
             }
-            if (!e.data || e.data.related){
+            /*if (!e.data || e.data.related){
                 em_budgets.push(budget_map[service.category_three]);
                 treemap.emphasize(em_budgets);            
-            }
+            }*/
             
             //add issue
             $('#new-issue').val(issue.name); //set input box manually
             addIssue.call(this, e);
+            updateEmphasize();
             writeLog("issue", "connect", issue.name+", "+service.service);
             //setTimeout(function(){
             //$("#issue-service-result").show();
             //$("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
             //}, 100);
+            if (votes[service._id]==null)  votes[service._id] = {};
+            if (votes[service._id][issue._id]==null) votes[service._id][issue._id] = 1;
 
             $("#service-modal").modal("hide");
 
@@ -613,8 +656,8 @@
                     }else{                  
                         issue.budgets.push(rel);
                     }
-                    console.log("related:" + (rel.related?1:0));
-                    if (rel.related) issue.stats.tot_budget += service.budget_assigned;
+                    //console.log("related:" + (rel.related?1:0));
+                    //if (rel.related) issue.stats.tot_budget += service.budget_assigned;
 
                     issue.stats.tot_related     += related;
                     issue.stats.tot_unrelated   += unrelated;
@@ -625,8 +668,8 @@
                         createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                         updateIssueTitle();
                     }else{
-                        $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget)));
-                        $("[data-issue-id="+issue._id+"]").find("#issue-related").text('관련사업: '+countRelatedBudgets(issue)+'개')
+                        $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+calcIssueBudget(issue));
+                        $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
                         /*
                         $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button').text("관련있음("+rel.related+")");
                         $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("모르겠음("+rel.pass+")");
@@ -635,7 +678,7 @@
 
                     writeLog("issue", "update", issue.name);
                     console.log(issue);
-                    $("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
+                    //$("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
 
                     $.post("/issues/"+issue._id, 
                     {
@@ -643,7 +686,7 @@
                         stats:      issue.stats
                     }, function(res){
                         //update service                        
-                        if (rel.related) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        if (rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
 
                         if (relExists==null)    service.issues.push(issue._id);
                             
@@ -751,7 +794,7 @@
                     var rel = findRelation(issue, selected_service);
                     issue.budgets.splice(issue.budgets.indexOf(rel), 1);
 
-                    if (rel.related) issue.stats.tot_budget      -= selected_service.budget_assigned;
+                    //if (rel.related) issue.stats.tot_budget      -= selected_service.budget_assigned;
                     issue.stats.tot_related     -= rel.related;
                     issue.stats.tot_unrelated   -= rel.unrelated;
                     issue.stats.tot_pass        -= rel.pass;
@@ -822,9 +865,20 @@
 
             $("#delete-modal").modal("hide");
         }
+        function calcIssueBudget(issue){
+            var total = 0;
+            for (var i in issue.budgets){
+                var rel = issue.budgets[i];
+                var service = service_map[rel.id];
+                if (rel.related!=0 && rel.related>=rel.unrelated){
+                    total += service.budget_assigned;
+                }
+            }
+            return (total==0? "0원": treemap.format(total))
+        }
         function createIssueElem(issue, pos){
             //console.log(issue)
-            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" class="badge">관련사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget))+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"><strong>'+issue.name+'</strong><span class="delete-issue-item text-primary" style="display:none"> (삭제)</span><span id="issue-related" class="badge">연관사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+calcIssueBudget(issue)+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
 
             if (pos=="end"){
                 newElem.appendTo('#issue-list');
@@ -877,10 +931,15 @@
                 console.log(rel);
                 if (rel){
                     newElem.append('<div class="btn-group btn-group-justified">'
-                        + '<div data-type="1" class="vote-rel btn-group btn-group-sm"><button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="동의하시나요?">관련있음('+rel.related+')</button></div>'
-                        + '<div data-type="2" class="vote-rel btn-group btn-group-sm"><button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="동의하시나요?">모르겠음('+rel.pass+')</button></div>'
-                        + '<div data-type="3" class="vote-rel btn-group btn-group-sm"><button type="button" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="동의하시나요?">관련없음('+rel.unrelated+')</button></div>'
+                        + '<a role="button" data-type="1"  class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >관련있음('+rel.related+')</a>'
+                        + '<a role="button" data-type="2" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >모르겠음('+rel.pass+')</a>'
+                        + '<a role="button" data-type="3" class="vote-rel btn btn-default" style="font-size: 12px;" data-toggle="tooltip" data-placement="top" >관련없음('+rel.unrelated+')</a>'
                         + '</div>');
+                   newElem.find("[data-type=1]").attr("title", issue.name+" 이슈와 "+selected_service.service + " 사업이 관련 있다고 생각하시나요? (괄호 안 숫자는 동의한 사람 수)");
+                    newElem.find("[data-type=2]").attr("title", issue.name+" 이슈와 "+selected_service.service + " 사업이 관련 있는지 잘 모르겠나요? (괄호 안 숫자는 동의한 사람 수)");
+                    newElem.find("[data-type=3]").attr("title", issue.name+" 이슈와 "+selected_service.service + " 사업이 관련 없다고 생각하시나요? (괄호 안 숫자는 동의한 사람 수)");
+                    $("[data-toggle='tooltip']").tooltip({container: 'body'});
+ 
                     newElem.find(".vote-rel").click(function(e){
                         var rel = findRelation(issue, selected_service);//get relation when clicked, don't use closure
                         e.stopPropagation();
@@ -898,7 +957,7 @@
                             case "1": 
                                 rel.related+=1;   
                                 issue.stats.tot_related+=1; 
-                                if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
+                                //if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
                                 button.text("관련있음("+rel.related+")");    
                                 writeLog("vote", "related", issue.name + ", " + selected_service.service);
                             break;
@@ -981,7 +1040,12 @@
             }
             
             selected_issue = $(this);           
-
+            selected_issue.addClass("list-group-item-info"); //hightlight
+            //emphasize
+            updateEmphasize();
+            
+            addExploreTask(selected_issue);
+            /*
             //find issue
             var id = selected_issue.attr('data-issue-id');
             var issue = issue_map[id];
@@ -1012,88 +1076,9 @@
             $("#issue-service-result").show();
             $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
 
-            addExploreTask(selected_issue);
+            addExploreTask(selected_issue);*/
         }
-        /*
-        function getRecommendedService(issue, filter){
-
-
-            var service = null;
-            for (var i in all_services){
-                
-                var exists = false;
-                for (var j in issue.budgets){
-                    if (all_services[i]._id == issue.budgets[j].id){
-                        exists = true;
-                        break;
-                    }
-                }
-                if (exists==false && (filter==null || (filter && filter.indexOf(all_services[i])==-1))){
-                    service = all_services[i];
-                }
-            }
-            return service;
-        }
-        
-        function getRecommendedService(issue, allServices, exploreHistory){
-            console.log("getRecommendedService Start Time:", new Date());
-            var flow = Math.floor(Math.random() * 5);
-         
-            if (flow == 0) {
-                // Choose from popular related category
-                var cat_list = [], serv_list = [];
-                for (var i in issue.budgets) {
-                    var sel = null;
-                    for (var j in allServices) {
-                        if (issue.budgets[i].id === all_services[j]._id
-                                && issue.budgets[i].related > 0
-                                && issue.budgets[i].unrelated == 0) {
-                            sel = all_services[j];
-                            break;
-                        }
-                    }
-                    if (!sel) continue;
-                    if (cat_list.indexOf(sel.category_three) == -1) {
-                        cat_list.push(sel.category_three);
-                    }
-                }
-                for (var i in all_services) {
-                    if (cat_list.indexOf(all_services[i].category_three) != -1) {
-                        serv_list.push(all_services[i]);
-                    }
-                }
-                if (serv_list.length) return getRandomService(issue, serv_list);
-            }
-            console.log("getRecommendedService End Time:", new Date());
-            return getRandomService(issue, all_services);
-        }
-        function getRandomService(issue, filter_list) {
-            console.log("filter size", filter_list.length);
-            var rand_idx = -1, valid = true;
-            do {
-                rand_idx = Math.floor(Math.random() * filter_list.length);
-                for (var i in issue.budgets) {
-                    if (issue.budgets[i].id === filter_list[rand_idx]._id) {
-                        if (issue.budgets[i].unrelated > 1) {
-                            console.log("invalid of previous votes");
-                            valid = false;
-                        }
-                    }
-                    if (filter_list[rand_idx].budget_assigned === 0) {
-                        console.log("invalid of budget assigned");
-                        valid = false;
-                    }
-                    if (filter_list[rand_idx].service.indexOf('기본경비') === 0) {
-                        console.log("invalid of service name");
-                        valid = false;
-                    }
-                }
-                console.log("issue.budgets", issue.budgets);
-                console.log("all_services[i]", all_services[rand_idx]);
-            } while (!valid);
-            console.log("getRecommendedService End Time:", new Date());
-            return filter_list[rand_idx]
-        }*/
+ 
         function removeExploreTask(issueElem){
             issueElem.find("#explore-task-container").slideUp("fast").remove();
         }
@@ -1121,28 +1106,25 @@
             var exploreElem = $('<div id="explore-task-container">'
                 + '<div style="text-align: right;"><a id="toggle-explore-task">'+(expand? '예산 탐색 그만하기': '예산 탐색 도전하기')+'</a></div>'
                 + '<div id="explore-task" class="jumbotron" style="margin:0px; padding:5px; background-color:white;">'
-                    + '<div class="text-muted"><strong>Q.선택된 이슈와 관련있는 사업인가요?</strong></div><br>'
+                    + '<div class="text-muted"><strong>선택된 이슈와 관련있는 사업인가요?</strong></div><br>'
                     //+ '<div class="text-muted"><strong>관련이 있을 만한 사업 정보:</strong></div>'
-                    + '<a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
-                    + '<strong>'+ service.service + '</strong></a>'
-                    + '<div id="explore-candidate" class="text-muted text-right">'
+                    + '<strong><a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
+                    + service.service + '</a></strong>'
+                    + '<div id="explore-candidate" class="text-muted text-right">'                        
+                        + treemap.format(service.budget_assigned) + '<br>'
                         + service.category_one + ' > ' + service.category_three + '<br>'
                         + service.department + '<br>'
                         + service.team + '<br>'
-                        + treemap.format(service.budget_assigned)
                     + '</div><br>' //end of candidate detail
                     
                     + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
-                    + '<div class="btn-group">'
-                        + '<button type="submit" class="btn btn-default" id="btn-related" style="font-size: 12px;">'
-                        + '관련 있음</button></div>'
-                        + '<div class="btn-group">'
-                        + '<button type="submit" class="btn btn-default" id="btn-pass" style="font-size: 12px;">'
-                        + '모르겠음</button></div>'
-                        + '<div class="btn-group">'
-                        + '<button type="submit" class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
-                        + '관련 없음</button>'
-                    + '</div></div><br>' //end of button group
+                        + '<a class="btn btn-default" id="btn-related" style="font-size: 12px;">'
+                        + '관련 있음</a>'
+                        + '<a class="btn btn-default" id="btn-pass" style="font-size: 12px;">'
+                        + '모르겠음</a>'
+                        + '<a class="btn btn-default" id="btn-unrelated" style="font-size: 12px;">'
+                        + '관련 없음</a>'
+                    + '</div><br>' //end of button group
                     + '<div id="explore-stats" class="text-muted">'      
                         //+ '<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
                         + '<div class="text-right">'                
@@ -1226,10 +1208,10 @@
             exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
             exploreElem.find("#explore-search").attr("data-service-id", newService._id);
             exploreElem.find("#explore-search").text(newService.service);
-            exploreElem.find("#explore-candidate").html(newService.category_one + ' > ' + newService.category_three + '<br>'
+            exploreElem.find("#explore-candidate").html(treemap.format(newService.budget_assigned) + '<br>'
+                + newService.category_one + ' > ' + newService.category_three + '<br>'
                 + newService.department + '<br>'
-                + newService.team + '<br>'
-                + treemap.format(newService.budget_assigned));
+                + newService.team + '<br>');
 
             
             exploreElem.find("#explore-stats").html(
@@ -1285,10 +1267,10 @@
             all_issues.push(issue);
             issue_map[issue._id] = issue;
 
-            issue.stats.tot_budget = 0;
+            //issue.stats.tot_budget = 0;
             if (selected_service==null || 
                 (selected_service!=null && countRelatedBudgets(issue)==1 && issue.budgets[0].id == selected_service._id)){
-                issue.stats.tot_budget += selected_service!=null? selected_service.budget_assigned : 0; // related is always 1 when created
+                //issue.stats.tot_budget += selected_service!=null? selected_service.budget_assigned : 0; // related is always 1 when created
                 if (issues.indexOf(issue)==-1) issues.push(issue);
                 createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                 updateIssueTitle();
@@ -1350,7 +1332,7 @@
 
             //update service
             if (rel == null) service.issues.push(issue._id);
-            if (rel&&rel.related) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+            if (rel&&rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
 
             //update issue                       
             issue.budgets   = data.issue.budgets;
@@ -1365,7 +1347,7 @@
             }
 
             if (selected_issue && (issue_map[selected_issue.attr("data-issue-id")]._id == issue._id)){
-                
+                /*
                 if (services.indexOf(service)!=-1 && rel.related==1){                    
                     em_services.push(service);
                     emphasizeServices(em_services);
@@ -1373,13 +1355,14 @@
                 if (rel.related){
                     em_budgets.push(budget_map[service.category_three]);
                     treemap.emphasize(em_budgets);            
-                }
-                $("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
+                }*/
+                updateEmphasize();
+                //$("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
             }
             if (issues.indexOf(issue)!=-1){
                 //update the total budget connected
-                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget)));
-                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('관련사업: '+countRelatedBudgets(issue)+'개')
+                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+calcIssueBudget(issue));
+                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
             }
         }
         function onDeleteConnection(data){
@@ -1404,15 +1387,15 @@
             var rel = findRelation(issue, service);
             issue.budgets.splice(issue.budgets.indexOf(rel), 1);
 
-            if (rel.related) issue.stats.tot_budget      -= service.budget_assigned;
+            //if (rel.related) issue.stats.tot_budget      -= service.budget_assigned;
             issue.stats.tot_related     -= rel.related;
             issue.stats.tot_unrelated   -= rel.unrelated;
             issue.stats.tot_pass        -= rel.pass;
 
             if (issues.indexOf(issue)!=-1){
                 //update the total budget connected
-                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+(issue.stats.tot_budget==0? "0원": treemap.format(issue.stats.tot_budget)));
-                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('관련사업: '+countRelatedBudgets(issue)+'개')
+                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+calcIssueBudget(issue));
+                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
             }
            
             
@@ -1421,15 +1404,20 @@
             treemap.updateIssueCnt();
             updateIssueTitle();
         }
+        function onConnectedUsers(numConn){
+            console.log(numConn + "명 접속중");
+            $('#connect-users').text(numConn+" 명 접속중");
+        }
         function countRelatedBudgets(issue){
             var cnt = 0;
             for (var i in issue.budgets){
-                if (issue.budgets[i].related){
+                if (issue.budgets[i].related!=0 && issue.budgets[i].related>=issue.budgets[i].unrelated){
                     cnt++;
                 }
             }
             return cnt;
         }
+
     </script>
 </head>
 <body>
@@ -1448,9 +1436,8 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> : 주어진 사회이슈에 관련있는 사업들을 담아 예산 지도를 완성해 보세요! <small>이슈를 클릭하고 연관사업을 클릭해 보세요</small> (<a href="http://goo.gl/lLq2QT" target="_blank">도움말</a>)</h5>
+                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련있는 사업들을 담아 예산지도를 완성해 보세요!(<a href="https://www.evernote.com/shard/s463/sh/92e7af9a-0a7b-43cd-8390-89134f62450d/c1a3f393d598614f4cb69d32297e8c6b" target="_blank">도움말</a>) - <span id="connect-users"></span><span id="survey-link" style="margin-left: 420px; font-size:16px;"><a href="#" target="_blank">설문조사 참여 </a></h5>
                 <!--<ul class="nav navbar-nav">
-                    
                     <li><a href="/empty">Task A</a></li>
                     <li><a href="/">Task B</a></li>
                     <li><a href="/explore">Task C</a></li>
@@ -1480,7 +1467,7 @@
                 <div class="row">
                     <div id="budget-area" class="col-md-8">
                         <h4 class="page-header" style="margin-top:0px;">서울시 예산 분야(2014)
-                            <small> * 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small>
+                            <small> <strong>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다. </strong></small>                            
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
                     </div>
@@ -1522,8 +1509,10 @@
                     </div
                     <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
                     </h4>   
-                    <div id="issue-list" class="list-group" style="height:530px;; overflow-y:auto;">
-                    </div>
+                    <!--<div  style="height:530px;; overflow-y:auto;">-->
+                        <div id="issue-list" class="list-group">
+                        </div>
+                    <!--</div>-->
                     <!--<div class="text-center">
                         <ul class="pagination">
                             <li class="disabled"><a href="#">&laquo;</a></li>
