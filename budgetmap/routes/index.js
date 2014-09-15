@@ -7,7 +7,9 @@ router.get('/', function(req, res) {
     console.log(req.session.useremail, 'START treemap');
     res.render('index', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null" });  
 });
-
+router.get('/help', function(req, res) {
+    res.render('help');  
+});
 router.get('/treemap', function(req, res) {
   res.render('treemap', { title: 'Budget-Vis Test' });
 });
