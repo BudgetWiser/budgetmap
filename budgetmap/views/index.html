@@ -252,7 +252,7 @@
         function generateGuide(){
             $("#service-info").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 예산")
-                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴볼 수 있어요.")
+                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴볼 수 있어요. (참고: 사용하신 기록은 통계를 작성하기 위한 용도로만 수집되어 소중한 연구 자료로 활용됩니다.)")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 0)
 
@@ -264,7 +264,7 @@
 
             $("#service-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 사업 목록")
-                .attr("data-bootstro-content", "선택한 분야에 속하는 상세 사업 목록을 볼 수 있어요!")
+                .attr("data-bootstro-content", "선택한 분야에 속하는 상세 사업 목록을 볼 수 있어요! 검색을 통해 이슈와 맞는 사업을 찾아 연결하세요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 2)
 
@@ -1608,13 +1608,26 @@
                         <div id="service-info"></div>
                         <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
                     </div>
+                    <div class="alert alert-warning" style="padding-top:5px;">
+                        <h5>이슈와 사업 연결하기 팁</h5>
+                        <p class="text-info">
+                            1. 범례를 클릭하여 예산 분야 확대!<br><br>
+                            2. 생각나는 사업을 키워드 검색으로 찾기! <br><br>
+                            3. <strong>이슈를 누르고 연관 사업을 찾아 클릭!</strong> <br><br>
+                            * 어렵다구요? 그럼 관심 이슈를 누르고 <br> <strong>"예산 탐색 도전 하기"</strong>를 클릭 해보세요.
+                        </p>
+                        
+                        
+                        
+                    </div>
+                    <!--
                     <div class="btn-group btn-group-justified" data-toggle="tooltip" data-placement="left" title="지금은 지원하지 않는 기능입니다.">
                         <div class="btn-group">
                             <button id="btn-new-issue" type="button" class="btn btn-info" disabled="disabled">
                                 <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
                             </button> 
                          </div>
-                    </div>
+                    </div>-->
                     <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
                     </h4>   
                     <!--<div  style="height:530px;; overflow-y:auto;">-->
