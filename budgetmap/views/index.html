@@ -978,7 +978,7 @@
                         $("#delete-modal-form").show();
                         $("#delete-modal-confirm").removeAttr("disabled");
                     }else{
-                        $("#delete-modal-info").html("<h4>죄송합니다. 현재는 테스트 중으로 이슈를 삭제할 수 없습니다. 사업과의 연결 해제만 가능합니다.");//+issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");
+                        $("#delete-modal-info").html("<h4>죄송합니다. 현재는 테스트 중으로 이슈를 삭제할 수 없습니다. 사업과의 연결 해제만 가능합니다. 이슈에서 삭제 할 사업을 선택하고 삭제를 누르면 해당 사업을 이슈에서 제외 시킬 수 있습니다. ");//+issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");
                         $("#delete-modal-form").hide();
                         $("#delete-modal-confirm").attr("disabled", "disabled");
                     }                  
