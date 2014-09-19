@@ -53,6 +53,7 @@
         var explore = {}, exploreHistory = [];
         var explored = {};
         var votes = {};
+        var forwardFlag = 0;
         var barchart_config = {
             container : "#service-chart",
             size :  { width: 250, height: 750},
@@ -250,66 +251,87 @@
 
         }
         function generateGuide(){
+            $('#issue-list').addClass("bootstro")
+                .attr("data-bootstro-title", "예산 탐색 도전하기")
+                .attr("data-bootstro-content", "직접 탐색이 힘드시다면, 쉽게 퀴즈처럼 풀어보세요. 우선 열개 정도만 풀어 보시는 건 어떨까요?")
+                .attr("data-bootstro-placement", "left")
+                .attr("data-bootstro-step", 0)
+
             $("#service-info").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 예산")
                 .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴볼 수 있어요. (참고: 사용하신 기록은 통계를 작성하기 위한 용도로만 수집되어 소중한 연구 자료로 활용됩니다.)")
                 .attr("data-bootstro-placement", "left")
-                .attr("data-bootstro-step", 0)
+                .attr("data-bootstro-step", 1)
 
             $("#budget-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 예산 분야")
                 .attr("data-bootstro-content", "우선 예산지도 상의 관심 있는 분야를 선택해 보세요.")
                 .attr("data-bootstro-placement", "right")
-                .attr("data-bootstro-step", 1)
+                .attr("data-bootstro-step", 2)
 
             $("#service-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 사업 목록")
                 .attr("data-bootstro-content", "선택한 분야에 속하는 상세 사업 목록을 볼 수 있어요! 검색을 통해 이슈와 맞는 사업을 찾아 연결하세요.")
                 .attr("data-bootstro-placement", "left")
-                .attr("data-bootstro-step", 2)
+                .attr("data-bootstro-step", 3)
 
             $("#issue-area").addClass("bootstro")
                 .attr("data-bootstro-title", "사회 이슈 별 예산지도 만들기")
                 .attr("data-bootstro-content", "사회 이슈를 선택하고 연관이 있는 사업들을 클릭하여 예산지도를 완성해 보세요.")
                 .attr("data-bootstro-placement", "left")
-                .attr("data-bootstro-step", 3)
-
-            $('#issue-list').addClass("bootstro")
-                .attr("data-bootstro-title", "예산 탐색 도전하기")
-                .attr("data-bootstro-content", "직접 탐색이 힘드시다면, 쉽게 퀴즈처럼 풀어보세요. 우선 열개 정도만 풀어 보시는 건 어떨까요?")
-                .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 4)
+
             $("#survey-link").addClass("bootstro")
                 .attr("data-bootstro-title", "설문조사 참여")
                 .attr("data-bootstro-content", "사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!")
                 .attr("data-bootstro-placement", "bottom")
-                .attr("data-bootstro-step", 5)
+                .attr("data-bootstro-step", 5)      
 
+            var issue = null;
+            for (var i in all_issues){
+                if (all_issues[i].name=="안전 예산"){
+                    issue = all_issues[i];
+                    break;  
+                } 
+            }
             //$("#survey-link").attr("title", "사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!");
             $("#survey-link-parent").tooltip({container: 'body'});
-            var open = 0;
+            $('[data-issue-id='+issue._id+']').click();
+            $('#toggle-explore-task').click();             
+            var open = 1;
             bootstro.start(".bootstro", { 
                 nextButtonText: "다음 »",
                 prevButtonText: "« 이전",
-                finishButtonText: "예산 탐색을 바로 시작합니다.",
+                finishButton:"",
+                //finishButtonText: "asdf",
+                stopOnBackdropClick: false,
+                stopOnEsc: false,
                 onExit: function(){
-                    if (open) $('[data-issue-id='+issues[0]._id+']').click();
+                    if (open) $('[data-issue-id='+issue._id+']').click();
+                    return false;
                 },
                 onStep: function(info){
                     console.log(info);
                     //expand explore task
-                    if (info.idx==3 && info.direction=="prev"){
-                        $('[data-issue-id='+issues[0]._id+']').click();
-                        open = 0;
-                    }
-                    if (info.idx==4){
-                        $('[data-issue-id='+issues[0]._id+']').click();
+                    //if (info.idx==3 && info.direction=="prev"){
+                    //    $('[data-issue-id='+issues[0]._id+']').click();
+                    //    open = 0;
+                    //}
+                    if (info.idx==0 && open == 0){
+                        $('[data-issue-id='+issue._id+']').click();
                         $('#toggle-explore-task').click();    
                         open = 1
                     }
-                    if (info.idx==5){
-                        $('[data-issue-id='+issues[0]._id+']').click();
+                    if (info.idx==1 && open == 1){
+                        //reached the final guide
+                        forwardFlag = 1;
+                        $('[data-issue-id='+issue._id+']').click();
                         open = 0;                       
+                    }
+                    if (info.idx==5){
+                        //console.log(guide);
+                        //var finishBtn = $('< button class="btn btn-mini btn-success bootstro-finish-btn">< i class="icon-ok" >< /i> 예산 탐색을 바로 시작합니다.< /button>');
+                        $(".bootstro-finish-btn-wrapper").html('<button class="btn btn-mini btn-success bootstro-finish-btn">예산 탐색을 바로 시작합니다.</button>');
                     }
                 }
 
