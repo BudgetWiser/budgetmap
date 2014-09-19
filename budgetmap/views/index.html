@@ -1,7 +1,7 @@
 <html>
 <head>
     <title>{{title}}</title>
-    <meta property='og:image' content='/images/mario.png'/>
+    <meta property='og:image' content='http://budgetmap.budgetwiser.org/images/mario.png'/>
 
     <link rel="icon" href="/images/favicon.ico">
     
@@ -265,19 +265,19 @@
 
             $("#budget-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 예산 분야")
-                .attr("data-bootstro-content", "우선 예산지도 상의 관심 있는 분야를 선택해 보세요.")
+                .attr("data-bootstro-content", "여러분이 탐색할 예산지도에서 분야별 정보를 볼 수 있어요.")
                 .attr("data-bootstro-placement", "right")
                 .attr("data-bootstro-step", 2)
 
             $("#service-area").addClass("bootstro")
                 .attr("data-bootstro-title", "서울시 사업 목록")
-                .attr("data-bootstro-content", "선택한 분야에 속하는 상세 사업 목록을 볼 수 있어요! 검색을 통해 이슈와 맞는 사업을 찾아 연결하세요.")
+                .attr("data-bootstro-content", "예산지도에서 특정 분야를 선택하셨다면, 그 분야에 속하는 상세 사업 목록을 볼 수 있어요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 3)
 
             $("#issue-area").addClass("bootstro")
                 .attr("data-bootstro-title", "사회 이슈 별 예산지도 만들기")
-                .attr("data-bootstro-content", "사회 이슈를 선택하고 연관이 있는 사업들을 클릭하여 예산지도를 완성해 보세요.")
+                .attr("data-bootstro-content", "안전 예산 뿐만 아니라 다른 예산들에도 도전해 보세요!")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 4)
 
@@ -307,7 +307,10 @@
                 stopOnBackdropClick: false,
                 stopOnEsc: false,
                 onExit: function(){
-                    if (open) $('[data-issue-id='+issue._id+']').click();
+                    if (open==0){
+                        $('[data-issue-id='+issue._id+']').click();
+                        $('#toggle-explore-task').click(); 
+                    }
                     return false;
                 },
                 onStep: function(info){
