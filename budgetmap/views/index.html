@@ -258,6 +258,7 @@
 
         }
         function generateGuide(){
+            /*
             $('#issue-list').addClass("bootstro")
                 .attr("data-bootstro-title", "예산 탐색 도전하기")
                 .attr("data-bootstro-content", "서울시 안전예산을 찾아라! 10개 정도 해보시길 권해드립니다!")
@@ -293,7 +294,7 @@
                 .attr("data-bootstro-content", "사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!")
                 .attr("data-bootstro-placement", "bottom")
                 .attr("data-bootstro-step", 5)      
-
+            */
             var issue = null;
             for (var i in all_issues){
                 if (all_issues[i].name=="안전 예산"){
@@ -1010,9 +1011,9 @@
                         $("#delete-modal-form").show();
                         $("#delete-modal-confirm").removeAttr("disabled");
                     }else{
-                        $("#delete-modal-info").html("<h4>죄송합니다. 현재는 테스트 중으로 이슈를 삭제할 수 없습니다. 사업과의 연결 해제만 가능합니다. 이슈에서 삭제 할 사업을 선택하고 삭제를 누르면 해당 사업을 이슈에서 제외 시킬 수 있습니다. ");//+issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");
+                        $("#delete-modal-info").html(issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");//"<h4>죄송합니다. 현재는 테스트 중으로 이슈를 삭제할 수 없습니다. 사업과의 연결 해제만 가능합니다. 이슈에서 삭제 할 사업을 선택하고 삭제를 누르면 해당 사업을 이슈에서 제외 시킬 수 있습니다. "
                         $("#delete-modal-form").hide();
-                        $("#delete-modal-confirm").attr("disabled", "disabled");
+                        //$("#delete-modal-confirm").attr("disabled", "disabled");
                     }                  
                     $("#delete-modal").modal("show");
                 })
@@ -1652,14 +1653,14 @@
                         
                         
                     </div>
-                    <!--
+                    
                     <div class="btn-group btn-group-justified" data-toggle="tooltip" data-placement="left" title="지금은 지원하지 않는 기능입니다.">
                         <div class="btn-group">
-                            <button id="btn-new-issue" type="button" class="btn btn-info" disabled="disabled">
+                            <button id="btn-new-issue" type="button" class="btn btn-info">
                                 <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
                             </button> 
                          </div>
-                    </div>-->
+                    </div>
                     <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
                     </h4>   
                     <!--<div  style="height:530px;; overflow-y:auto;">-->
@@ -1757,7 +1758,7 @@
                 <p id="delete-modal-info"></p> 
                 <form id="delete-modal-form" style="display:none">
                     <input id="delete-modal-select1" type="radio" name="delete-issue" value="disconnect" checked> 이 사업에서만 이슈를 삭제합니다.<br>
-                    <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete" disabled> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
+                    <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete"> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
                 </form>
             </div>
             <div class="modal-footer">
