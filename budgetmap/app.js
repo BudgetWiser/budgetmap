@@ -14,8 +14,6 @@ var mongo = require('mongoskin');
 //var db = mongo.db("mongodb://143.248.234.88:17027/budgetmap_proto", {native_parser: true});
 //var db = mongo.db("mongodb://143.248.234.88:27017/budgetmap_live", {native_parser: true});
 var db = mongo.db("mongodb://localhost:38716/budgetmap_live", {native_parser: true});
-var expl = mongo.db("mongodb://143.248.234.88:27017/budgetmap_develop_explore", {native_parse: true});
-var budgetspider = mongo.db("mongodb://143.248.234.88:27017/budgetspider", {native_parser: true});
 var session = require('express-session');
 
 var app = express();
@@ -47,7 +45,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // db settings
 app.use(function(req, res, next){
     req.db = db;
-    req.expl = expl;
     req.toObjectID = mongo.helper.toObjectID;
     next();
 });
