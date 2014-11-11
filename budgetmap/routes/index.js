@@ -16,7 +16,7 @@ router.get('/treemap', function(req, res) {
 
 router.get('/budgetmap', function(req, res){
     res.render('index', {
-        title: "Task B",
+        title: "Budgetmap ChungNam",
     });
 });
 router.post('/log', function(req, res){
@@ -31,10 +31,12 @@ router.post('/log', function(req, res){
     });
 });
 
+/*
 router.get('/explore', function(req, res) {
     console.log(req.session.useremail, 'START explore');
     res.render('explore', {title: 'Task C', user: req.session.user? JSON.stringify(req.session.user):"null"});
 });
+*/
 
 router.get('/empty', function(req, res) {
     console.log(req.session.useremail, 'START empty');
@@ -257,6 +259,7 @@ router.route('/issues')
 /* RESTFUL DATA API : BUDGETS */
 
 //update budget with new issues added
+// Do we need this?
 router.post('/budgets/:id',function(req, res){
 
     if (req.session.useremail){
@@ -270,7 +273,7 @@ router.post('/budgets/:id',function(req, res){
     }
     //update budget
     //console.log(issues);
-    db.collection('budgets').update({_id: budget_id}, { '$set': { issues: issues} }, function(err, result){
+    db.collection('budget').update({_id: budget_id}, { '$set': { issues: issues} }, function(err, result){
         if (err) {
             return console.log(new Date(), 'insert error', err);
         }
@@ -290,42 +293,44 @@ router.get('/budgets', function(req, res){
     var prevYear = currYear-1;
     currYear = currYear.toString();
     prevYear = prevYear.toString();
-    db.collection('budgets').find({ year: { '$in': [ prevYear, currYear ] } }).toArray(function(err, items){
+    console.log(currYear, prevYear);
+    db.collection('Budget').find(
+        //{ year: { '$in': [ prevYear, currYear ] } }
+        ).toArray(function(err, items){
         console.log(new Date(), items.length + ' budget records returned');
         
-        var seoulBudget = {
-            name: "seoul-budget-"+currYear,
+        var Budget = {
+            name: "budget-"+currYear,
             size: 0,           
             issue_size: 0,
             serv_size: 0,
             children: []
         };
 
-        //aggregate by category_three 
+        //aggregate by service 
         var cat3 = {};
         var tempMap = {};
         var svmap = {};
         for (var i in items){ 
             var budget = items[i];
-            if (budget.budget_assigned==0) continue; // do not consider budget==0
+            //if (budget.budget==0) continue; // do not consider budget==0
 
             // category 3
-            var node = cat3[budget.year + budget.category_three]
+            var node = cat3[budget.year + budget.category]
             if (node==null){
-                node = cat3[budget.year + budget.category_three] = {
-                    category1: budget.category_one,
-                    category2: budget.category_two,
-                    name: budget.category_three,
+                node = cat3[budget.year + budget.category] = {
+                    policy: budget.policy,
+                    category: budget.category,
+                    name: budget.category,
                     year: budget.year,
                     size: 0,
                     issue_size: 0,
                     serv_size: 0
                 };
             }
-            node.size       += budget.budget_assigned;
+            node.size       += budget.budget;
             node.issue_size += budget.issues!=null? budget.issues.length : 0;
             node.serv_size  += 1;
-
 
             // resolve duplicate service names
             if (tempMap[budget.year + budget.service]==null){//duplicate found
@@ -337,7 +342,7 @@ router.get('/budgets', function(req, res){
             if (tempMap[i].length>1){
                 for (var j in tempMap[i]){
                     var budget = tempMap[i][j];
-                    budget.service += ("("+budget.department + "," + budget.team+")-"+j);
+                    budget.service += ("("+budget.division + "," + budget.department + ")-" + j);
                 }
             }
         }
@@ -345,37 +350,16 @@ router.get('/budgets', function(req, res){
             // service map by year (used later)
             svmap[budget.year + budget.service] = budget;
         }
-        /* SKIP CATEGORY TWO
-        // aggregate by category two
-        var cat2 = {};
-        for (var name in cat3){
-            var cat3node = cat3[name];
-
-            //category 2
-            var node = cat2[cat3node.year + cat3node.category2];
-            if (node==null){
-                node = cat2[cat3node.year + cat3node.category2] = {
-                    category1: cat3node.category1,
-                    name: cat3node.category2,
-                    year: cat3node.year,
-                    size: 0,
-                    children: []
-                }
-            }
-            node.size += cat3node.size;
-            node.children.push(cat3node);
-        }
-        */
         //aggregate by category one
         var cat1 = {};
         for (var name in cat3){
             var cat3node = cat3[name];
 
             //category 1
-            var node = cat1[cat3node.year + cat3node.category1];
+            var node = cat1[cat3node.year + cat3node.policy];
             if (node==null){
-                node = cat1[cat3node.year + cat3node.category1] = {
-                    name: cat3node.category1,
+                node = cat1[cat3node.year + cat3node.policy] = {
+                    name: cat3node.policy,
                     year: cat3node.year,
                     size: 0,
                     issue_size: 0,
@@ -392,16 +376,19 @@ router.get('/budgets', function(req, res){
         var lastYearTotal = 0;
         for (var name in cat1){
             var cat1node = cat1[name];
+            /*
             if (cat1node.year != currYear)  {
                 lastYearTotal +=cat1node.size;
                 continue; 
             }
-            seoulBudget.size        += cat1node.size
-            seoulBudget.issue_size  += cat1node.issue_size;
-            seoulBudget.serv_size   += cat1node.serv_size;;
-            seoulBudget.children.push(cat1node);
+            */
+            Budget.size        += cat1node.size
+            Budget.issue_size  += cat1node.issue_size;
+            Budget.serv_size   += cat1node.serv_size;;
+            Budget.children.push(cat1node);
         }
       
+        /*
         //calculate budget-change ratios 
         for (var key in cat1){
             var node = cat1[key];
@@ -409,47 +396,40 @@ router.get('/budgets', function(req, res){
             var prevNode = cat1[prevYear+node.name];
             node.rate = (prevNode==null || prevNode.size==0)? 0.0 : (node.size - prevNode.size)/prevNode.size;
         }
-        /* SKIP CATEGORY TWO
-        for (var key in cat2){
-            var node = cat2[key];
-            if (node.year!=currYear) continue;
-            var prevNode = cat2[prevYear+node.name];
-            node.rate = (prevNode==null || prevNode.size==0)? 0.0 : (node.size - prevNode.size)/prevNode.size;
-        }
         */
         for (var key in cat3){
             var node = cat3[key];
-            if (node.year!=currYear) continue;
+            // if (node.year!=currYear) continue;
             var prevNode = cat3[prevYear+node.name];
             node.rate = (prevNode==null || prevNode.size==0)? 0.0 : (node.size - prevNode.size)/prevNode.size;
         }
-        seoulBudget.rate = lastYearTotal==null? 0.0 : (seoulBudget.size-lastYearTotal)/lastYearTotal;
+        Budget.rate = lastYearTotal==null? 0.0 : (Budget.size-lastYearTotal)/lastYearTotal;
 
         // collect services by category 3
         var services = {};
         for (var i in items){ 
             var budget = items[i];
-            if (budget.budget_assigned==0) continue; // do not consider budget==0
-            if (budget.year!=currYear) continue;
+            //if (budget.budget==0) continue; // do not consider budget==0
+            //if (budget.year!=currYear) continue;
 
             var prevBudget = svmap[prevYear + budget.service];
 
-            if (services[budget.category_three]==null){
-                services[budget.category_three] = [];
+            if (services[budget.category]==null){
+                services[budget.category] = [];
             }
-            budget.rate = (prevBudget==null || prevBudget.budget_assigned==0)? 0.0 : (budget.budget_assigned - prevBudget.budget_assigned)/prevBudget.budget_assigned;
+            budget.rate = (prevBudget==null || prevBudget.budget==0)? 0.0 : (budget.budget- prevBudget.budget)/prevBudget.budget;
             budget.issues = budget.issues? budget.issues : [];
-            services[budget.category_three].push(budget);
+            services[budget.category].push(budget);
         }
         //sorting
         for (var name in services){
             services[name].sort(function(a, b){
-                return b.budget_assigned - a.budget_assigned;
+                return b.budget- a.budget;
             });
         }
         //console.log(services)
         
-        res.json({budget: seoulBudget, services: services});
+        res.json({budget: Budget, services: services});
         
     })
 });
@@ -460,14 +440,14 @@ router.get('/budgets', function(req, res){
  * VERSION 14-08-28: Pure random + remove service=='기본경비'
  * VERSION 14-09-02: Remove budget==0
  */
-
+/*
 router.pass = function(req, res, hint) {
     var db = req.expl;
     var date = new Date();
     var currYear = date.getFullYear().toString();
 
     if (hint) {
-        db.collection('budgets').findOne({year: currYear, _id: req.toObjectID(hint)}, function(err, item) {
+        db.collection('budget').findOne({year: currYear, _id: req.toObjectID(hint)}, function(err, item) {
             var new_candidate = {
                 '_id': item._id,
                 'one': item.category_one,
@@ -480,7 +460,7 @@ router.pass = function(req, res, hint) {
             res.json(new_candidate);
         });
     } else {
-        db.collection('budgets').find({year: currYear}).toArray(function(err, items) {
+        db.collection('budget').find({year: currYear}).toArray(function(err, items) {
             var rand_idx;
             do {
                 rand_idx = Math.floor(Math.random() * items.length);
@@ -553,7 +533,7 @@ router.post('/explore/related', function(req, res) {
             console.log('explore', new Date(), req.session.useremail, "reported a related service", budget_id);
         }
     });
-    db.collection('budgets').findOne({_id: req.toObjectID(budget_id)},
+    db.collection('budget').findOne({_id: req.toObjectID(budget_id)},
         function(err, item) {
             if (err) throw err;
             db.collection('issues').update({_id: req.toObjectID(issue_id)},
@@ -579,6 +559,7 @@ router.post('/explore/unrelated', function(req, res) {
         router.pass(req, res);
     });
 });
+*/
 /*
  * End of explorer task functions.
  */

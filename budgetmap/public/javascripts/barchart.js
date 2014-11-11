@@ -44,7 +44,7 @@ var BarChart = function(config){
       .attr('class', 'barchart-d3-tip')
       .offset([-10, 0])
       .html(function(d) {
-        var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.service+"<br/><br/>" + chart.format(d.budget_assigned) + "</span>";
+        var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.service+"<br/><br/>" + chart.format(d.budget) + "</span>";
           //html += "<span style='color:lightgray'>" + d.name + ": "+format(d.size)+" ("+d3.format('.2%')(d.size/d.parent.size)+")</span><br/><br/>";
         return html;
       })
@@ -74,7 +74,7 @@ var BarChart = function(config){
       data = newData;
     }else{
       data.sort(function(a, b){
-          return b.budget_assigned - a.budget_assigned;
+          return b.budget- a.budget;
       });
     }
     pages = [];
@@ -111,7 +111,7 @@ var BarChart = function(config){
     fullHeight  = outerPadding*2 + (barPadding + barSize)*data.length;
     x.rangeRoundBands([0, fullHeight], .2); //range update
     x.domain(data.map(function(d) { return d.service; }));
-    y.domain([0, d3.max(data.map(function(d) { return d.budget_assigned; }))]);
+    y.domain([0, d3.max(data.map(function(d) { return d.budget; }))]);
     //console.log(x(data[0].service));
     // Canvas Size update
     var pageHeight = outerPadding*2 + (barPadding + barSize)*curPage.length;
@@ -147,7 +147,7 @@ var BarChart = function(config){
       .each("end", function() { d3.select(this).attr("pointer-events", null); });
 
     bars.select(".barchart-rect").transition().duration(transPeriod)
-      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("width", function(d) { return y(d.budget); })
 
 
     // Create new elements as needed.  
@@ -168,7 +168,7 @@ var BarChart = function(config){
 
     entered.append("rect")
       .attr("class", "barchart-rect")
-      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("width", function(d) { return y(d.budget); })
       .attr("height", barSize)
     
     entered.append("text")
@@ -246,7 +246,7 @@ var BarChart = function(config){
 
     entered.append("rect")
       .attr("class", "barchart-rect")
-      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("width", function(d) { return y(d.budget); })
       .attr("height", barSize)
     
     entered.append("text")

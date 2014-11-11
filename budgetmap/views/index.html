@@ -9,7 +9,7 @@
     <meta property="og:title" content="BudgetMap" />
     <meta property="og:type" content="website" />
     <meta property='og:image' content='http://budgetmap.budgetwiser.org/images/mario_large.png' />
-    <meta property="og:description" content="'눈물로 떠나보낸 내 세금아, 잘 쓰이고 있니?'' - Project BudgetWiser의 첫번째 공개 프로젝트! 이번엔 서울시 안전 예산 찾기 미션! 서울시 예산지도 베타버전을 사용해보시고 설문을 해주시는 분께는 10명을 추첨하여 만원 상당의 기프티콘을 드립니다." /> 
+    <meta property="og:description" content="'눈물로 떠나보낸 내 세금아, 잘 쓰이고 있니?'' - Project BudgetWiser의 첫번째 공개 프로젝트! 이번엔 충청남도 안전 예산 찾기 미션! 서울시 예산지도 베타버전을 사용해보시고 설문을 해주시는 분께는 10명을 추첨하여 만원 상당의 기프티콘을 드립니다." /> 
     <meta property="og:url" content="http://budgetmap.budgetwiser.org/" />
 
     <link rel="icon" href="/images/favicon.ico">
@@ -153,7 +153,7 @@
                     }                   
                 }
                 all_services.sort(function(a, b){
-                    return b.budget_assigned - a.budget_assigned;
+                    return b.budget - a.budget;
                 });
                 //create budget chart
                 treemap_config.data = budgets;
@@ -196,9 +196,9 @@
                         //calculate total budget
                         var total = 0;
                         for (var j in all_issues[i].budgets){                        
-                            total += service_map[all_issues[i].budgets[j].id].budget_assigned;
+                            total += service_map[all_issues[i].budgets[j].id].budget;
                         }
-                        issue_map[all_issues[i]._id].budget_assigned = total;
+                        issue_map[all_issues[i]._id].budget = total;
                         
                     }
                     displayIssues(data);
@@ -279,24 +279,24 @@
             /*
             $('#issue-list').addClass("bootstro")
                 .attr("data-bootstro-title", "예산 탐색 도전하기")
-                .attr("data-bootstro-content", "서울시 안전예산을 찾아라! 10개 정도 해보시길 권해드립니다!")
+                .attr("data-bootstro-content", "충청남도 안전예산을 찾아라! 10개 정도 해보시길 권해드립니다!")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 0)
 
             $("#service-info").addClass("bootstro")
-                .attr("data-bootstro-title", "서울시 예산")
-                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴볼 수 있어요. (참고: 사용하신 기록은 통계를 작성하기 위한 용도로만 수집되어 소중한 연구 자료로 활용됩니다.)")
+                .attr("data-bootstro-title", "충청남도 예산")
+                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 충청남도 예산을 살펴볼 수 있어요. (참고: 사용하신 기록은 통계를 작성하기 위한 용도로만 수집되어 소중한 연구 자료로 활용됩니다.)")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 1)
 
             $("#budget-area").addClass("bootstro")
-                .attr("data-bootstro-title", "서울시 예산 분야")
+                .attr("data-bootstro-title", "충청남도 예산 분야")
                 .attr("data-bootstro-content", "여러분이 탐색할 예산지도에서 분야별 정보를 볼 수 있어요.")
                 .attr("data-bootstro-placement", "right")
                 .attr("data-bootstro-step", 2)
 
             $("#service-area").addClass("bootstro")
-                .attr("data-bootstro-title", "서울시 사업 목록")
+                .attr("data-bootstro-title", "충청남도 사업 목록")
                 .attr("data-bootstro-content", "예산지도에서 특정 분야를 선택하셨다면, 그 분야에 속하는 상세 사업 목록을 볼 수 있어요.")
                 .attr("data-bootstro-placement", "left")
                 .attr("data-bootstro-step", 3)
@@ -476,7 +476,7 @@
             // set up service chart panel
             $("#service-chart").scrollTop(0);
             //$("#service-chart").empty();
-            $("#service-chart-title").text("서울시 사업 목록 ("+services.length+"개)");
+            $("#service-chart-title").text("충청남도 사업 목록 ("+services.length+"개)");
             $("#service-search-group").show(); 
             $("#service-search-result").hide();   
 
@@ -515,14 +515,14 @@
             for (var i in issue.budgets){
                 if (issue.budgets[i].related==0 || issue.budgets[i].related < issue.budgets[i].unrelated)    continue;//emphase only if related>unrelated
                 var serv = service_map[issue.budgets[i].id];
-                if (exists[serv.category_three]== null){
-                    exists[serv.category_three] = 1;
-                    em_budgets.push(budget_map[serv.category_three]);
+                if (exists[serv.category]== null){
+                    exists[serv.category] = 1;
+                    em_budgets.push(budget_map[serv.category]);
                 }
                 em_services.push(serv);
             }
             em_services.sort(function(a, b){
-                return b.budget_assigned - a.budget_assigned;
+                return b.budget - a.budget;
             });
             treemap.emphasize(em_budgets);
             barchart.emphasize(em_services);  
@@ -550,7 +550,7 @@
                     if (exist==false)   items.push(all_issues[i]); 
                 }
             }else{
-                $("#issue-modal-info").html("<h4>2014년 서울시 전체 예산<small>과 관련된 사회 이슈를 입력해 주세요.</small></h4>");
+                $("#issue-modal-info").html("<h4>2014년 충청남도 전체 예산<small>과 관련된 사회 이슈를 입력해 주세요.</small></h4>");
             }
             console.log(items);
             updateAutocomplete(items);
@@ -564,22 +564,22 @@
                 "<h4>"+issue_name+"<small> 을 추가합니다. </small></h4><hr>"+
                 "<h4>"+serviceName(service)+"</h4>"+
                 "<table><tbody>"+
-                "<tr><td>대분류 </td><td>: "+service.category_one+"</td></tr>" +
-                "<tr><td>소분류 </td><td>: "+service.category_three+"</td></tr>" +
+                "<tr><td>대분류 </td><td>: "+service.policy+"</td></tr>" +
+                "<tr><td>소분류 </td><td>: "+service.category+"</td></tr>" +
                 "<tr><td>회계년도 </td><td>: "+service.year+"</td></tr>" +
-                "<tr><td>부서 </td><td>: "+service.department+"</td></tr>" +
-                "<tr><td>그룹 </td><td>: "+service.team+"</td></tr>" +
-                "<tr><td>예산 </td><td>: "+treemap.format(service.budget_assigned)+"</td></tr>" +
+                "<tr><td>부서 </td><td>: "+service.division+"</td></tr>" +
+                "<tr><td>그룹 </td><td>: "+service.department+"</td></tr>" +
+                "<tr><td>예산 </td><td>: "+treemap.format(service.budget)+"</td></tr>" +
                 "</tbody></table>" +
                 "<a id='service-more-info' class='text-right' target='_blank' href='"+
                 constructSearchUrl(serviceName(service))+"'>사업 더 알아보기 ...</a>");
             $("#service-modal").modal("show");
         }
         function overService(d){
-            if (services == all_services)   treemap.enableHighlightByData(budget_map[d.category_three]); //treemap.emphasize([budget_map[d.category_three]]);
+            if (services == all_services)   treemap.enableHighlightByData(budget_map[d.category]); //treemap.emphasize([budget_map[d.category_three]]);
         }
         function outService(d){
-            treemap.disableHighlightByData(budget_map[d.category_three]);
+            treemap.disableHighlightByData(budget_map[d.category]);
             /*if (selected_issue){
                 treemap.emphasize(em_budgets);    
             }else{
@@ -629,12 +629,12 @@
             $('#issue-title').text(serviceName(d));
             $('#service-info').html("<h4>"+serviceName(d)+"</h4>"+
                 "<table><tbody>"+
-                "<tr><td>대분류 </td><td>: "+d.category_one+"</td></tr>" +
-                "<tr><td>소분류 </td><td>: "+d.category_three+"</td></tr>" +
+                "<tr><td>대분류 </td><td>: "+d.policy+"</td></tr>" +
+                "<tr><td>소분류 </td><td>: "+d.category+"</td></tr>" +
                 "<tr><td>회계년도 </td><td>: "+d.year+"</td></tr>" +
-                "<tr><td>부서 </td><td>: "+d.department+"</td></tr>" +
-                "<tr><td>그룹 </td><td>: "+d.team+"</td></tr>" +
-                "<tr><td>예산 </td><td>: "+treemap.format(d.budget_assigned)+"</td></tr>" +
+                "<tr><td>부서 </td><td>: "+d.division+"</td></tr>" +
+                "<tr><td>그룹 </td><td>: "+d.department+"</td></tr>" +
+                "<tr><td>예산 </td><td>: "+treemap.format(d.budget)+"</td></tr>" +
                 "</tbody></table>");
             issues = calcIssues(d);
             //console.log(issues);
@@ -647,8 +647,8 @@
 
             if (d!=null) writeLog("service", "deselect", d.service);
             selected_service = null;
-            $('#issue-title').text("2014년 서울시 전체 예산");  
-            $('#service-info').html("<h4>2014년 서울시 전체 예산</h4>"+
+            $('#issue-title').text("2014년 충청남도 전체 예산");  
+            $('#service-info').html("<h4>2014년 충청남도 전체 예산</h4>"+
                     "<table><tbody>"+
                     "<tr><td>총 사업개수 </td><td>: "+budgets.serv_size+"</td></tr>" +
                     "<tr><td>총 예산 </td><td>: "+treemap.format(budgets.size)+"</td></tr>" +
@@ -679,7 +679,7 @@
             }*/
 
             /*if (!e.data || e.data.related){
-                em_budgets.push(budget_map[service.category_three]);
+                em_budgets.push(budget_map[service.category]);
                 treemap.emphasize(em_budgets);            
             }*/
             
@@ -753,7 +753,7 @@
                         issue.budgets.push(rel);
                     }
                     //console.log("related:" + (rel.related?1:0));
-                    //if (rel.related) issue.stats.tot_budget += service.budget_assigned;
+                    //if (rel.related) issue.stats.tot_budget += service.budget;
 
                     issue.stats.tot_related     += related;
                     issue.stats.tot_unrelated   += unrelated;
@@ -782,7 +782,7 @@
                         stats:      issue.stats
                     }, function(res){
                         //update service                        
-                        //if (rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        //if (rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category);//update treemap issue count
 
                         if (relExists==null)    service.issues.push(issue._id);
                             
@@ -808,7 +808,7 @@
                         pass        : 0
                     }],
                     stats: {
-                        tot_budget      : service==null? 0:service.budget_assigned,
+                        tot_budget      : service==null? 0:service.budget,
                         //tot_users       : service==null? 0:1,
                         tot_related     : service==null? 0:1,
                         tot_pass        : 0,
@@ -832,7 +832,7 @@
                     if (service!=null){//connect with budget on issue-creation
                         writeLog("service", "update", service.service);
                         service.issues.push(issue._id);
-                        //treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        //treemap.increaseIssueCnt(service.category);//update treemap issue count
                         updateIssueCount();
                         $.post("budgets/"+service._id, {
                             issues: service.issues
@@ -870,7 +870,7 @@
             }
             for (var i in all_services){
                 var service = all_services[i];
-                var budget = budget_map[all_services[i].category_three];
+                var budget = budget_map[all_services[i].category];
                 
                 for (var j in service.issues){
                     var issue = issue_map[service.issues[j]];
@@ -920,7 +920,7 @@
                     var rel = findRelation(issue, selected_service);
                     issue.budgets.splice(issue.budgets.indexOf(rel), 1);
 
-                    //if (rel.related) issue.stats.tot_budget      -= selected_service.budget_assigned;
+                    //if (rel.related) issue.stats.tot_budget      -= selected_service.budget;
                     issue.stats.tot_related     -= rel.related;
                     issue.stats.tot_unrelated   -= rel.unrelated;
                     issue.stats.tot_pass        -= rel.pass;
@@ -940,7 +940,7 @@
                     //remove issue displayed
                     $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
                     //update treemap issue count
-                    //budget_map[selected_service.category_three].issue_size-=1;
+                    //budget_map[selected_service.category].issue_size-=1;
                     //treemap.updateIssueCnt();
                     updateIssueCount();
                     updateIssueTitle();
@@ -976,7 +976,7 @@
 
                 //update issue-service connection
                 service.issues.splice(service.issues.indexOf(issue._id), 1);
-                budget_map[service.category_three].issue_size-=1;
+                budget_map[service.category].issue_size-=1;
                 writeLog("service", "update", service.service);
                 $.post("budgets/"+service._id,
                 {
@@ -999,7 +999,7 @@
                 var rel = issue.budgets[i];
                 var service = service_map[rel.id];
                 if (rel.related!=0 && rel.related>=rel.unrelated){
-                    total += service.budget_assigned;
+                    total += service.budget;
                 }
             }
             return (total==0? "0원": treemap.format(total))
@@ -1089,7 +1089,7 @@
                             case "1": 
                                 rel.related+=1;   
                                 issue.stats.tot_related+=1; 
-                                //if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
+                                //if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget;
                                 $(this).text("관련있음("+rel.related+")"); 
                                 $(this).attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");   
                                 writeLog("vote", "related", issue.name + ", " + selected_service.service);
@@ -1194,9 +1194,9 @@
             for (var i in issue.budgets){
                 if (issue.budgets[i].related==0)    continue;//emphase only if related
                 var serv = service_map[issue.budgets[i].id];
-                if (exists[serv.category_three]== null){
-                    exists[serv.category_three] = 1;
-                    em_budgets.push(budget_map[serv.category_three]);
+                if (exists[serv.category]== null){
+                    exists[serv.category] = 1;
+                    em_budgets.push(budget_map[serv.category]);
                 }
                 em_services.push(serv);
                 //if (services.indexOf(serv)!= -1){
@@ -1248,10 +1248,10 @@
                     + '<strong><a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
                     + service.service + '</a></strong>'
                     + '<div id="explore-candidate" class="text-muted text-right">'                        
-                        + treemap.format(service.budget_assigned) + '<br>'
-                        + service.category_one + ' > ' + service.category_three + '<br>'
+                        + treemap.format(service.budget) + '<br>'
+                        + service.policy + ' > ' + service.category + '<br>'
+                        + service.division + '<br>'
                         + service.department + '<br>'
-                        + service.team + '<br>'
                     + '</div><br>' //end of candidate detail
                     
                     + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
@@ -1315,20 +1315,20 @@
                 explored[issue._id].push(e.data.service);
                 
                 
-                exStats.budget_reviewed       += e.data.service.budget_assigned;
+                exStats.budget_reviewed       += e.data.service.budget;
                 if (exploreHistory.length>=50)  exploreHistory.splice(0, 1);
                 if (e.data.related){
-                    exStats.budget_related      += e.data.service.budget_assigned;
+                    exStats.budget_related      += e.data.service.budget;
                     writeLog("explore", "related", issue.name + ", " + e.data.service.service);
                     exploreHistory.push(1);
                 }
                 if (e.data.pass){
-                    exStats.budget_pass         += e.data.service.budget_assigned;
+                    exStats.budget_pass         += e.data.service.budget;
                     writeLog("explore", "pass", issue.name + ", " + e.data.service.service);
                     exploreHistory.push(2);
                 }   
                 if (e.data.unrelated){
-                    exStats.budget_unrelated    += e.data.service.budget_assigned;
+                    exStats.budget_unrelated    += e.data.service.budget;
                     writeLog("explore", "unrelated", issue.name + ", " + e.data.service.service);
                     exploreHistory.push(3);
                 }   
@@ -1370,10 +1370,10 @@
             exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
             exploreElem.find("#explore-search").attr("data-service-id", newService._id);
             exploreElem.find("#explore-search").text(newService.service);
-            exploreElem.find("#explore-candidate").html(treemap.format(newService.budget_assigned) + '<br>'
-                + newService.category_one + ' > ' + newService.category_three + '<br>'
-                + newService.department + '<br>'
-                + newService.team + '<br>');
+            exploreElem.find("#explore-candidate").html(treemap.format(newService.budget) + '<br>'
+                + newService.policy + ' > ' + newService.category + '<br>'
+                + newService.division + '<br>'
+                + newService.department + '<br>');
 
             
       
@@ -1420,7 +1420,7 @@
             //issue.stats.tot_budget = 0;
             if (selected_service==null || 
                 (selected_service!=null && countRelatedBudgets(issue)==1 && issue.budgets[0].id == selected_service._id)){
-                //issue.stats.tot_budget += selected_service!=null? selected_service.budget_assigned : 0; // related is always 1 when created
+                //issue.stats.tot_budget += selected_service!=null? selected_service.budget: 0; // related is always 1 when created
                 if (issues.indexOf(issue)==-1) issues.push(issue);
                 createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
                 updateIssueTitle();
@@ -1471,7 +1471,7 @@
 
                 //update issue-service connection
                 service.issues.splice(service.issues.indexOf(issue._id), 1);
-                //budget_map[service.category_three].issue_size-=1;
+                //budget_map[service.category].issue_size-=1;
             }
             //update treemap issue count
             //treemap.updateIssueCnt();
@@ -1489,7 +1489,7 @@
 
             //update service
             if (rel == null) service.issues.push(issue._id);
-            //if (rel&&rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+            //if (rel&&rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category);//update treemap issue count
             updateIssueCount();
 
             //update issue                       
@@ -1511,7 +1511,7 @@
                     emphasizeServices(em_services);
                 }  
                 if (rel.related){
-                    em_budgets.push(budget_map[service.category_three]);
+                    em_budgets.push(budget_map[service.category]);
                     treemap.emphasize(em_budgets);            
                 }*/
                 updateEmphasize();
@@ -1545,7 +1545,7 @@
             var rel = findRelation(issue, service);
             issue.budgets.splice(issue.budgets.indexOf(rel), 1);
 
-            //if (rel.related) issue.stats.tot_budget      -= service.budget_assigned;
+            //if (rel.related) issue.stats.tot_budget      -= service.budget;
             issue.stats.tot_related     -= rel.related;
             issue.stats.tot_unrelated   -= rel.unrelated;
             issue.stats.tot_pass        -= rel.pass;
@@ -1558,7 +1558,7 @@
            
             
             //update treemap issue count
-            //budget_map[service.category_three].issue_size-=1;
+            //budget_map[service.category].issue_size-=1;
             //treemap.updateIssueCnt();
             updateIssueCount();
             updateIssueTitle();
@@ -1625,7 +1625,7 @@
             <div class="col-md-9">
                 <div class="row">
                     <div id="budget-area" class="col-md-8">
-                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2014)</div>
+                        <h4 style="margin-top:0px;"><div>충청남도 예산 분야 (2014)</div>
                             <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
@@ -1653,7 +1653,7 @@
             <div class="col-md-3">
                 <div id="issue-area" class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 id="issue-title" class="panel-title">2014년 서울시 전체 예산</h3>
+                        <h3 id="issue-title" class="panel-title">2014년 충청남도 전체 예산</h3>
                     </div>
                     <div class="panel-body">                        
                         <div id="service-info"></div>
@@ -1709,7 +1709,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="progress-modal-label">서울시 예산 정보를 로딩 중입니다...</h4>
+                <h4 class="modal-title" id="progress-modal-label">충청남도 예산 정보를 로딩 중입니다...</h4>
             </div>
             <div class="modal-body">
                 <div class="progress">
