@@ -1,5 +1,5 @@
 var TreeMap = function(config){
-	var legendSize = {width: config.size.width, height: 70};
+	var legendSize = {width: config.size.width, height: 90};
 	var margin = config.margin,
 		//color = d3.scale.category10(),
 		color = d3.scale.ordinal().range(['#80cdc1','#33a02c', 
@@ -23,11 +23,11 @@ var TreeMap = function(config){
 
 	var svg = d3.select(config.container).append("div")
 	    .attr("class", "treemap")
-	    .style("width", w + "px")
-	    .style("height", h + "px")
+	    //.style("width", w + "px")
+	    //.style("height", h + "px")
 	.append("svg:svg")
 	    .attr("width", w)
-	    .attr("height", h)
+	    //.attr("height", h)
 
 	var treeSVG = svg.append("svg:g")
 	    .attr("transform", "translate(.0,"+legendSize.height+")");	
