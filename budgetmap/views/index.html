@@ -70,7 +70,7 @@
         var selected_service = null, previous_service = null;
         var selected_issue  = null;
         var issues = null, all_issues = null, budgets = null, all_services = null, services = null;
-        var curr_year = 2014;
+        var curr_year = 2015;
         var treemap = null, barchart = null;
         var service_map = {}, issue_map = {}, budget_map = {}, service_list_map = {};
         var em_services = null;
@@ -550,7 +550,7 @@
                     if (exist==false)   items.push(all_issues[i]); 
                 }
             }else{
-                $("#issue-modal-info").html("<h4>2014년 서울시 전체 예산<small>과 관련된 사회 이슈를 입력해 주세요.</small></h4>");
+                $("#issue-modal-info").html("<h4>2015년 서울시 전체 예산<small>과 관련된 사회 이슈를 입력해 주세요.</small></h4>");
             }
             console.log(items);
             updateAutocomplete(items);
@@ -647,8 +647,8 @@
 
             if (d!=null) writeLog("service", "deselect", d.service);
             selected_service = null;
-            $('#issue-title').text("2014년 서울시 전체 예산");  
-            $('#service-info').html("<h4>2014년 서울시 전체 예산</h4>"+
+            $('#issue-title').text("2015년 서울시 전체 예산");  
+            $('#service-info').html("<h4>2015년 서울시 전체 예산</h4>"+
                     "<table><tbody>"+
                     "<tr><td>총 사업개수 </td><td>: "+budgets.serv_size+"</td></tr>" +
                     "<tr><td>총 예산 </td><td>: "+treemap.format(budgets.size)+"</td></tr>" +
@@ -1596,7 +1596,7 @@
             </div>
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
-                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련이 있는 사업들을 담아 예산지도를 완성해 보세요! (<a href="/help" target="_blank">도움말</a>) - <span id="connect-users"></span><span style="margin-left: 200px; color:#555753; font-size:12px;"><span id="survey-link-parent" data-toggle="tooltip" data-placement="bottom" title="사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!"><a  id="survey-link" style="font-size:16px;" href="https://qtrial2014.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank" >설문조사 참여</a></span></h5>
+                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련이 있는 사업들을 담아 예산지도를 완성해 보세요! (<a href="/help" target="_blank">도움말</a>) - <span id="connect-users"></span><span style="margin-left: 200px; color:#555753; font-size:12px;"><span id="survey-link-parent" data-toggle="tooltip" data-placement="bottom" title="사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!"><a  id="survey-link" style="font-size:16px;" href="https://qtrial2015.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank" >설문조사 참여</a></span></h5>
                 <!--<ul class="nav navbar-nav">
                     <li><a href="/empty">Task A</a></li>
                     <li><a href="/">Task B</a></li>
@@ -1626,7 +1626,7 @@
             <div class="col-md-9">
                 <div class="row">
                     <div id="budget-area" class="col-md-8">
-                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2014)</div>
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015)</div>
                             <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
@@ -1654,7 +1654,7 @@
             <div class="col-md-3">
                 <div id="issue-area" class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 id="issue-title" class="panel-title">2014년 서울시 전체 예산</h3>
+                        <h3 id="issue-title" class="panel-title">2015년 서울시 전체 예산</h3>
                     </div>
                     <div class="panel-body">                        
                         <div id="service-info"></div>
