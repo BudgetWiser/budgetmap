@@ -1,0 +1,26 @@
+{
+  "name": "budgetmap",
+  "version": "0.0.0",
+  "homepage": "https://github.com/BudgetWiser/budgetmap",
+  "authors": [
+    "Nam Wook Kim <namwkim85@gmail.com>"
+  ],
+  "description": "budgetmap bower packages",
+  "moduleType": [
+    "node"
+  ],
+  "keywords": [
+    "budget",
+    "visualization",
+    "citizensourcing"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "public/bower_components",
+    "test",
+    "tests"
+  ]
+}
