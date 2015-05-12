@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from collections import Counter
 
-
 if __name__ == "__main__":
 	# open remote database
-	client 	= pymongo.MongoClient('143.248.234.88', 27017)
+	
 
 	localClient = pymongo.MongoClient('localhost', 27017)
+	localClient.drop_database("budgetmap_live");
  	localClient.admin.command('copydb',
                          fromdb='budgetmap_live',
                          todb='budgetmap_live',
-                         fromhost='143.248.234.88')
+                         fromhost='54.191.187.64:38716')

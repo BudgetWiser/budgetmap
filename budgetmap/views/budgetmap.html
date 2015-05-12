@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:fb="http://www.facebook.com/2008/fbml"
+    xmlns:og="http://opengraphprotocol.org/schema/"
+    xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+    lang="en" dir="ltr">
+<head>
+    <title>{{title}}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta property="og:title" content="BudgetMap" />
+    <meta property="og:type" content="website" />
+    <meta property='og:image' content='http://budgetmap.budgetwiser.org/images/mario_large.png' />
+    <meta property="og:description" content="'눈물로 떠나보낸 내 세금아, 잘 쓰이고 있니?'' - Project BudgetWiser의 첫번째 공개 프로젝트! 이번엔 서울시 안전 예산 찾기 미션! 서울시 예산지도 베타버전을 사용해보시고 설문을 해주시는 분께는 10명을 추첨하여 만원 상당의 기프티콘을 드립니다." /> 
+    <meta property="og:url" content="http://budgetmap.budgetwiser.org/" />
+
+    <link rel="icon" href="/images/favicon.ico">
+    <!--CSS -->
+    <link rel='stylesheet' href='/bower_components/jquery-ui/themes/smoothness/jquery-ui.min.css' />
+    <link rel='stylesheet' href='/bower_components/bootstrap/dist/css/bootstrap.min.css' />
+    <link rel='stylesheet' href='/bower_components/bootstro/bootstro.min.css' />
+    <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+
+    <!--JAVASCRIPT -->
+    <!--[if lte IE 8]>
+        <script src="/libraries/r2d3.min.js" charset="utf-8"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script src="/bower_components/d3/d3.js"></script>  
+    <script src="/bower_components/d3-tip/index.js"></script>
+
+    <!--<![endif]-->
+    <script src="/bower_components/colorbrewer/colorbrewer.js"></script>
+    <script src="/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="/bower_components/jquery-ui/jquery-ui.min.js"></script>
+    <script src="/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="/bower_components/bootstro/bootstro.min.js"></script>
+    <script src="/bower_components/underscore/underscore-min.js"></script>
+    <script src="/bower_components/bootbox/bootbox.js"></script>
+    <script src="/bower_components/angular/angular.min.js"></script>
+    <script src="/bower_components/bootstrap3-typeahead/bootstrap3-typeahead.min.js"></script>
+    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
+    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="/javascripts/recommend.js"></script>
+
+    <script> 
+        var $buoop = {vs:{i:8,f:15,o:12.1,s:5.1},c:2}; 
+        function $buo_f(){ 
+         var e = document.createElement("script"); 
+         e.src = "//browser-update.org/update.js"; 
+         document.body.appendChild(e);
+        };
+        try {document.addEventListener("DOMContentLoaded", $buo_f,false)}
+        catch(e){window.attachEvent("onload", $buo_f)}
+    </script> 
+    
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-54782791-1', 'auto');
+      ga('send', 'pageview');
+
+    </script>
+    <script type="text/javascript">
+        // var socket = io.connect('http://budgetwiser.org:02138');
+
+        // var user = null;
+        // var selected_service = null, previous_service = null;
+        // var selected_issue  = null;
+        // var issues = null, all_issues = null, budgets = null, all_services = null, services = null;
+        // var curr_year = 2015;
+        // var treemap = null, barchart = null;
+        // var service_map = {}, issue_map = {}, budget_map = {}, service_list_map = {};
+        // var em_services = null;
+        // var em_budgets  = null;
+        // var explore = {}, exploreHistory = [];
+        // var explored = {};
+        // var votes = {};
+        // var forwardFlag = 0;
+        var app = angular.module('myApp', [], function($interpolateProvider) {
+            $interpolateProvider.startSymbol('<%');
+            $interpolateProvider.endSymbol('%>');
+        });
+        app.controller('myCtrl', function($scope, $http) {
+            $scope.selectedIssue        = null;
+            $scope.selectedCategory     = null; 
+            $scope.currentServices      = null;
+            $scope.onClickIssue = function(issue, index){
+                if ($scope.selectedIssue==issue){
+                    $scope.selectedIssue = null;
+                    return;
+                }
+                //console.log(issue);
+                $scope.selectedIssue = issue;
+                
+
+
+            }   
+            $scope.selectCategory = function(category){
+                $scope.$apply(function(){
+                    console.log("예산 선: " + category.name)
+                    $scope.currentServices = _.filter($scope.services, function(d) { return category.name == d.category_three})
+                    $scope.selectedCategory = category;
+                    //update bar chart
+                    $scope.barchart.update($scope.currentServices, $scope.barConfig.width, $scope.barConfig.height);
+                });
+            }
+            $scope.deselectCategory = function(category){
+                $scope.$apply(function(){
+                    console.log("예산 해제: " + category.name)
+                    $scope.currentServices = $scope.services;
+                    $scope.selectedCategory = null;
+                    //update bar chart
+                    $scope.barchart.update($scope.currentServices, $scope.barConfig.width, $scope.barConfig.height);
+                });
+            }
+            $scope.overService = function(d){
+                
+            }
+            $scope.outService = function(d){
+                
+            }
+            $scope.selectService = function(d){
+                
+            }
+            $scope.deselectService = function(d){
+                
+            }
+            $scope.countRelatedServices = function (issue){
+                console.log(issue)
+                // var cnt = 0;
+                // for (var i in issue.budgets){
+                //     if (issue.budgets[i].related!=0 && issue.budgets[i].related>=issue.budgets[i].unrelated){
+                //         cnt++;
+                //     }
+                // }
+                return 42
+            }
+
+            $scope.calcIssueBudget = function (issue){
+                //console.log(issue)
+                // var total = 0;
+                // for (var i in issue.budgets){
+                //     var rel = issue.budgets[i];
+                //     var service = service_map[rel.id];
+                //     if (rel.related!=0 && rel.related>=rel.unrelated){
+                //         total += service.budget_assigned;
+                //     }
+                // }
+                return "9900원";// $scope.treemap.format(940000);//(total==0? "0원": treemap.format(total))
+            }
+            //visualization configuration
+            $scope.barConfig = {
+                container : "#service-chart",
+                size :  { width: 250, height: 700},
+                margin: {top: 0, right: 0, bottom: 0, left: 0},
+                onSelect: $scope.selectService,
+                onDeselect: $scope.deselectService,
+                onMouseOver: $scope.overService,
+                onMouseOut: $scope.outService
+            };
+            $scope.treeConfig = {
+                container : "#budget-chart",
+                size :  { width: 550, height: 700},
+                margin : { top: 0, left: 0, bottom: 0, right: 0},
+                onSelect: $scope.selectCategory,
+                onDeselect: $scope.deselectCategory
+            }
+
+
+            $http.get('/budgets')
+            .success(function(data){
+                
+                $scope.budgets = data.budget;
+                $scope.services = _.flatten(_.values(data.services));
+                //sort by budget amount
+                $scope.services.sort(function(a, b){
+                    return b.budget_assigned - a.budget_assigned;
+                });
+
+                 //create budget chart
+                $scope.treeConfig.data = $scope.budgets;
+                $scope.treemap = TreeMap($scope.treeConfig);
+                $scope.treemap.create();
+                //treemap.selectMax();
+
+                //create service chart
+                $scope.barConfig.data = $scope.currentServices = $scope.services;
+                $scope.barchart = BarChart($scope.barConfig);
+                $scope.barchart.create();
+
+                // load issues
+                $http.get('/issues')
+                .success(function(res){
+                    $scope.issues = res;
+                    console.log($scope.issues);
+
+                })   
+
+            })
+
+            
+           
+        }); 
+
+    </script>
+</head>
+<body ng-app="myApp" ng-controller="myCtrl">
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-static-top" role="navigation">
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <strong class="navbar-brand" id="budgetmap-logo" ><img  src="/images/favicon.ico" width="25" height="25" class="img-circle" > BudgetMap </strong>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
+                
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>    
+    <div class="container">
+        <div class="row">
+            <!-- ISSUE AREA -->
+            <div class="col-md-3">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 class="panel-title text-center">
+                            우리 사회 이슈
+                        </h3>   
+                    </div>
+                    <!-- <div class="panel-body">
+                    </div> -->
+                    <!--<div  style="height:530px;; overflow-y:auto;">-->
+                    <div class="list-group">
+                        <a ng-repeat="x in issues" ng-click="onClickIssue(x, $index)" ng-class="{ 'list-group-item-info' : x==selectedIssue }" href="javaScript:void(0);" class="list-group-item issue-item" data-toggle="tooltip" data-placement="left" >
+                            <strong><% x.name %> </strong>
+                            <span style="font-size:10px;" class="badge">연관사업: <% countRelatedServices(x) %></span>
+                            <br>
+                            <span class="text-muted">현재까지: <% calcIssueBudget(x) %></span>
+                        </a>
+                    </div>
+                    
+                </div>
+
+            </div>
+            <!-- VISUALIZATION -->
+            <div class="col-md-9">
+                <div class="row">
+                    <div id="budget-area" class="col-md-8">
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015)</div>
+                           <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
+                        </h4>
+                        <div id="budget-chart" style="float:left"></div>
+                    </div>
+                    <div id="service-area" class="col-md-4" style="padding-left:0px;">
+                        <h4 style="margin:0px;">
+                            <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
+                        </h4> 
+                        <div id="service-search-group" class="input-group" style="display:none; margin-top:8px;">
+                            <input id="service-search" type="text" class="form-control" placeholder="사업명을 입력하세요.">
+                            <span class="input-group-btn">
+                                <button id="btn-service-search" class="btn btn-default" type="button">검색</button>
+                            </span>
+                        </div>
+                        <div id="service-search-result" style="display:none; padding: 5px; margin-bottom:5px;" class="alert alert-success" role="alert">
+                          <button id="service-search-cancel" type="button" class="close"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                          <p id="service-search-text"></p>
+                        </div>
+                        <blockquote id="issue-service-result" style="display:none; margin:5px; 0px;">
+                            <h5 id="issue-service-text" class="text-muted"></h5>
+                        </blockquote>
+                        <div id="service-chart" style="width:280px;height:700px;overflow: auto;"></div>
+                    </div>  
+                </div>
+            </div>             
+
+        </div>
+    </div>
+    <!--Progressbar Modal -->
+<!-- Modal -->
+
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progress-modal" tabindex="-1" role="dialog" aria-labelledby="progress-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="progress-modal-label">서울시 예산 정보를 로딩 중입니다...</h4>
+            </div>
+            <div class="modal-body">
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                    </div>
+                </div>  
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="user" style="display:none">{{user}}</div>
+</body>
+</html>

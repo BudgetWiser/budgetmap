@@ -14,7 +14,7 @@
     "express-session": "*",
     "hogan-express": "*",
     "mongodb": "*",
-    "mongoskin": "*",
+    "mongoskin": "^1.3.20",
     "morgan": "~1.0.0",
     "socket.io": "^1.1.0",
     "static-favicon": "~1.0.0",

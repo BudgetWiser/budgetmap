@@ -1,5 +1,5 @@
 var TreeMap = function(config){
-	var legendSize = {width: config.size.width, height: 70};
+	var legendSize = {width: config.size.width, height: 85};
 	var margin = config.margin,
 		//color = d3.scale.category10(),
 		color = d3.scale.ordinal().range(['#80cdc1','#33a02c', 

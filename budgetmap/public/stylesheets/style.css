@@ -40,33 +40,10 @@ a{
 
     color: AliceBlue;
 }
-#navigation{
-    float:right;
-    padding:0px;
-    margin: 0px;
-}
-#navigation ul{
-    list-style-type: none;
-}
-#navigation ul li
-{
-    list-style-type: none;
+
+.navbar img{
     display: inline;
 }
-#navigation li a
-{
-    display: block;
-    float: right;
-    text-decoration: none;
-    padding: 14px 10px;
-    /*border-left: 3px solid Gainsboro;*/
-    font-size:14px;
-    color: AliceBlue;
-}
-#navigation li a:hover { 
-    text-decoration: underline; 
-}
-
 #content-container{
     clear: both;
     float:left;
