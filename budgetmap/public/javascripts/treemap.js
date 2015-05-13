@@ -38,8 +38,8 @@ var TreeMap = function(config){
 	  .attr('class', 'treemap-d3-tip')
 	  .offset([-10, 0])
 	  .html(function(d) {
-	    return "<span style='color:lightsteelblue;font-size:12px'>"+d.parent.name+" 전체예산: " + chart.format(d.parent.size) + "</span><br/><br/>" +
-	    		"<span style='color:lightgray'>" + d.name + ": "+chart.format(d.size)+" ("+d3.format('.2%')(d.size/d.parent.size)+")</span>";
+	    return "<span style='color:lightsteelblue;font-size:12px'>" + d.name + ": "+chart.format(d.size)+" ("+d3.format('.2%')(d.size/root.size)+")</span><br/><br/>" +
+	    		"<span style='color:lightgray'>분류: "+d.parent.name+ "</span>";
 	  })
 	treeSVG.call(tip);	
 
@@ -158,8 +158,8 @@ var TreeMap = function(config){
 			.duration(period)
 			.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
 			.attr("opacity", function(d){
-				//if (emCategory)	return emCategory==d.category1? 1.0:0.5;
-				//if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
+				// if (emCategory)	return emCategory==d.parent.name? 1.0:0.1;
+				if (emList)		return emList.indexOf(d)!=-1? 1.0:0.1;
 				return 1.0;
 			})
 			.each("end", function() { d3.select(this).attr("pointer-events", null); });
@@ -186,8 +186,8 @@ var TreeMap = function(config){
 		  	.attr("class", "treemap-cell")
 		  	.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
 			.attr("opacity", function(d){
-				//if (emCategory)	return emCategory==d.category1? 1.0:0.5;
-				//if (emList)		return emList.indexOf(d)!=-1? 1.0:0.5;
+				// if (emCategory)	return emCategory==d.parent.name? 1.0:0.1;
+				if (emList)		return emList.indexOf(d)!=-1? 1.0:0.1;
 				return 1.0;
 			});
 

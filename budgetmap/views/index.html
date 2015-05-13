@@ -122,7 +122,7 @@
                 $scope.selectedIssue = issue;
                 
                 //emphasize issue-related budgets
-                emphasize();
+                $scope.emphasize();
 
             }   
             $scope.selectCategory = function(category){
@@ -132,6 +132,7 @@
                     $scope.selectedCategory = category;
                     $scope.selectedService = null;
                     $scope.closeSearch();
+                    $scope.emphasize();
                 });
             }
             $scope.deselectCategory = function(category){
@@ -141,9 +142,10 @@
                     $scope.selectedCategory = null;
                     $scope.selectedService = null;
                     $scope.closeSearch();
+                    $scope.emphasize();
                 });
             }
-            function emphasize(){
+            $scope.emphasize = function(){
                 if ($scope.selectedIssue==null)    return;
 
                 var emCategories    = [];
