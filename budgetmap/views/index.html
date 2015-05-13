@@ -321,7 +321,7 @@
             //visualization configuration
             $scope.barConfig = {
                 container : "#service-chart",
-                size :  { width: 250, height: 700},
+                size :  { width: $('#service-area').width(), height: 700},
                 margin: {top: 0, right: 0, bottom: 0, left: 0},
                 onSelect: $scope.selectService,
                 onDeselect: $scope.deselectService,
@@ -330,7 +330,7 @@
             };
             $scope.treeConfig = {
                 container : "#budget-chart",
-                size :  { width: 555, height: 700},
+                size :  { width: $('#budget-area').width(), height: 700},
                 margin : { top: 0, left: 0, bottom: 0, right: 0},
                 onSelect: $scope.selectCategory,
                 onDeselect: $scope.deselectCategory
@@ -453,15 +453,15 @@
 
             </div>
             <!-- VISUALIZATION -->
-            <div class="col-md-9">
-                <div class="row">
-                    <div id="budget-area" class="col-md-8">
+           <!--  <div class="col-md-9">
+                <div class="row"> -->
+                    <div id="budget-area" class="col-md-6">
                         <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
                         <div id="budget-chart" style="float:left;margin-bottom:15px;"></div>
                     </div>
-                    <div id="service-area" class="col-md-4">
+                    <div id="service-area" class="col-md-3">
                         <h4 style="margin:0px;">
                             <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
                         </h4> 
@@ -483,8 +483,8 @@
                         </blockquote>
                         <div id="service-chart" style="height:600px;overflow: auto;"></div>
                     </div>  
-                </div>
-            </div>             
+         <!--        </div>
+            </div>       -->       
 
         </div>
     </div>
