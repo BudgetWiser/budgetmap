@@ -44,7 +44,7 @@ var BarChart = function(config){
       .attr('class', 'barchart-d3-tip')
       .offset([-10, 0])
       .html(function(d) {
-        var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.service+"<br/><br/>" + chart.format(d.budget_assigned) + "</span>";
+        var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.name+"<br/><br/>" + chart.format(d.size) + "</span>";
           //html += "<span style='color:lightgray'>" + d.name + ": "+format(d.size)+" ("+d3.format('.2%')(d.size/d.parent.size)+")</span><br/><br/>";
         return html;
       })
@@ -74,7 +74,7 @@ var BarChart = function(config){
       data = newData;
     }else{
       data.sort(function(a, b){
-          return b.budget_assigned - a.budget_assigned;
+          return b.size - a.size;
       });
     }
     pages = [];
@@ -110,9 +110,9 @@ var BarChart = function(config){
 
     fullHeight  = outerPadding*2 + (barPadding + barSize)*data.length;
     x.rangeRoundBands([0, fullHeight], .2); //range update
-    x.domain(data.map(function(d) { return d.service; }));
-    y.domain([0, d3.max(data.map(function(d) { return d.budget_assigned; }))]);
-    //console.log(x(data[0].service));
+    x.domain(data.map(function(d) { return d.name; }));
+    y.domain([0, d3.max(data.map(function(d) { return d.size; }))]);
+    //console.log(x(data[0].name));
     // Canvas Size update
     var pageHeight = outerPadding*2 + (barPadding + barSize)*curPage.length;
     d3.select(config.container).select(".barchart").style("height", pageHeight + "px");
@@ -142,12 +142,12 @@ var BarChart = function(config){
     bars.attr("pointer-events", "none")// Remove interaction while constructing and transitioning
       .transition()
       .duration(transPeriod)
-      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })//((barSize+barPadding)*i)
-      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.6); })
+      .attr("transform", function(d, i) { return "translate(0," + x(d.name) + ")"; })//((barSize+barPadding)*i)
+      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.1); })
       .each("end", function() { d3.select(this).attr("pointer-events", null); });
 
     bars.select(".barchart-rect").transition().duration(transPeriod)
-      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("width", function(d) { return y(d.size); })
 
 
     // Create new elements as needed.  
@@ -162,13 +162,13 @@ var BarChart = function(config){
     entered.attr("pointer-events", "none")
       .transition()
       .duration(transPeriod)
-      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }) //((barSize+barPadding)*i)
-      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.6); })
+      .attr("transform", function(d, i) { return "translate(0," + x(d.name) + ")"; }) //((barSize+barPadding)*i)
+      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.1); })
       .each("end", function() { d3.select(this).attr("pointer-events", null); });
 
     entered.append("rect")
       .attr("class", "barchart-rect")
-      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("width", function(d) { return y(d.size); })
       .attr("height", barSize)
     
     entered.append("text")
@@ -179,7 +179,7 @@ var BarChart = function(config){
       .attr("dy", "0.25em")
       .attr("text-anchor", "start")
       .text(function(d){      
-        return d.service;
+        return d.name;
       });
 
     d3.select(config.container).select(".barchart").select(".more").remove();
@@ -240,13 +240,13 @@ var BarChart = function(config){
     entered.attr("pointer-events", "none")
       .transition()
       .duration(transPeriod)
-      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; }) //((barSize+barPadding)*i)
-      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.6); })
+      .attr("transform", function(d, i) { return "translate(0," + x(d.name) + ")"; }) //((barSize+barPadding)*i)
+      .attr("opacity", function(d){ return emList==null? 1.0: (emList.indexOf(d)!=-1? 1.0 : 0.1); })
       .each("end", function() { d3.select(this).attr("pointer-events", null); });
 
     entered.append("rect")
       .attr("class", "barchart-rect")
-      .attr("width", function(d) { return y(d.budget_assigned); })
+      .attr("width", function(d) { return y(d.size); })
       .attr("height", barSize)
     
     entered.append("text")
@@ -257,7 +257,7 @@ var BarChart = function(config){
       .attr("dy", "0.25em")
       .attr("text-anchor", "start")
       .text(function(d){      
-        return d.service;
+        return d.name;
       });    
 
     //reached the end of pages. remove 'more' button.    
@@ -271,7 +271,7 @@ var BarChart = function(config){
     if (!arguments.length) {
       effetive = [];
       data.forEach(function(d){
-        if (emList.indexOf(d)!=-1)
+        if (emList&& emList.indexOf(d)!=-1)
           effetive.push(d);
       });
       return effetive;
@@ -283,27 +283,28 @@ var BarChart = function(config){
     chart.update(data, width, height);
 
     /*
-    x.domain(newData.map(function(d) { return d.service; }));
+    x.domain(newData.map(function(d) { return d.name; }));
     focus.selectAll(".barchart-bar")
       .attr("pointer-events", "none")
       .transition()
       .duration(250)
-      .attr("transform", function(d, i) { console.log(x(d.service)); return "translate(0," + x(d.service) + ")"; })
+      .attr("transform", function(d, i) { console.log(x(d.name)); return "translate(0," + x(d.name) + ")"; })
       .attr("opacity", function(d){ return dl.indexOf(d)!=-1? 1.0 : 0.6; })
       .each("end", function() { d3.select(this).attr("pointer-events", null); });
     */
   }
+
   chart.deemphasize = function(){
     if (emList==null) return;
     emList = null;
     chart.update(data, width, height);
     /*
-    x.domain(data.map(function(d) { return d.service; }));
+    x.domain(data.map(function(d) { return d.name; }));
     focus.selectAll(".barchart-bar")
       .attr("pointer-events", "none")
       .transition()
       .duration(250)
-      .attr("transform", function(d, i) { return "translate(0," + x(d.service) + ")"; })
+      .attr("transform", function(d, i) { return "translate(0," + x(d.name) + ")"; })
       .attr("opacity", 1.0)
       .each("end", function() { d3.select(this).attr("pointer-events", null); });
     */
@@ -324,27 +325,28 @@ var BarChart = function(config){
     if (selected) {
       chart.disableHighlight(selected);
     }
+    console.log(selected);
 
     if (selected==this) { //no selection if click the existing selection
       if (config.onDeselect(d)){ // call de-selection callback)
         chart.disableHighlight(selected);
         selected = null;     
-        $("#service-functions").css({"display": "none"});
-        $("#selected_service").removeAttr("id");        
+        // $("#name-functions").css({"display": "none"});
+        // $("#selected_name").removeAttr("id");        
       }
     }else{
       if (config.onSelect(d)){ // call selection callback)
         //chart.disableHighlight(selected);
         selected = this;       
-        $("#service-functions").css({"display": "inline-block"});
-        $(this).attr("id", "selected_service");
+        // $("#name-functions").css({"display": "inline-block"});
+        // $(this).attr("id", "selected_name");
         chart.enableHighlight(selected);
       }
     }
   }
   chart.select = function(selectData){
     var selectItem = focus.selectAll(".barchart-bar")
-      .filter(function(d){  return (d.service == selectData.service); });
+      .filter(function(d){  return (d.name == selectData.name); });
     console.log(selectItem);
     var selectElem = selectItem[0][0];
     chart.mouseClick.call(selectElem, selectData);

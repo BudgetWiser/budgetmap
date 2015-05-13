@@ -10,8 +10,8 @@ if __name__ == "__main__":
 	
 
 	localClient = pymongo.MongoClient('localhost', 27017)
-	localClient.drop_database("budgetmap_live");
+	localClient.drop_database("budgeTag");
  	localClient.admin.command('copydb',
-                         fromdb='budgetmap_live',
-                         todb='budgetmap_live',
+                         fromdb='budgeTag',
+                         todb='budgeTag',
                          fromhost='54.191.187.64:38716')

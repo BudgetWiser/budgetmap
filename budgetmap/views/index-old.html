@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html xmlns:fb="http://www.facebook.com/2008/fbml"
+    xmlns:og="http://opengraphprotocol.org/schema/"
+    xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+    lang="en" dir="ltr">
+<head>
+    <title>{{title}}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta property="og:title" content="BudgetMap" />
+    <meta property="og:type" content="website" />
+    <meta property='og:image' content='http://budgetmap.budgetwiser.org/images/mario_large.png' />
+    <meta property="og:description" content="'눈물로 떠나보낸 내 세금아, 잘 쓰이고 있니?'' - Project BudgetWiser의 첫번째 공개 프로젝트! 이번엔 서울시 안전 예산 찾기 미션! 서울시 예산지도 베타버전을 사용해보시고 설문을 해주시는 분께는 10명을 추첨하여 만원 상당의 기프티콘을 드립니다." /> 
+    <meta property="og:url" content="http://budgetmap.budgetwiser.org/" />
+
+    <link rel="icon" href="/images/favicon.ico">
+    
+    <link rel="stylesheet" type="text/css" href="/stylesheets/treemap.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/barchart.css">
+    <link rel="stylesheet" type="text/css" href="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.css">
+    <link rel="stylesheet" type="text/css" href="/libraries/bootstrap-3.2.0-dist/css/bootstrap.min.css"> 
+    <link rel="stylesheet" type="text/css" href="/libraries/bootstro/bootstro.min.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/style.css">
+
+    <script type="text/javascript" src="/libraries/colorbrewer.js"></script>
+    <!--[if lte IE 8]>
+        <script src="/libraries/r2d3.min.js" charset="utf-8"></script>
+    <![endif]-->
+    <!--[if gte IE 9]><!-->
+    <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+    <!--<![endif]-->
+
+    <script type="text/javascript" src="/libraries/d3.tip.js"></script>
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="/libraries/jquery-ui-1.11.0.custom/jquery-ui.min.js"></script> 
+    
+    <script type="text/javascript" src="/libraries/bootstrap-3.2.0-dist/js/bootstrap.min.js"></script>    
+    <script type="text/javascript" src="/libraries/bootstrap-typeahead/bootstrap3-typeahead.min.js"></script>
+    <script type="text/javascript" src="/libraries/bootstro/bootstro.min.js"></script>
+
+    <!--<script type="text/javascript" src="/javascripts/issue.js"></script>-->
+    <script type="text/javascript" src="/javascripts/treemap.js"></script>
+    <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="/javascripts/recommend.js"></script>
+    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
+    <script> 
+        var $buoop = {vs:{i:8,f:15,o:12.1,s:5.1},c:2}; 
+        function $buo_f(){ 
+         var e = document.createElement("script"); 
+         e.src = "//browser-update.org/update.js"; 
+         document.body.appendChild(e);
+        };
+        try {document.addEventListener("DOMContentLoaded", $buo_f,false)}
+        catch(e){window.attachEvent("onload", $buo_f)}
+    </script> 
+    
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-54782791-1', 'auto');
+      ga('send', 'pageview');
+
+    </script>
+    <script type="text/javascript">
+        var socket = io.connect('http://budgetwiser.org:02138');
+
+        var user = null;
+        var selected_service = null, previous_service = null;
+        var selected_issue  = null;
+        var issues = null, all_issues = null, budgets = null, all_services = null, services = null;
+        var curr_year = 2015;
+        var treemap = null, barchart = null;
+        var service_map = {}, issue_map = {}, budget_map = {}, service_list_map = {};
+        var em_services = null;
+        var em_budgets  = null;
+        var explore = {}, exploreHistory = [];
+        var explored = {};
+        var votes = {};
+        var forwardFlag = 0;
+        var barchart_config = {
+            container : "#service-chart",
+            size :  { width: 250, height: 750},
+            margin: {top: 0, right: 0, bottom: 0, left: 0},
+            onSelect: selectService,
+            onDeselect: deselectService,
+            onMouseOver: overService,
+            onMouseOut: outService
+        };
+        var treemap_config = {
+            container : "#budget-chart",
+            size :  { width: 550, height: 700},
+            margin : { top: 0, left: 0, bottom: 0, right: 0},
+            onSelect: selectBudget,
+            onDeselect: deselectBudget
+        }
+        $(document).ready(function(){
+            //$("body").attr("font-family", "'Nanum Gothic', "Helvetica Neue", Helvetica, "Noto Sans Korean", 'Source Sans Pro', serif")
+            $("#budgetmap-logo").hover(function(){
+                $(this).find("img").css("opacity", 1.0);
+            }, function(){
+                $(this).find("img").css("opacity", 0.5);
+            });
+            socket.on('connectedUsers', onConnectedUsers);
+            $("[data-toggle=tooltip]").tooltip();
+
+            var user = JSON.parse($("#user").text());
+            if (user){
+                $("#signin").text("Logout");
+                $("#nickname").text(user.nickname);
+            }
+            $("#progress-modal").modal({
+                keyboard: false,
+                backdrop: "static"
+            });
+            var issueLoaded     = false;
+            var budgetLoaded    = false;
+            var inc = 0;
+            var progress = setInterval(function(){ //Trick Progress
+                inc += inc>=100? 0:Math.floor((Math.random() * 10) + 1);;
+                 $("#progress-bar").css('width', inc+'%').attr('aria-valuenow', inc); 
+                if (issueLoaded && budgetLoaded){
+                    $("#progress-bar").css('width', "100%").attr('aria-valuenow', 100); 
+                    clearInterval(progress); 
+                    $("#progress-modal").modal("hide");
+                } 
+            }, 1000);
+
+            $.getJSON('/budgets', function(data){
+                budgetLoaded = true;
+                //console.log(data.budget);
+                budgets         = data.budget;
+                console.log(data.budget);
+                for (var i in budgets.children){//top level
+                    for (var j in budgets.children[i].children){
+                        budget_map[budgets.children[i].children[j].name] = budgets.children[i].children[j];
+                    }
+                }
+                //console.log(budget_map);
+                all_services        = [];
+                service_list_map    = data.services;
+                for (var name in service_list_map){ //construct service map
+                    for (var i in service_list_map[name]){
+                         service_map[service_list_map[name][i]._id] = service_list_map[name][i];
+                         all_services.push(service_list_map[name][i]);
+                        /*if (service_list_map[name][i].issues && service_list_map[name][i].issues.length>0){
+                             $.post("budgets/"+service_list_map[name][i]._id,
+                            {
+                                issues: []
+                            });
+                        }*/
+                    }                   
+                }
+                all_services.sort(function(a, b){
+                    return b.budget_assigned - a.budget_assigned;
+                });
+                //create budget chart
+                treemap_config.data = budgets;
+                treemap = TreeMap(treemap_config);
+                treemap.create();
+                //treemap.selectMax();
+
+                //create service chart
+                barchart_config.data = services = all_services;
+                barchart = BarChart(barchart_config);
+                //barchart.create(); //will be created at 'initialize'
+
+                //Load Issues
+                $.getJSON('/issues', function(data){
+                    issueLoaded = true;
+                    all_issues = issues = data;
+                    console.log(all_issues);
+                    /* clear all issues *
+                    for (var i in all_issues){
+                        //remove issue completely
+                        $.ajax({
+                            url: '/issues/'+all_issues[i]._id,
+                            type: 'DELETE',
+                            fail: function(result) {
+                                alert("failed to delete issue!")
+                            }
+                        });
+                    }
+                    for (var i in all_services){
+                        if (all_services[i].issues.length>0){
+                            $.post("budgets/"+all_services[i]._id,
+                            {
+                                issues: []
+                            });
+                        }
+                    }*/
+                    for (var i in all_issues){//construct issue map
+                        console.log(all_issues[i]);
+                        issue_map[all_issues[i]._id] = all_issues[i];
+                        //calculate total budget
+                        var total = 0;
+                        for (var j in all_issues[i].budgets){                        
+                            total += service_map[all_issues[i].budgets[j].id].budget_assigned;
+                        }
+                        issue_map[all_issues[i]._id].budget_assigned = total;
+                        
+                    }
+                    displayIssues(data);
+
+                    initialize();
+
+                    socket.on('new issue', onNewIssue);
+                    socket.on('update issue', onUpdateIssue);
+                    socket.on('delete issue', onDeleteIssue);
+                    socket.on('new connection', onNewConnection);
+                    socket.on('delete connection', onDeleteConnection);
+
+                    generateGuide();
+                    
+                });
+
+            });
+            $('#left-content').resize(function(){
+                var elem = $(this);
+                console.log('w, h = ' + elem.width() + ', ' + elem.height());
+            });
+            $('#new-issue').keypress(function(event) { return event.keyCode != 13; });
+            $('#issue-modal-confirm').click(addIssue);
+            $('#service-modal-confirm').click(connectIssue);
+            $('#service-modal-cancel').click(function (){ selected_service = previous_service; });
+            $('#btn-new-issue').click(populateIssueModal);
+            $('#btn-service-search').click(searchService);
+            $('#delete-modal-confirm').click(deleteIssue);
+            $('#signin').click(function(){
+                if (user){
+                    $.post("/logout", {
+                        user: user
+                    }, function(res){
+                        alert(user.nickname + " : 로그아웃 되었습니다.")
+                        writeLog("user", "logout",  user.nickname);
+                        user = null;
+                        $("#signin").text("Sign In");
+                        $("#nickname").text("");
+                    }); 
+                }else{
+                    $('#auth-modal').modal("show");    
+                }
+                
+            });
+            $('#btn-signin').click(signin);
+            $('#btn-register').click(register);
+
+            $('#service-search').keydown(function(event){    
+                if(event.keyCode==13){
+                   $('#btn-service-search').trigger('click');
+                }
+            });
+            $("#service-more-info").click(function() {
+                var url = constructSearchUrl($("#selected_service").text());
+                writeLog("service", "moreinfo", $("#selected_service").text());
+                window.open(url, '_blank');
+            });
+
+            $("#service-search-cancel").click(function(){
+                $('#service-search').val("");
+                $('#service-search-result').hide();
+                barchart.update(services, barchart_config.width, barchart_config.height)
+                updateEmphasize();
+            })
+        });
+
+        // $(window).resize(function(){
+        //     var elem = $(this);
+        //     console.log('w, h = ' + elem.width() + ', ' + elem.height());
+        // });
+        function initialize(){
+            deselectService(null);
+            deselectBudget(null);
+            updateIssueCount();
+
+        }
+        function generateGuide(){
+            /*
+            $('#issue-list').addClass("bootstro")
+                .attr("data-bootstro-title", "예산 탐색 도전하기")
+                .attr("data-bootstro-content", "서울시 안전예산을 찾아라! 10개 정도 해보시길 권해드립니다!")
+                .attr("data-bootstro-placement", "left")
+                .attr("data-bootstro-step", 0)
+
+            $("#service-info").addClass("bootstro")
+                .attr("data-bootstro-title", "서울시 예산")
+                .attr("data-bootstro-content", "여러분이 내는 세금, 어디에 쓰이는지 궁금하지 않으세요?  여러 사회 이슈에 대해 서울시 예산을 살펴볼 수 있어요. (참고: 사용하신 기록은 통계를 작성하기 위한 용도로만 수집되어 소중한 연구 자료로 활용됩니다.)")
+                .attr("data-bootstro-placement", "left")
+                .attr("data-bootstro-step", 1)
+
+            $("#budget-area").addClass("bootstro")
+                .attr("data-bootstro-title", "서울시 예산 분야")
+                .attr("data-bootstro-content", "여러분이 탐색할 예산지도에서 분야별 정보를 볼 수 있어요.")
+                .attr("data-bootstro-placement", "right")
+                .attr("data-bootstro-step", 2)
+
+            $("#service-area").addClass("bootstro")
+                .attr("data-bootstro-title", "서울시 사업 목록")
+                .attr("data-bootstro-content", "예산지도에서 특정 분야를 선택하셨다면, 그 분야에 속하는 상세 사업 목록을 볼 수 있어요.")
+                .attr("data-bootstro-placement", "left")
+                .attr("data-bootstro-step", 3)
+
+            $("#issue-area").addClass("bootstro")
+                .attr("data-bootstro-title", "사회 이슈 별 예산지도 만들기")
+                .attr("data-bootstro-content", "안전 예산 뿐만 아니라 다른 예산들에도 도전해 보세요!")
+                .attr("data-bootstro-placement", "left")
+                .attr("data-bootstro-step", 4)
+
+            $("#survey-link").addClass("bootstro")
+                .attr("data-bootstro-title", "설문조사 참여")
+                .attr("data-bootstro-content", "사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!")
+                .attr("data-bootstro-placement", "bottom")
+                .attr("data-bootstro-step", 5)      
+            */
+            var issue = null;
+            for (var i in all_issues){
+                if (all_issues[i].name=="안전 예산"){
+                    issue = all_issues[i];
+                    break;  
+                } 
+            }
+            //$("#survey-link").attr("title", "사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!");
+            $("#survey-link-parent").tooltip({container: 'body'});
+            $('[data-issue-id='+issue._id+']').click();
+            $('#toggle-explore-task').click();             
+            var open = 1;
+            bootstro.start(".bootstro", { 
+                nextButtonText: "다음 »",
+                prevButtonText: "« 이전",
+                finishButton:"",
+                //finishButtonText: "asdf",
+                stopOnBackdropClick: false,
+                stopOnEsc: false,
+                onExit: function(){
+                    if (open==0){
+                        $('[data-issue-id='+issue._id+']').click();
+                        $('#toggle-explore-task').click(); 
+                    }
+                    return false;
+                },
+                onStep: function(info){
+                    console.log(info);
+                    //expand explore task
+                    //if (info.idx==3 && info.direction=="prev"){
+                    //    $('[data-issue-id='+issues[0]._id+']').click();
+                    //    open = 0;
+                    //}
+                    if (info.idx==0 && open == 0){
+                        $('[data-issue-id='+issue._id+']').click();
+                        $('#toggle-explore-task').click();    
+                        open = 1
+                    }
+                    if (info.idx==1 && open == 1){
+                        //reached the final guide
+                        forwardFlag = 1;
+                        $('[data-issue-id='+issue._id+']').click();
+                        open = 0;                       
+                    }
+                    if (info.idx==5){
+                        //console.log(guide);
+                        //var finishBtn = $('< button class="btn btn-mini btn-success bootstro-finish-btn">< i class="icon-ok" >< /i> 예산 탐색을 바로 시작합니다.< /button>');
+                        $(".bootstro-finish-btn-wrapper").html('<button class="btn btn-mini btn-success bootstro-finish-btn">예산 탐색을 바로 시작합니다.</button>');
+                    }
+                }
+
+            });
+        }
+        function constructSearchUrl(name){
+                return 'http://opengov.seoul.go.kr/search?sortField=RANK&page=0&searchTarget=section&viewCount=100&isDetailSearch=0&isInitKeyword=0&depth=1&isAll=1&s-category=section&searchKeyword='
+                + encodeURI(name) + '&srcField%5B%5D=ALL&srcField%5B%5D=TITLE&srcField%5B%5D=CONTENT&srcField%5B%5D=DEPT_NM%2CWRITER&srcField%5B%5D=KWRD&srcField%5B%5D=ATTACH_NM&option=reSearch';
+        }
+        function writeLog(tag, action, target){
+
+            console.log(tag+", "+action+", "+target);
+            $.post("log", {
+                tag: tag,
+                action: action,
+                target: target
+            });
+
+        }
+        function signin(){
+            var email = $('#signin-form :input[name="signinEmail"]').val();
+            var password = $('#signin-form :input[name="signinPassword"]').val();
+
+            if (email == "" || password ==""){
+                $("#signin-fail").text("이메일 혹은 패스워드가 입력되지 않았습니다.").show().effect( "shake" ).delay(2000).fadeOut();
+                return;
+            }
+            $.post("/signin", 
+            {
+                email: email,
+                password: password
+            }, function(res){
+                if (res.code>0){
+                    $("#signin-fail").text(res.message).show().effect( "shake" ).delay(2000).fadeOut();
+                    return;
+                }
+                user = res.user;
+                writeLog("user", "signin",  user.nickname);
+                $('#signin-form :input[name="signinEmail"]').val("");
+                $('#signin-form :input[name="signinPassword"]').val("");
+                $("#signin").text("Logout");
+                $("#nickname").text(user.nickname);
+                $("#auth-modal").modal("hide");
+            }); 
+        }
+        function register(){
+            var email = $('#register-form :input[name="registerEmail"]').val();
+            var nickname = $('#register-form :input[name="registerNickname"]').val();
+            var password = $('#register-form :input[name="registerPassword"]').val();
+
+            if (email == "" || nickname=="" || password ==""){
+                $("#register-fail").text("입력되지 않은 필드가 있습니다.").show().effect( "shake" ).delay(2000).fadeOut();
+                return;
+            }
+            $.post("/register", 
+            {
+                email: email,
+                nickname: nickname,
+                password: password
+            }, function(res){
+                if (res.code>0){
+                    $("#register-fail").text(res.message).show().effect( "shake" ).delay(2000).fadeOut();
+                    return;
+                }             
+                $('#register-form :input[name="registerEmail"]').val("");
+                $('#register-form :input[name="registerNickname"]').val("");
+                $('#register-form :input[name="registerPassword"]').val("");
+                $("#register-success").text(" 성공적으로 가입되었습니다. 로그인을 해주세요.").show().delay(2000).fadeOut();  
+                //$("#signin").text(res.user.nickname);
+                //$("#auth-modal").modal("hide");
+            });  
+        }
+        function selectBudget(d){
+            if (services==service_list_map[d.name]) return;
+            writeLog("budget", "select", d.name);
+            //fillter services by the selected budget
+            services = service_list_map[d.name];
+
+            // set up service chart panel
+            $("#service-chart").scrollTop(0);
+            //$("#service-chart").empty();
+            $("#service-chart-title").text(d.name+" 관련 사업 목록 ("+services.length+"개)");
+            $("#service-search-group").show(); 
+            $("#service-search-result").hide();   
+
+            //draw barchart
+            barchart.update(services, barchart_config.width, barchart_config.height);
+            
+
+            //emphasizeServices(em_services);
+            updateEmphasize();
+
+            if (selected_service && services.indexOf(selected_service)==-1){
+                deselectService(null);
+            }
+            //maintain previously selected service, if possible
+            //if (selected_service && services.indexOf(selected_service)!=-1){
+            //    selectService(d);
+            //}else{            
+            //    deselectService(null); //de-select previously selected service
+            //}
+            //if (em_budgets && em_budgets.indexOf(d)==-1){
+            //    deselectIssue();
+            //}
+        }
+        
+        function deselectBudget(d){
+            //deselectService(null);
+            if (d!=null) writeLog("budget", "deselect",  d.name);
+            //set to all services
+            services = all_services;
+
+            // set up service chart panel
+            $("#service-chart").scrollTop(0);
+            //$("#service-chart").empty();
+            $("#service-chart-title").text("서울시 사업 목록 ("+services.length+"개)");
+            $("#service-search-group").show(); 
+            $("#service-search-result").hide();   
+
+            //draw barchart
+            barchart.update(services, barchart_config.width, barchart_config.height);
+
+            //emphasizeServices(em_services);
+            updateEmphasize();
+
+            //maintain previously selected service, if possible
+            //if (selected_service && services.indexOf(selected_service)!=-1){
+            //    selectService(d);
+            //}else{            
+            //    deselectService(null); //de-select previously selected service
+            //}    
+        }
+        function emphasizeServices(service_list){
+            //show issue counts on top
+            if (selected_issue!=null){                
+                barchart.emphasize(service_list);  
+                var id = selected_issue.attr('data-issue-id');
+                var issue = issue_map[id];
+                $("#issue-service-result").show();
+                $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
+             
+            }            
+        }
+        function updateEmphasize(){
+            if (selected_issue==null)    return;
+            var id = selected_issue.attr('data-issue-id');
+            var issue = issue_map[id];
+
+            em_budgets = [];
+            em_services = [];
+            var exists = {};
+            for (var i in issue.budgets){
+                if (issue.budgets[i].related==0 || issue.budgets[i].related < issue.budgets[i].unrelated)    continue;//emphase only if related>unrelated
+                var serv = service_map[issue.budgets[i].id];
+                if (exists[serv.category_three]== null){
+                    exists[serv.category_three] = 1;
+                    em_budgets.push(budget_map[serv.category_three]);
+                }
+                em_services.push(serv);
+            }
+            em_services.sort(function(a, b){
+                return b.budget_assigned - a.budget_assigned;
+            });
+            treemap.emphasize(em_budgets);
+            barchart.emphasize(em_services);  
+            $("#issue-service-result").show();
+            $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");            
+        }
+        function serviceName(service){
+            return service.service;//service.service.split(".")[1];
+        }
+        function populateIssueModal(){
+            var service = selected_service; 
+            //populate issue modal box
+            console.log(service)
+            var items = [];
+            if (service!=null){
+                $("#issue-modal-info").html("<h4>" + serviceName(service) + " <small>사업 관련된 사회 이슈를 입력해 주세요.</small></h4>");
+                for (var i in all_issues){
+                    var exist = false;
+                    for (var j in issues){
+                        if (issues[j]._id == all_issues[i]._id){
+                            exist = true;
+                            break;
+                        }                        
+                    }
+                    if (exist==false)   items.push(all_issues[i]); 
+                }
+            }else{
+                $("#issue-modal-info").html("<h4>2015년 서울시 전체 예산<small>과 관련된 사회 이슈를 입력해 주세요.</small></h4>");
+            }
+            console.log(items);
+            updateAutocomplete(items);
+            $("#new-issue").val("");
+            $("#issue-modal").modal("show");
+            
+        }
+        function populateServiceModal(issue_name, service){
+            $("#service-modal-info").html(
+                "<h4>"+serviceName(service)+"<small> 사업 관련 사회 이슈에 </small></h4>" + 
+                "<h4>"+issue_name+"<small> 을 추가합니다. </small></h4><hr>"+
+                "<h4>"+serviceName(service)+"</h4>"+
+                "<table><tbody>"+
+                "<tr><td>대분류 </td><td>: "+service.category_one+"</td></tr>" +
+                "<tr><td>소분류 </td><td>: "+service.category_three+"</td></tr>" +
+                "<tr><td>회계년도 </td><td>: "+service.year+"</td></tr>" +
+                "<tr><td>부서 </td><td>: "+service.department+"</td></tr>" +
+                "<tr><td>그룹 </td><td>: "+service.team+"</td></tr>" +
+                "<tr><td>예산 </td><td>: "+treemap.format(service.budget_assigned)+"</td></tr>" +
+                "</tbody></table>" +
+                "<a id='service-more-info' class='text-right' target='_blank' href='"+
+                constructSearchUrl(serviceName(service))+"'>사업 더 알아보기 ...</a>");
+            $("#service-modal").modal("show");
+        }
+        function overService(d){
+            if (services == all_services)   treemap.enableHighlightByData(budget_map[d.category_three]); //treemap.emphasize([budget_map[d.category_three]]);
+        }
+        function outService(d){
+            treemap.disableHighlightByData(budget_map[d.category_three]);
+            /*if (selected_issue){
+                treemap.emphasize(em_budgets);    
+            }else{
+                treemap.deemphasize();
+            }*/
+            
+        }
+        function calcIssues(service){
+            var issues = [];
+            for (var i in service.issues){
+                var issue = issue_map[service.issues[i]];
+                var rel = findRelation(issue, service);
+                console.log(rel);
+                if (rel.related!=0 && rel.related>=rel.unrelated) issues.push(issue);
+            }
+            //sort issues
+            //issues.sort(function(a, b){
+            //    return b.budgets.length - a.budgets.length;
+            //});
+            issues = shuffle(issues);
+            return issues;
+        }
+        function shuffle(array) {
+            //console.log(array);
+            for (var i = array.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+            //console.log(array);
+            return array;
+        }        
+ 
+        function selectService(d){
+            writeLog("service", "select", d.service);
+            previous_service = selected_service;
+            selected_service = d;
+            
+            if (em_services && em_services.indexOf(d)==-1){ //if issue is selected but not connected yet
+                //deselectIssue();
+                populateServiceModal(issue_map[selected_issue.attr("data-issue-id")].name, d);
+                return false;
+            } //else if issue is selected and also connected to this service                    
+
+             //update right info-panel
+            $('#issue-title').text(serviceName(d));
+            $('#service-info').html("<h4>"+serviceName(d)+"</h4>"+
+                "<table><tbody>"+
+                "<tr><td>대분류 </td><td>: "+d.category_one+"</td></tr>" +
+                "<tr><td>소분류 </td><td>: "+d.category_three+"</td></tr>" +
+                "<tr><td>회계년도 </td><td>: "+d.year+"</td></tr>" +
+                "<tr><td>부서 </td><td>: "+d.department+"</td></tr>" +
+                "<tr><td>그룹 </td><td>: "+d.team+"</td></tr>" +
+                "<tr><td>예산 </td><td>: "+treemap.format(d.budget_assigned)+"</td></tr>" +
+                "</tbody></table>");
+            issues = calcIssues(d);
+            //console.log(issues);
+            displayIssues(issues);        
+            $("#service-more-info").show();
+            return true;        
+        }
+
+        function deselectService(d){
+
+            if (d!=null) writeLog("service", "deselect", d.service);
+            selected_service = null;
+            $('#issue-title').text("2015년 서울시 전체 예산");  
+            $('#service-info').html("<h4>2015년 서울시 전체 예산</h4>"+
+                    "<table><tbody>"+
+                    "<tr><td>총 사업개수 </td><td>: "+budgets.serv_size+"</td></tr>" +
+                    "<tr><td>총 예산 </td><td>: "+treemap.format(budgets.size)+"</td></tr>" +
+                    "</tbody></table>");
+            console.log(all_issues);
+            issues = all_issues;  
+            shuffle(issues);
+            displayIssues(issues); 
+            $("#service-more-info").hide();
+            return true;
+        }
+        function connectIssue(e){
+            var service    = selected_service;
+            var issue       = issue_map[selected_issue.attr("data-issue-id")];
+            if (e.data) {
+                service = e.data.service;
+                issue   = e.data.issue;
+            }
+            
+            //emphasize only if related>0
+            /*if (services.indexOf(service)!=-1) {
+                if (!e.data || e.data.related){
+                    em_services.push(service);
+                    //barchart.emphasize(em_services);
+                    emphasizeServices(em_services);
+                }
+                
+            }*/
+
+            /*if (!e.data || e.data.related){
+                em_budgets.push(budget_map[service.category_three]);
+                treemap.emphasize(em_budgets);            
+            }*/
+            
+            //add issue
+            $('#new-issue').val(issue.name); //set input box manually
+            addIssue.call(this, e);
+            updateEmphasize();
+
+            if (!e.data) {
+                //barchart.select(service); //auto select
+                console.log("select")
+            }
+
+            writeLog("issue", "connect", issue.name+", "+service.service);
+            //setTimeout(function(){
+            //$("#issue-service-result").show();
+            //$("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
+            //}, 100);
+            if (votes[service._id]==null)  votes[service._id] = {};
+            if (votes[service._id][issue._id]==null) votes[service._id][issue._id] = 1;
+
+            $("#service-modal").modal("hide");
+
+        }
+        // creating a new issue and connecting issue & service happens in this function
+        function addIssue(e){
+            var related = 1, unrelated = 0, pass = 0;
+            var service = selected_service;
+            if (e.data){
+                related = e.data.related, unrelated = e.data.unrelated, pass = e.data.pass; 
+                service = e.data.service;
+            }
+            var issue_name = $('#new-issue').val();
+
+           if (issue_name==""){//no issue name provided
+                console.log("no issue name provided")
+                $( "#new-issue-fail" ).text("이슈가 입력되지 않았습니다.").show().effect( "shake" ).delay(2000).fadeOut();
+                return;
+            }
+
+            var issue = null;
+            for (var i in all_issues){
+                if (all_issues[i].name == issue_name){
+                    issue = all_issues[i];
+                    break;
+                }
+            }
+
+            if (issue!=null){ //update an existing issue
+                //console.log(selected_service);
+
+                var relExists = findRelation(issue, service);
+                if (service == null || (service.issues.indexOf(issue._id)!=-1 && relExists && relExists.related && !e.data)){
+                    $( "#new-issue-fail" ).text("이미 등록된 이슈가 있습니다.").show().effect( "shake" ).delay(2000).fadeOut();
+                    return;
+                }else{
+                    //update issues
+                    var rel = {
+                            id          : service._id,
+                            related     : related,
+                            unrelated   : unrelated,
+                            pass        : pass
+                        };  
+                    if (relExists) {
+                        rel = relExists;
+                        rel.related     += related;
+                        rel.unrelated   += unrelated;
+                        rel.pass        += pass;
+
+                    }else{                  
+                        issue.budgets.push(rel);
+                    }
+                    //console.log("related:" + (rel.related?1:0));
+                    //if (rel.related) issue.stats.tot_budget += service.budget_assigned;
+
+                    issue.stats.tot_related     += related;
+                    issue.stats.tot_unrelated   += unrelated;
+                    issue.stats.tot_pass        += pass;
+                    //issue.stats.tot_users += 1;
+                    if (issues.indexOf(issue)==-1)  {
+                        issues.push(issue);
+                        createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                        updateIssueTitle();
+                    }else{
+                        $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+calcIssueBudget(issue));
+                        $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
+                        /*
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button').text("관련있음("+rel.related+")");
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').find('button').text("아리송함("+rel.pass+")");
+                        $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').find('button').text("관련없음("+rel.unrelated+")");   */
+                    }              
+
+                    writeLog("issue", "update", issue.name);
+                    console.log(issue);
+                    //$("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
+
+                    $.post("/issues/"+issue._id, 
+                    {
+                        budgets:    issue.budgets,
+                        stats:      issue.stats
+                    }, function(res){
+                        //update service                        
+                        //if (rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+
+                        if (relExists==null)    service.issues.push(issue._id);
+                            
+                        writeLog("service", "update", service.service);
+                        $.post("budgets/"+service._id,
+                        {
+                            issues: service.issues
+                        }, function(res){
+                            socket.emit("new connection", { issue: issue, service: service})
+                        });
+                        
+
+                    });                 
+                }                    
+            }else{//create a new issue
+                $.post("/issues", {
+                    name: issue_name,
+                    year: curr_year,
+                    budgets: service==null? []:[{
+                        id          : service._id,
+                        related     : 1,
+                        unrelated   : 0,
+                        pass        : 0
+                    }],
+                    stats: {
+                        tot_budget      : service==null? 0:service.budget_assigned,
+                        //tot_users       : service==null? 0:1,
+                        tot_related     : service==null? 0:1,
+                        tot_pass        : 0,
+                        tot_unrelated   : 0 
+                    }
+                }, function(res){   
+                    issue = res.result;    
+
+                    // notify other clients on new issue
+                    socket.emit("new issue", issue);
+
+                    //update issue lists
+                    issues.push(issue); 
+                    if (issues!=all_issues) all_issues.push(issue);
+                    //console.log(all_issues);
+                    issue_map[issue._id] = issue;
+                    createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                    updateIssueTitle();
+
+                    writeLog("issue", "create", issue.name);
+                    if (service!=null){//connect with budget on issue-creation
+                        writeLog("service", "update", service.service);
+                        service.issues.push(issue._id);
+                        //treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+                        updateIssueCount();
+                        $.post("budgets/"+service._id, {
+                            issues: service.issues
+                        }, function(res){
+                            // notify other clients on new connection
+                            socket.emit("new connection", { issue: issue, service: service})
+                        });
+
+                    }
+                })
+
+            }
+            $('#new-issue').val(""); 
+            $( "#new-issue-success" ).text(issue_name+" 이슈가 성공적으로 등록되었습니다.").show().delay(2000).fadeOut();      
+            $("#issue-modal").modal("hide");
+        }
+        function updateAutocomplete(issues){
+            var source = [];
+            for (var i in issues){
+                source.push(issues[i].name);
+            }
+            $('#new-issue').typeahead('destroy')
+            $('#new-issue').typeahead({source: source, highlight: true});
+        }
+        function updateIssueTitle(){
+            selected_service==null? $('#issue-list-title').text("전체 사회 이슈("+(all_issues? all_issues.length : 0)+"개)") 
+                : $('#issue-list-title').text("연관 사회 이슈("+(issues? issues.length : 0) +"개)");
+        }
+        function updateIssueCount(){
+            console.log("updateIssueCount");
+            var temp = {};
+            for (var i in budget_map){
+                budget_map[i].issue_size = 0;
+                temp[budget_map[i].name] = {};
+            }
+            for (var i in all_services){
+                var service = all_services[i];
+                var budget = budget_map[all_services[i].category_three];
+                
+                for (var j in service.issues){
+                    var issue = issue_map[service.issues[j]];
+                    var rel = findRelation(issue, service);
+                    if (rel==null){
+                        console.log("alert: " + service.service);
+                    }
+                    if (!rel) continue;
+                    if (rel.related!=0 && rel.related>=rel.unrelated){
+                        if (temp[budget.name][issue._id]==null){
+                            temp[budget.name][issue._id] = issue._id;
+                            budget.issue_size +=1;
+                        }
+                    }
+                }
+            }
+
+            treemap.updateIssueCnt();
+        }
+        function displayIssues(data){
+            if (data==null) return;
+            updateIssueTitle();
+            
+            $('#issue-list').find("*").not(".list-group-item-info, .list-group-item-info *").remove(); //maintain the explore task if necessary            
+            for (var i in data){
+                createIssueElem(data[i], "end");
+            }
+        }
+        function deleteIssue(){
+
+            console.log("removoing: "+ $("#delete-modal-info").attr("data-issue-id"));
+            var issue = issue_map[$("#delete-modal-info").attr("data-issue-id")];
+            if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
+                deselectIssue();
+            }
+
+            if (selected_service!=null){
+                var selVal = $(':radio[name="delete-issue"]:checked').val();
+                console.log(selVal);
+                if (selVal=="disconnect"){ //delete only the connection
+                    writeLog("issue", "disconnect", issue.name + ", " + selected_service.service);
+                    
+                    //remove connection
+                    selected_service.issues.splice(selected_service.issues.indexOf(issue._id), 1);
+                    issues.splice(issues.indexOf(issue), 1);
+
+                    var rel = findRelation(issue, selected_service);
+                    issue.budgets.splice(issue.budgets.indexOf(rel), 1);
+
+                    //if (rel.related) issue.stats.tot_budget      -= selected_service.budget_assigned;
+                    issue.stats.tot_related     -= rel.related;
+                    issue.stats.tot_unrelated   -= rel.unrelated;
+                    issue.stats.tot_pass        -= rel.pass;
+                    //issue.
+
+                    writeLog("issue", "update", issue.name);
+                    $.post("issues/"+issue._id,
+                    {
+                        budgets: issue.budgets,
+                        stats: issue.stats
+                    });
+                    writeLog("service", "update", selected_service.service);
+                    $.post("budgets/"+selected_service._id,
+                    {
+                        issues: selected_service.issues
+                    });
+                    //remove issue displayed
+                    $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+                    //update treemap issue count
+                    //budget_map[selected_service.category_three].issue_size-=1;
+                    //treemap.updateIssueCnt();
+                    updateIssueCount();
+                    updateIssueTitle();
+                    $("#delete-modal").modal("hide");
+                    socket.emit("delete connection", { issue: issue, service: selected_service})
+                    return;
+                }
+            }
+            writeLog("issue", "delete", issue.name);
+            //remove issue completely
+            $.ajax({
+                url: '/issues/'+issue._id,
+                type: 'DELETE',
+                fail: function(result) {
+                    alert("failed to delete issue!")
+                }
+            });
+            //update front-end issue
+            delete issue_map[issue._id];
+            var idx = issues.indexOf(issue);
+            console.log(idx);
+            if (idx!=-1)  issues.splice(idx, 1);
+            idx = all_issues.indexOf(issue);
+            console.log(idx);
+            if (idx!=-1) all_issues.splice(idx, 1);
+
+            //remove issue displayed
+            $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+
+            //remove connections
+            for (var i in issue.budgets){
+                var service = service_map[issue.budgets[i].id];
+
+                //update issue-service connection
+                service.issues.splice(service.issues.indexOf(issue._id), 1);
+                budget_map[service.category_three].issue_size-=1;
+                writeLog("service", "update", service.service);
+                $.post("budgets/"+service._id,
+                {
+                    issues: service.issues
+                });
+            }
+            //update treemap issue count
+            //treemap.updateIssueCnt();
+            updateIssueCount();
+
+            updateIssueTitle();
+
+            socket.emit("delete issue", issue)
+
+            $("#delete-modal").modal("hide");
+        }
+        function calcIssueBudget(issue){
+            var total = 0;
+            for (var i in issue.budgets){
+                var rel = issue.budgets[i];
+                var service = service_map[rel.id];
+                if (rel.related!=0 && rel.related>=rel.unrelated){
+                    total += service.budget_assigned;
+                }
+            }
+            return (total==0? "0원": treemap.format(total))
+        }
+        function createIssueElem(issue, pos){
+            //console.log(issue)
+            var newElem = $('<a href="javaScript:void(0);" class="list-group-item issue-item"  data-toggle="tooltip" data-placement="left" ><strong>'+issue.name+'</strong>'//<span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
+                +'<span id="issue-related" style="font-size:10px;" class="badge">연관사업: '+countRelatedBudgets(issue)+'개</span><br><span id="issue-total-budget" class="text-muted">현재까지: '+calcIssueBudget(issue)+'</span></a>');// <span class="delete-issue-item text-primary" style="display:none"> (삭제)</span>
+
+            if (pos=="end"){
+                newElem.appendTo('#issue-list');
+            }else{
+                newElem.prependTo('#issue-list');
+            }
+            
+
+            newElem.find(".delete-issue-item")
+                .hover(function(){
+                    $(this).css('text-decoration', 'underline');
+                }, function(){
+                    $(this).css('text-decoration', 'none');
+                })
+                .click(function(e){
+                    e.stopPropagation();
+                    $("#delete-modal-info").attr("data-issue-id", issue._id);
+                    if (selected_service!=null){
+                        $("#delete-modal-info").html("<h4>"+serviceName(selected_service)+"<small> 사업에서 </small></h4><h4>"+issue.name+"<small> 이슈를 삭제합니다.</small></h4>");
+                        $("#delete-modal-form").show();
+                        $("#delete-modal-confirm").removeAttr("disabled");
+                    }else{
+                        $("#delete-modal-info").html(issue.name+"<small> 이슈를 삭제합니다. </small></h4><br>* 연관된 모든 사업에서 해당 이슈가 사라집니다.");//"<h4>죄송합니다. 현재는 테스트 중으로 이슈를 삭제할 수 없습니다. 사업과의 연결 해제만 가능합니다. 이슈에서 삭제 할 사업을 선택하고 삭제를 누르면 해당 사업을 이슈에서 제외 시킬 수 있습니다. "
+                        $("#delete-modal-form").hide();
+                        //$("#delete-modal-confirm").attr("disabled", "disabled");
+                    }                  
+                    $("#delete-modal").modal("show");
+                })
+            /*
+            var elem = null
+            newElem.mouseover(function(e){
+                e.stopPropagation();
+                console.log("issue-item-over");
+                elem = $("").appendTo($(this));
+                
+                elem.mouseover(function(e){ e.stopPropagation(); })
+                elem.mouseout(function(e){ e.stopPropagation(); })
+                elem.click(function(e){ 
+                    e.stopPropagation();
+                    alert("삭제");
+                }) 
+            });
+            newElem.mouseout(function(e){
+                e.stopPropagation();
+                $(elem).remove();
+            });
+            */
+            newElem.attr("title", "'"+issue.name+"'의 범위는 스스로 정의하셔도 좋습니다.");
+            newElem.attr('data-issue-id', issue._id);
+            newElem.tooltip({container: 'body'});
+            // if this issue list is for the selected service
+            if (selected_service){
+                var rel = findRelation(issue, selected_service);
+                console.log(rel);
+                if (rel){
+                    newElem.append('<div class="btn-group btn-group-justified">'
+                        + '<a role="button" data-type="1"  class="vote-rel btn btn-default" style="font-size: 11px;" data-toggle="tooltip" data-placement="top" >관련있음('+rel.related+')</a>'
+                        + '<a role="button" data-type="2" class="vote-rel btn btn-default" style="font-size: 11px;" data-toggle="tooltip" data-placement="top" >아리송함('+rel.pass+')</a>'
+                        + '<a role="button" data-type="3" class="vote-rel btn btn-default" style="font-size: 11px;" data-toggle="tooltip" data-placement="top" >관련없음('+rel.unrelated+')</a>'
+                        + '</div>');
+                    newElem.find("[data-type=1]").attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");
+                    newElem.find("[data-type=2]").attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
+                    newElem.find("[data-type=3]").attr("title", rel.unrelated + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련없다고 생각합니다.");
+                    $("[data-toggle='tooltip']").tooltip('destroy');
+                    $("[data-toggle='tooltip']").tooltip({container: 'body'});
+ 
+                    newElem.find(".vote-rel").click(function(e){
+                        var rel = findRelation(issue, selected_service);//get relation when clicked, don't use closure
+                        e.stopPropagation();
+                        if (votes[selected_service._id] && votes[selected_service._id][issue._id]){
+                            alert("이미 의견을 제출하셨습니다.");
+                            return;
+                        }
+                        if (votes[selected_service._id]==null)  votes[selected_service._id] = {};
+                        if (votes[selected_service._id][issue._id]==null) votes[selected_service._id][issue._id] = 1;
+
+                        
+                        var type = $(this).attr("data-type");
+                        switch(type){
+                            case "1": 
+                                rel.related+=1;   
+                                issue.stats.tot_related+=1; 
+                                //if (issue.stats.tot_related==1) issue.stats.tot_budget += selected_service.budget_assigned;
+                                $(this).text("관련있음("+rel.related+")"); 
+                                $(this).attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");   
+                                writeLog("vote", "related", issue.name + ", " + selected_service.service);
+                            break;
+                            case "2": 
+                                rel.pass+=1;      
+                                issue.stats.tot_pass+=1;       
+                                $(this).text("아리송함("+rel.pass+")"); 
+                                $(this).attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
+                                writeLog("vote", "pass", issue.name + ", " + selected_service.service);
+                            break;
+                            case "3": 
+                                rel.unrelated+=1; 
+                                issue.stats.tot_unrelated+=1;  
+                                $(this).text("관련없음("+rel.unrelated+")"); 
+                                $(this).attr("title", rel.unrelated + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련없다고 생각합니다."); 
+                                writeLog("vote", "unrelated", issue.name + ", " + selected_service.service);
+                            break;
+                        }
+                        $("[data-toggle='tooltip']").tooltip('destroy');
+                        $("[data-toggle='tooltip']").tooltip({container: 'body'});
+
+                        
+                        $.post("/issues/"+issue._id, 
+                        {
+                            budgets: issue.budgets,
+                            stats: issue.stats
+                        }, function(res){
+                            // notify other clients on new connection
+                            socket.emit("update issue", issue)
+                        });
+                        return true;
+                    })
+                }
+
+            }
+            // if there was an selected issue, hightlight again
+            if (selected_issue!=null && issue._id == selected_issue.attr("data-issue-id")){
+                var exploreElem = selected_issue.find("#explore-task-container");
+                exploreElem.detach();
+                selected_issue.remove();
+                selected_issue = newElem;
+                selected_issue.addClass("list-group-item-info");
+                console.log($("#explore-task-container"));
+                exploreElem.appendTo(selected_issue); //addExploreTask(selected_issue);
+            }
+            newElem.hover(function(){
+                    newElem.find(".delete-issue-item").show();
+                }, function(){
+                    newElem.find(".delete-issue-item").hide();
+                })
+                .click(selectIssue);
+            return newElem;
+        }
+        function findRelation(issue, service){
+            if (service==null || issue==null)  return null;
+            for (var i in issue.budgets){
+                if (issue.budgets[i].id == service._id) return issue.budgets[i];
+            }
+            return null;
+        }
+        function deselectIssue(){
+            writeLog("issue", "deselect", issue_map[selected_issue.attr('data-issue-id')].name);
+            if (selected_issue==null) return;
+            selected_issue.removeClass("list-group-item-info");
+            treemap.deemphasize();
+            if (barchart!=null)   barchart.deemphasize();
+            removeExploreTask(selected_issue);
+
+            selected_issue = null;
+            em_budgets = null;
+            em_services = null;
+            $("#issue-service-result").hide();
+            $("#issue-service-text").text("");
+
+        }
+        function selectIssue(){
+            if (selected_issue!=null){    
+                console.log("deselect");            
+                if (selected_issue.get(0)==this){ 
+                    deselectIssue();                    
+                    return;
+                } 
+                deselectIssue(); 
+            }
+            
+            selected_issue = $(this);           
+            selected_issue.addClass("list-group-item-info"); //hightlight
+            //emphasize
+            updateEmphasize();
+            
+            addExploreTask(selected_issue);
+            /*
+            //find issue
+            var id = selected_issue.attr('data-issue-id');
+            var issue = issue_map[id];
+            writeLog("issue", "select", issue.name);
+            //find budgetes             
+            em_budgets = [];
+            em_services = [];
+            var exists = {};
+            for (var i in issue.budgets){
+                if (issue.budgets[i].related==0)    continue;//emphase only if related
+                var serv = service_map[issue.budgets[i].id];
+                if (exists[serv.category_three]== null){
+                    exists[serv.category_three] = 1;
+                    em_budgets.push(budget_map[serv.category_three]);
+                }
+                em_services.push(serv);
+                //if (services.indexOf(serv)!= -1){
+                //    em_services.push(serv);
+                //} 
+            }
+            console.log(em_budgets);
+            console.log(em_services);
+
+            selected_issue.addClass("list-group-item-info"); //hightlight
+
+            treemap.emphasize(em_budgets);
+            emphasizeServices(em_services);
+            $("#issue-service-result").show();
+            $("#issue-service-text").text(issue.name+"이슈 관련 사업: "+barchart.emphasize().length+"개");
+
+            addExploreTask(selected_issue);*/
+        }
+ 
+        function removeExploreTask(issueElem){
+            issueElem.find("#explore-task-container").slideUp("fast").remove();
+        }
+        function addExploreTask(issueElem, expand){
+
+            // simple algorithm to be replaced
+            var id = issueElem.attr('data-issue-id');
+            var issue = issue_map[id];
+            var service = getRecommendedService(issue, all_services, exploreHistory);  
+
+            if (explore[issue._id] ==null){
+                explore[issue._id] = {
+                    budget_reviewed: 0,
+                    budget_related: 0,
+                    budget_unrelated: 0,
+                    budget_pass: 0,
+                    max_reviewed: 10,
+                    num_reviewed: 0,
+                    num_related: 0,
+                    num_pass: 0,
+                    num_unrelated: 0
+                };
+            }   
+            var exStats = explore[issue._id];
+            var exploreElem = $('<div id="explore-task-container">'
+                + '<div style="text-align: right;"><a id="toggle-explore-task">'+(expand? '예산 탐색 그만하기': '예산 탐색 도전하기')+'</a></div>'
+                + '<div id="explore-task" class="jumbotron" style="margin:0px; padding:5px; background-color:white;">'
+                    + '<div class="text-muted"><strong>선택된 이슈와 관련이 있나요?</strong></div><br>'
+                    //+ '<div class="text-muted"><strong>관련이 있을 만한 사업 정보:</strong></div>'
+                    + '<strong><a id="explore-search" data-service-id="'+service._id+'" href="'+constructSearchUrl(service.service)+'" target="_blank">'
+                    + service.service + '</a></strong>'
+                    + '<div id="explore-candidate" class="text-muted text-right">'                        
+                        + treemap.format(service.budget_assigned) + '<br>'
+                        + service.category_one + ' > ' + service.category_three + '<br>'
+                        + service.department + '<br>'
+                        + service.team + '<br>'
+                    + '</div><br>' //end of candidate detail
+                    
+                    + '<div class="btn-group btn-group-justified" style="margin-top: 10px;">'
+                        + '<a class="btn btn-default" id="btn-related" style="font-size: 11px;">'
+                        + '관련 있음</a>'
+                        + '<a class="btn btn-default" id="btn-pass" style="font-size: 11px;">'
+                        + '아리송함</a>'
+                        + '<a class="btn btn-default" id="btn-unrelated" style="font-size: 11px;">'
+                        + '관련 없음</a>'
+                    + '</div><br>' //end of button group
+                    + '<div id="explore-stats" class="text-muted">'      
+                        //+ '<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
+                        + '<div class="text-right">'                
+                            //+ '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
+                            //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
+                            //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
+                            + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
+                            + '<u>내가 검토한 예산: ' + (exStats.budget_reviewed==0? '0원':treemap.format(exStats.budget_reviewed)) + '</u><br>'
+                            + '<span>관련있음(' + exStats.num_related + '개): '+ (exStats.budget_related==0? '0원':treemap.format(exStats.budget_related)) + '</span><br>'
+                            + '<span>아리송함(' + exStats.num_pass + '개): ' + (exStats.budget_pass==0? '0원':treemap.format(exStats.budget_pass)) + '</span><br>'
+                            + '<span>관련없음(' + exStats.num_unrelated+'개): ' + (exStats.budget_unrelated==0? '0원':treemap.format(exStats.budget_unrelated)) + '</span><br>'
+                        + '</div>'
+                    + "</div>"//end of stats
+    
+                + '</div>');
+            
+            exploreElem.click(function(e){  e.stopPropagation();   })
+            if (!expand) exploreElem.find("#explore-task").hide();
+            exploreElem.hide().appendTo(issueElem).slideDown("fast");
+
+            var data = {service: service, issue: issue};
+            exploreElem.find("#toggle-explore-task").click(function(e){
+                e.stopPropagation();
+                //if v
+                var taskElem = exploreElem.find("#explore-task");
+                if (taskElem==null) return;
+                if (taskElem.css("display")=="none"){
+                    $(this).text("예산 탐색 그만하기");
+                    taskElem.slideDown("fast");
+                }else{
+                    taskElem.slideUp("fast");
+                    $(this).text("예산 탐색 도전하기");
+                }                
+            });
+            
+            exploreElem.find("#btn-related").click({elem: exploreElem, service: service, issue: issue, related: 1, pass: 0, unrelated: 0},     exploreSelected);
+            exploreElem.find("#btn-pass").click({elem: exploreElem, service: service, issue: issue, related: 0, pass: 1, unrelated: 0 },       exploreSelected);
+            exploreElem.find("#btn-unrelated").click({elem: exploreElem, service: service, issue: issue, related: 0, pass: 0, unrelated: 1},   exploreSelected);
+
+        }   
+        function exploreSelected(e){
+            e.stopPropagation();
+            var issue = e.data.issue;
+            var exStats = explore[issue._id];
+            var exploreElem = e.data.elem;
+
+
+            if (exStats.num_reviewed< exStats.max_reviewed){
+                e.data.service = service_map[exploreElem.find("#explore-search").attr("data-service-id")];
+                if (explored[issue._id]==null)   explored[issue._id] = [];
+                explored[issue._id].push(e.data.service);
+                
+                
+                exStats.budget_reviewed       += e.data.service.budget_assigned;
+                if (exploreHistory.length>=50)  exploreHistory.splice(0, 1);
+                if (e.data.related){
+                    exStats.budget_related      += e.data.service.budget_assigned;
+                    writeLog("explore", "related", issue.name + ", " + e.data.service.service);
+                    exploreHistory.push(1);
+                }
+                if (e.data.pass){
+                    exStats.budget_pass         += e.data.service.budget_assigned;
+                    writeLog("explore", "pass", issue.name + ", " + e.data.service.service);
+                    exploreHistory.push(2);
+                }   
+                if (e.data.unrelated){
+                    exStats.budget_unrelated    += e.data.service.budget_assigned;
+                    writeLog("explore", "unrelated", issue.name + ", " + e.data.service.service);
+                    exploreHistory.push(3);
+                }   
+                exStats.num_related     += e.data.related;
+                exStats.num_unrelated   += e.data.unrelated;
+                exStats.num_pass        += e.data.pass;
+
+                
+                connectIssue.call(this, e);
+
+
+                exStats.num_reviewed    += 1;
+            }
+            exploreElem.find("#explore-stats").html(
+                //'<strong>선택된 이슈관련 예산 탐색 통계</strong><br>'
+                '<div class="text-right">'                
+                    //+ '<span>모든 사용자가 찾은 연관예산: </span><br>' //' + issue.stats.tot_users + '명의 사용자가 찾은 연관예산: </span><br>' 
+                    //+ '<span id="explore-total-found">' + treemap.format(issue.stats.tot_budget) + '</span><br><br>'
+                    //+ '<span>' + issue.stats.tot_related + ', ' + issue.stats.tot_pass + ', ' + issue.stats.tot_unrelated+'</span><br>'
+                    + '<mark>현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개</mark><br><br>'
+                    + '<u>내가 검토한 예산: ' + (exStats.budget_reviewed==0? '0원':treemap.format(exStats.budget_reviewed)) + '</u><br>'
+                    + '<span>관련있음(' + exStats.num_related + '개): '+ (exStats.budget_related==0? '0원':treemap.format(exStats.budget_related)) + '</span><br>'
+                    + '<span>아리송함(' + exStats.num_pass + '개): ' + (exStats.budget_pass==0? '0원':treemap.format(exStats.budget_pass)) + '</span><br>'
+                    + '<span>관련없음(' + exStats.num_unrelated+'개): ' + (exStats.budget_unrelated==0? '0원':treemap.format(exStats.budget_unrelated)) + '</span><br>'
+                + '</div>'
+                );   
+            if (exStats.num_reviewed == exStats.max_reviewed) {
+                if (confirm("권장 목표를 모두 달성했습니다! " + issue.name + " 이슈에 대해서 궁금하던 예산을 알아내는데 기여하셨습니다! 관련이 있는 사업도, 관련이 없는 사업도 모두 중요한 정보입니다. 그럼 한번 더 도전해 볼까요? ")) {
+                    exStats.max_reviewed += 10;
+                } else {
+                    exStats.max_reviewed += 10;
+                    exploreElem.find("#toggle-explore-task").click();                    
+                }
+
+                exploreElem.find("#explore-stats mark").text('현재까지 ' + exStats.num_reviewed+"개 탐색 / 권장 목표: "+exStats.max_reviewed + '개');
+            }
+
+            var newService = getRecommendedService(e.data.issue, all_services, exploreHistory, explored);
+            exploreElem.find("#explore-search").attr("href", constructSearchUrl(newService.service));
+            exploreElem.find("#explore-search").attr("data-service-id", newService._id);
+            exploreElem.find("#explore-search").text(newService.service);
+            exploreElem.find("#explore-candidate").html(treemap.format(newService.budget_assigned) + '<br>'
+                + newService.category_one + ' > ' + newService.category_three + '<br>'
+                + newService.department + '<br>'
+                + newService.team + '<br>');
+
+            
+      
+        }
+        function searchService(){
+            if (services==null) return;
+
+            var query =  $('#service-search').val(); 
+            writeLog("service", "search", query);
+            var filtered = [];
+            for (var i in services){
+                var service = services[i];
+                if (service.service.search(query)!=-1){
+                    filtered.push(service);
+                }
+            }
+            // if there is no selected servce in the search results, deselect it
+            if (filtered.indexOf(selected_service)==-1){
+                deselectService(null);
+            }
+            barchart.update(filtered, barchart_config.width, barchart_config.height);
+            //alert(filtered.length+"개 찾음: "+ test);
+            //$('#service-search').val(""); 
+            $('#service-search-text').text(filtered.length + " 개 사업이 검색됨");
+            $('#service-search-result').show();
+
+            //update # of services associated with the selected issue if necessary
+            if (selected_issue!=null){
+                var id = selected_issue.attr('data-issue-id');
+                var issue = issue_map[id];
+                $("#issue-service-result").show();
+                $("#issue-service-text").text(issue.name+" 관련 사업: "+barchart.emphasize().length+"개");
+            }
+        }
+        //when new issue is created by others
+        function onNewIssue(issue){
+
+            console.log('new issue');
+            console.log(issue);
+
+            all_issues.push(issue);
+            issue_map[issue._id] = issue;
+
+            //issue.stats.tot_budget = 0;
+            if (selected_service==null || 
+                (selected_service!=null && countRelatedBudgets(issue)==1 && issue.budgets[0].id == selected_service._id)){
+                //issue.stats.tot_budget += selected_service!=null? selected_service.budget_assigned : 0; // related is always 1 when created
+                if (issues.indexOf(issue)==-1) issues.push(issue);
+                createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                updateIssueTitle();
+            }
+            //budgetmap update (issue count)
+        }
+        function onUpdateIssue(data){
+            console.log('update issue');
+            var issue = issue_map[data._id];
+            issue.budgets   = data.budgets;
+            issue.stats     = data.stats;
+            if (issues.indexOf(issue)!=-1 && selected_service){
+                var rel = findRelation(issue, selected_service);
+                console.log('update count');
+                console.log(rel);
+                //console.log($('[data-issue-id=' + issue._id + ']').find('[data-type=1]').find('button'));
+
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=1]').text("관련있음("+rel.related+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=2]').text("아리송함("+rel.pass+")");
+                $('[data-issue-id=' + issue._id + ']').find('[data-type=3]').text("관련없음("+rel.unrelated+")");   
+                $('[data-issue-id=' + issue._id + ']').find("[data-type=1]").attr("title", rel.related + "명의 시민이 "+issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있다고 생각합니다.");
+                $('[data-issue-id=' + issue._id + ']').find("[data-type=2]").attr("title", rel.pass + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련있는지 아리송해 합니다.");
+                $('[data-issue-id=' + issue._id + ']').find("[data-type=3]").attr("title", rel.unrelated + "명의 시민이 " + issue.name+" 이슈와 "+selected_service.service + " 사업이 관련없다고 생각합니다."); 
+                $("[data-toggle='tooltip']").tooltip('destroy');
+                $("[data-toggle='tooltip']").tooltip({container: 'body'});
+            }
+            
+        }
+        function onDeleteIssue(data){
+                        
+            console.log('delete issue');
+            var issue = issue_map[data._id];
+            if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
+                deselectIssue();
+            }
+            delete issue_map[issue._id];
+            var idx = issues.indexOf(issue);
+            if (idx!=-1)  issues.splice(idx, 1);
+            idx = all_issues.indexOf(issue);
+            if (idx!=-1) all_issues.splice(idx, 1);
+
+            //remove issue displayed
+            $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+
+            //remove connections
+            for (var i in issue.budgets){
+                var service = service_map[issue.budgets[i].id];
+
+                //update issue-service connection
+                service.issues.splice(service.issues.indexOf(issue._id), 1);
+                //budget_map[service.category_three].issue_size-=1;
+            }
+            //update treemap issue count
+            //treemap.updateIssueCnt();
+            updateIssueCount();
+
+            updateIssueTitle();
+        }
+        function onNewConnection(data){
+            console.log('new connection');
+            console.log(data);
+            
+            var issue   = issue_map[data.issue._id];
+            var service = service_map[data.service._id];
+            var rel = findRelation(issue, service);
+
+            //update service
+            if (rel == null) service.issues.push(issue._id);
+            //if (rel&&rel.related!=0 && rel.related>=rel.unrelated) treemap.increaseIssueCnt(service.category_three);//update treemap issue count
+            updateIssueCount();
+
+            //update issue                       
+            issue.budgets   = data.issue.budgets;
+            issue.stats     = data.issue.stats;
+
+            rel = findRelation(issue, service);
+
+            if (selected_service==service){
+                issues.push(issue);
+                createIssueElem(issue, "front").effect("highlight", {color: '#428bca'}, 2000);
+                updateIssueTitle();
+            }
+
+            if (selected_issue && (issue_map[selected_issue.attr("data-issue-id")]._id == issue._id)){
+                /*
+                if (services.indexOf(service)!=-1 && rel.related==1){                    
+                    em_services.push(service);
+                    emphasizeServices(em_services);
+                }  
+                if (rel.related){
+                    em_budgets.push(budget_map[service.category_three]);
+                    treemap.emphasize(em_budgets);            
+                }*/
+                updateEmphasize();
+                //$("#explore-total-found").text(treemap.format(issue.stats.tot_budget));
+            }
+            if (issues.indexOf(issue)!=-1){
+                //update the total budget connected
+                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+calcIssueBudget(issue));
+                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
+            }
+        }
+        function onDeleteConnection(data){
+            console.log('delete connection');
+            console.log(data);
+            
+            var issue   = issue_map[data.issue._id];
+            var service = service_map[data.service._id];
+            var rel = findRelation(issue, service);
+
+            if (selected_issue && issue_map[selected_issue.attr("data-issue-id")]==issue){
+                deselectIssue();
+            }
+
+           //remove connection
+            service.issues.splice(service.issues.indexOf(issue._id), 1);
+            if (all_issues!=issues){
+                issues.splice(issues.indexOf(issue), 1);
+                //remove issue displayed
+                $('a[data-issue-id="'+issue._id+'"').fadeOut().remove();
+            }
+            var rel = findRelation(issue, service);
+            issue.budgets.splice(issue.budgets.indexOf(rel), 1);
+
+            //if (rel.related) issue.stats.tot_budget      -= service.budget_assigned;
+            issue.stats.tot_related     -= rel.related;
+            issue.stats.tot_unrelated   -= rel.unrelated;
+            issue.stats.tot_pass        -= rel.pass;
+
+            if (issues.indexOf(issue)!=-1){
+                //update the total budget connected
+                $("[data-issue-id="+issue._id+"]").find("#issue-total-budget").text("현재까지: "+calcIssueBudget(issue));
+                $("[data-issue-id="+issue._id+"]").find("#issue-related").text('연관사업: '+countRelatedBudgets(issue)+'개')
+            }
+           
+            
+            //update treemap issue count
+            //budget_map[service.category_three].issue_size-=1;
+            //treemap.updateIssueCnt();
+            updateIssueCount();
+            updateIssueTitle();
+        }
+        function onConnectedUsers(numConn){
+            console.log(numConn + "명 접속중");
+            $('#connect-users').text(numConn+" 명 접속중");
+        }
+        function countRelatedBudgets(issue){
+            var cnt = 0;
+            for (var i in issue.budgets){
+                if (issue.budgets[i].related!=0 && issue.budgets[i].related>=issue.budgets[i].unrelated){
+                    cnt++;
+                }
+            }
+            return cnt;
+        }
+
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-static-top" role="navigation">
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/" id="budgetmap-logo" ><img  src="/images/favicon.ico" width="25" height="25" class="img-rounded" > <strong>BudgetMap</strong></a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">                
+                <h5 style="padding-top:8px;color:#888a85"> 주어진 사회 이슈에 관련이 있는 사업들을 담아 예산지도를 완성해 보세요! (<a href="/help" target="_blank">도움말</a>) - <span id="connect-users"></span><span style="margin-left: 200px; color:#555753; font-size:12px;"><span id="survey-link-parent" data-toggle="tooltip" data-placement="bottom" title="사용해보신 후 소중한 의견 남겨주시면 10명을 추첨하여 만원 상당의 기프티콘을 보내드립니다!"><a  id="survey-link" style="font-size:16px;" href="https://qtrial2015.az1.qualtrics.com/SE/?SID=SV_5ceyW9Pkt2TnHVj" target="_blank" >설문조사 참여</a></span></h5>
+                <!--<ul class="nav navbar-nav">
+                    <li><a href="/empty">Task A</a></li>
+                    <li><a href="/">Task B</a></li>
+                    <li><a href="/explore">Task C</a></li>
+                
+                </ul>-->
+                <!--<ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="javaScript:void(0);">Help</a>
+                    </li>
+                    
+                    <li>
+                        <a id="nickname" href="javaScript:void(0);"></a>
+                    </li>
+                    <li>
+                        <a id="signin" href="javaScript:void(0);">Sign In</a>
+                    </li>
+                </ul>-->
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container -->
+    </nav>    
+    <div class="container">
+        <div class="row">
+            <!-- VISUALIZATION -->
+            <div class="col-md-9">
+                <div class="row">
+                    <div id="budget-area" class="col-md-8">
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015)</div>
+                            <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>
+                        </h4>
+                        <div id="budget-chart" style="float:left"></div>
+                    </div>
+                    <div id="service-area" class="col-md-4" style="padding-left:0px;">
+                        <h4 id="service-chart-title" style="margin:0px;"></h4> 
+                        <div id="service-search-group" class="input-group" style="display:none; margin-top:8px;">
+                            <input id="service-search" type="text" class="form-control" placeholder="사업명을 입력하세요.">
+                            <span class="input-group-btn">
+                                <button id="btn-service-search" class="btn btn-default" type="button">검색</button>
+                            </span>
+                        </div>
+                        <div id="service-search-result" style="display:none; padding: 5px; margin-bottom:5px;" class="alert alert-success" role="alert">
+                          <button id="service-search-cancel" type="button" class="close"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                          <p id="service-search-text"></p>
+                        </div>
+                        <blockquote id="issue-service-result" style="display:none; margin:5px; 0px;">
+                            <h5 id="issue-service-text" class="text-muted"></h5>
+                        </blockquote>
+                        <div id="service-chart" style="width:280px;height:700px;overflow: auto;"></div>
+                    </div>  
+                </div>
+            </div>             
+            <!-- ISSUE AREA -->
+            <div class="col-md-3">
+                <div id="issue-area" class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h3 id="issue-title" class="panel-title">2015년 서울시 전체 예산</h3>
+                    </div>
+                    <div class="panel-body">                        
+                        <div id="service-info"></div>
+                        <a id="service-more-info" class="text-right" href="#" style="display:none">사업 더 알아보기 ...</a>
+                    </div>
+                    <div class="alert alert-warning" style="padding-top:5px;">
+                        <h5>이슈와 사업 연결하기 팁</h5>
+                        <p class="text-info" style="line-height:18px;">
+                            1. <strong>이슈를 누르고 연관 사업을 찾아 클릭!</strong> <br>
+                            2. 범례를 클릭하여 예산 분야 확대!<br>
+                            3. 생각나는 사업을 키워드 검색으로 찾기! <br>                            
+                            * 어렵다구요? 그럼 관심 이슈를 누르고 <br> <strong>"예산 탐색 도전 하기"</strong>를 클릭 해보세요.
+                        </p>
+                        
+                        
+                        
+                    </div>
+                    
+                    <div class="btn-group btn-group-justified"><!-- data-toggle="tooltip" data-placement="left" title="지금은 지원하지 않는 기능입니다.">-->
+                        <div class="btn-group">
+                            <button id="btn-new-issue" type="button" class="btn btn-info">
+                                <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
+                            </button> 
+                         </div>
+                    </div>
+                    <h4 id="issue-list-title" class="page-header text-muted text-center" style="margin:10px 0px;">
+                    </h4>   
+                    <!--<div  style="height:530px;; overflow-y:auto;">-->
+                        <div id="issue-list" class="list-group">
+                        </div>
+                    <!--</div>-->
+                    <!--<div class="text-center">
+                        <ul class="pagination">
+                            <li class="disabled"><a href="#">&laquo;</a></li>
+                            <li class="active"><a href="#">1</a></li>
+                            <li><a href="#">2</a></li>
+                            <li><a href="#">3</a></li>
+                            <li><a href="#">4</a></li>
+                            <li><a href="#">5</a></li>
+                            <li><a href="#">&raquo;</a></li>
+                        </ul> 
+                    </div>-->
+                </div> 
+            </div>
+        </div>
+    </div>
+    <!--Progressbar Modal -->
+<!-- Modal -->
+
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progress-modal" tabindex="-1" role="dialog" aria-labelledby="progress-modal-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="progress-modal-label">서울시 예산 정보를 로딩 중입니다...</h4>
+            </div>
+            <div class="modal-body">
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">
+                    </div>
+                </div>  
+            </div>
+        </div>
+    </div>
+</div>
+<!-- New Issue Modal -->
+<div class="modal fade" id="issue-modal" tabindex="-1" role="dialog" aria-labelledby="issueModelLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 id="issue-modal-title" class="modal-title" id="issueModelLabel">새로운 이슈 더하기</h4>
+        </div>
+        <div class="modal-body">
+            <p id="issue-modal-info"></p> 
+            <div id="new-issue-form">
+                <div class="input-group"  style="width:100%">
+                    <input id="new-issue" data-provide="typeahead" type="text" class="form-control" placeholder="사회 이슈를 입력 해주세요..." style="width:100%" autocomplete="off">
+                </div>                                
+                <div id="new-issue-fail" class="alert alert-danger" role="alert" style="display:none">이슈를 올바르게 입력해주세요.</div>
+                <div id="new-issue-success" class="alert alert-success" role="alert" style="display:none">이슈를 추가하였습니다.</div>
+                <br>
+            </div>
+                                  
+                       
+        </div>
+        <div class="modal-footer">
+            <button id="issue-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+            <button id="issue-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div>  
+<div class="modal fade" id="service-modal" tabindex="-1" role="dialog" aria-labelledby="serviceModelLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 id="service-modal-title" class="modal-title" id="serviceModelLabel">새로운 이슈 더하기</h4>
+        </div>
+        <div class="modal-body">
+            <p id="service-modal-info"></p> 
+        </div>
+        <div class="modal-footer">
+            <button id="service-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+            <button id="service-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div>  
+<div class="modal fade" id="delete-modal" tabindex="-1" role="dialog" aria-labelledby="deleteModelLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 id="delete-modal-title" class="modal-title" id="deleteModelLabel">이슈 삭제하기</h4>
+            </div>
+            <div class="modal-body">
+                <p id="delete-modal-info"></p> 
+                <form id="delete-modal-form" style="display:none">
+                    <input id="delete-modal-select1" type="radio" name="delete-issue" value="disconnect" checked> 이 사업에서만 이슈를 삭제합니다.<br>
+                    <input id="delete-modal-select2" type="radio" name="delete-issue" value="delete"> 다른 모든 사업에서 이슈를 삭제합니다 (이슈를 완전히 제거함). 
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="delete-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+                <button id="delete-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div>  
+
+<div class="modal fade" id="auth-modal" tabindex="-1" role="dialog" aria-labelledby="authModelLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 id="auth-modal-title" class="modal-title" id="authModelLabel">로그인 또는 가입하기</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <form id="signin-form" role="form">
+                            <h2 class="form-signin-heading">로그인</h2>
+                            <div class="form-group">
+                                <label for="signinEmail">이메일 주소 입력</label>
+                                <input type="email" name="signinEmail" class="form-control" placeholder="Email address">
+                            </div>
+                            <div class="form-group">
+                                <label for="signinPassword">패스워드 입력</label>
+                                <input type="password" name="signinPassword" class="form-control" placeholder="Password">
+                            </div>        
+
+                        </form>
+                        <div id="signin-fail" class="alert alert-danger" role="alert" style="display:none">잘못된 입력입니다..</div>
+                    </div>
+                    <div class="col-md-6">
+
+                        <form id="register-form" role="form">
+                            <h2 class="form-signup-heading"><small>또는</small> 가입하기</h2>
+                            <div class="form-group">
+                                <label for="registerEmail">이메일 주소 입력</label>
+                                <div class="input-group">
+                                    <input type="email" class="form-control" id="registerEmail" name="registerEmail" placeholder="Enter Email" required>
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-asterisk"></span></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerNickname">닉네임 입력</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="registerNickname" id="registerNickname" placeholder="Enter Name" required>
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-asterisk"></span></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="registerPassword">패스워드 입력</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="registerPassword" name="registerPassword" placeholder="Input Password" required>
+                                    <span class="input-group-addon"><span class="glyphicon glyphicon-asterisk"></span></span>
+                                </div>
+                            </div>
+                        </form>
+                        <div id="register-fail" class="alert alert-danger" role="alert" style="display:none">잘못된 입력입니.</div>
+                        <div id="register-success" class="alert alert-info" role="alert" style="display:none">잘못된 입력입니.</div>
+                    </div>  
+                </div>         
+            </div>
+            <div class="modal-footer">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="btn-group btn-group-justified">      
+                            <div class="btn-group">          
+                                <button id="btn-signin" class="btn btn-large btn-primary" type="submit">Sign in</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="btn-group btn-group-justified">      
+                            <div class="btn-group">          
+                                <button id="btn-register" class="btn btn-large btn-success" type="submit">Register</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="user" style="display:none">{{user}}</div>
+</body>
+</html>

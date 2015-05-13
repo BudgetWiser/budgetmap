@@ -2,8 +2,7 @@ var TreeMap = function(config){
 	var legendSize = {width: config.size.width, height: 85};
 	var margin = config.margin,
 		//color = d3.scale.category10(),
-		color = d3.scale.ordinal().range(['#80cdc1','#33a02c', 
-			'#fb9a99','#a6cee3', '#e31a1c','#1f78b4' , '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a', '#ef6548']),//colorbrewer.Paired[12]),
+		color = d3.scale.ordinal().range( ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]),// ['#b15928', '#6a3d9a', '#ff7f00', '#e31a1c', '#1f78b4','#ffff99', '#cab2d6', '#fdbf6f', '#fb9a99', '#a6cee3', '#4169E1', '#20B2AA', '#DB7093']),//)colorbrewer.Paired[12] //['#80cdc1','#33a02c', '#fb9a99','#a6cee3', '#e31a1c','#1f78b4' , '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a', '#ef6548'] 
 	    root,
 	    node;
 
@@ -120,7 +119,7 @@ var TreeMap = function(config){
 
 		var nodes = treemap.nodes(root)
 		  	.filter(function(d) { return !d.children; });
-		//console.log(nodes)
+
 
 	 	// Fine non-leaf nodes
 		var parents = [];
@@ -134,7 +133,7 @@ var TreeMap = function(config){
 
 	   	// Join new data with old elements, if any.
 		var cell = treeSVG.selectAll(".treemap-cell")
-		  	.data(nodes, function(d) { return d.name }); //return update selection
+		  	.data(nodes, function(d) { return d.id }); //return update selection
 
 	    cell.on("click", chart.cellClick)	  	
 		  	.on('mouseover', chart.cellMouseOver)
@@ -225,7 +224,7 @@ var TreeMap = function(config){
 			.attr("text-anchor", "end")
 			.attr("dy", "-.35em")
 			.attr("dx", "-.35em")
-			.text(function(d) { return "이슈:"+d.issue_size + "/사업:" + d.serv_size; })
+			.text(function(d) { return "사업:" + d.services.length; }) // "이슈:"+d.issue_size + "/사업:" + d.serv_size; })
 			.style("opacity", 0.0)
 		.transition().duration(period)
 			.style("opacity", function(d) { d.w = this.getComputedTextLength()+4; return d.dx > d.w ? (d.dy>24? 1:0) : 0; });
@@ -332,8 +331,14 @@ var TreeMap = function(config){
 		if (dl==null) return;
 		emList = dl;
 		treeSVG.selectAll(".treemap-cell")
+		.transition(period)
 		.attr("opacity", function(d){
-			return emList.indexOf(d)!=-1? 1.0:0.4;
+			return emList.indexOf(d)!=-1? 1.0:0.1;
+		});
+		legendSVG.selectAll(".treemap-legend")
+		.transition(period)
+		.attr("opacity", function(d){
+			return emList.indexOf(d)!=-1? 1.0:0.1;
 		});
     	//chart.update(data, w, h);
 	}
@@ -341,6 +346,10 @@ var TreeMap = function(config){
 	    if (emList==null) return;
 	    emList = null;
 		treeSVG.selectAll(".treemap-cell")
+		.transition(period)
+		.attr("opacity", 1.0);
+		legendSVG.selectAll(".treemap-legend")
+		.transition(period)
 		.attr("opacity", 1.0);
 	    //chart.update(data, w, h);
 	}
@@ -385,22 +394,17 @@ var TreeMap = function(config){
 
   		chart.enableHighlight(this);		  		
   		legendTip.show(d, this);
-  		//console.log(catName)
-		treeSVG.selectAll(".treemap-cell")
-			.filter(function(d) { return d.category1 == emCategory; })
-			.select("rect")
-			.style("stroke", "black")
-			.style("stroke-width", "2px");
-			/*
-  		treeSVG.selectAll(".treemap-cell")
-		.attr("opacity", function(d){
-			//console.log(d)
-			if (d.category1==emCategory){
-				return 1.0;
-			}
-			return 0.5;
-		})
-		*/
+
+		// treeSVG.selectAll(".treemap-cell")
+		// .filter(function(d) { return d.parent.name == emCategory; })
+		// .attr("opacity", 1.0);
+		
+
+		// treeSVG.selectAll(".treemap-cell")
+		// 	.filter(function(d) { return d.parent.name == emCategory; })
+		// 	.select("rect")
+		// 	.style("stroke", "black")
+		// 	.style("stroke-width", "2px");
 
   	}
     chart.legMouseOut = function (d){
@@ -409,11 +413,19 @@ var TreeMap = function(config){
   		chart.disableHighlight(this);     
   		legendTip.hide(d, this);
 
-		treeSVG.selectAll(".treemap-cell")
-			.filter(function(d) { return (selected!=this) && (d.category1 == emCategory); })
-			.select("rect")
-			.style("stroke", "black")
-			.style("stroke-width", "0px");
+		// treeSVG.selectAll(".treemap-cell")
+		// .filter(function(d) { return d.parent.name == emCategory; })
+		// .attr("opacity", function(d){
+		// 	return emList? (emList.indexOf(d)!=-1? 1.0:0.1): 1.0;
+		// });
+		
+
+
+		// treeSVG.selectAll(".treemap-cell")
+		// 	.filter(function(d) { return (selected!=this) && (d.parent.name == emCategory); })
+		// 	.select("rect")
+		// 	.style("stroke", "black")
+		// 	.style("stroke-width", "0px");
 
   		emCategory = null;
   		/*
@@ -474,13 +486,13 @@ var TreeMap = function(config){
 			.filter(function(d){	return (d.name == budgetName);	})
 			.text(function(d) { 
 				d.issue_size+=1;
-			 	return "이슈:"+d.issue_size + "/사업:" + d.serv_size; 
+			 	return "사업:" + d.services.length;//"이슈:"+d.issue_size + "/사업:" + d.serv_size; 
 			})
   	}
   	chart.updateIssueCnt = function(){
  		treeSVG.selectAll(".treemap-sub-text")
 			.text(function(d) { 
-			 	return "이슈:"+d.issue_size + "/사업:" + d.serv_size; 
+			 	return "사업:" + d.services.length;//"이슈:"+d.issue_size + "/사업:" + d.serv_size; 
 			}) 		
   	}
 

@@ -153,6 +153,35 @@
                 // }
                 return "9900원";// $scope.treemap.format(940000);//(total==0? "0원": treemap.format(total))
             }
+            $scope.buildHierarchy = function(services){
+                var root = {
+                    name: "서울시 2015 년도 예산",
+                    size: 0,           
+                    children: []
+                };
+                //groupby first level
+                root.size            = _.reduce(services, function(memo, num){ return memo + d.sum[0]; }, 0);
+                var firstCategory    = _.groupBy(services, function(d){ return d.categories[0]; };
+                for (name1 in firstCategory){
+                    var cat1 = {
+                        name: name1,
+                        children: []
+                    };
+                    cat1.size = _.reduce(firstCategory[name1], function(memo, d){ return memo + d.sum[0]; }, 0);
+                    var secondCategory    = _.groupBy(firstCategory[name1], function(d){ return d.categories[2]; };
+                    for (name2 in secondCategory){
+                        var cat2 = {
+                            name: name2,
+                            size: _.reduce(secondCategory[name2], function(memo, d){ return memo + d.sum[0]; }, 0);
+                            children: secondCategory[name2]
+                        }
+                        cat1.children.push(cat2);
+                    }
+                    root.children.push(cat1);
+
+                }
+                return root;
+            }
             //visualization configuration
             $scope.barConfig = {
                 container : "#service-chart",
@@ -172,32 +201,35 @@
             }
 
 
-            $http.get('/budgets')
-            .success(function(data){
-                
-                $scope.budgets = data.budget;
-                $scope.services = _.flatten(_.values(data.services));
-                //sort by budget amount
-                $scope.services.sort(function(a, b){
-                    return b.budget_assigned - a.budget_assigned;
-                });
-
-                 //create budget chart
-                $scope.treeConfig.data = $scope.budgets;
-                $scope.treemap = TreeMap($scope.treeConfig);
-                $scope.treemap.create();
-                //treemap.selectMax();
-
-                //create service chart
-                $scope.barConfig.data = $scope.currentServices = $scope.services;
-                $scope.barchart = BarChart($scope.barConfig);
-                $scope.barchart.create();
-
+            $http.get('/services')
+            .success(function(services){
+                console.log(services);
                 // load issues
                 $http.get('/issues')
-                .success(function(res){
-                    $scope.issues = res;
+                .success(function(issues){
+                    $scope.issues = issues;
                     console.log($scope.issues);
+
+
+
+
+                    $scope.budgets = $scope.buildHierarchy(services);
+                    $scope.services = services;
+                    //sort by budget amount
+                    $scope.services.sort(function(a, b){
+                        return b.budget_assigned - a.budget_assigned;
+                    });
+
+                     //create budget chart
+                    $scope.treeConfig.data = $scope.budgets;
+                    $scope.treemap = TreeMap($scope.treeConfig);
+                    $scope.treemap.create();
+                    //treemap.selectMax();
+
+                    //create service chart
+                    $scope.barConfig.data = $scope.currentServices = $scope.services;
+                    $scope.barchart = BarChart($scope.barConfig);
+                    $scope.barchart.create();
 
                 })   
 

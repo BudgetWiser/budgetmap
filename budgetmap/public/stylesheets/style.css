@@ -124,3 +124,68 @@ a{
 #btn-find_docs {
     margin-bottom: 10px;
 }
+/*
+ * Basic properties
+ */
+
+*{
+    font-family: 'Noto Sans', sans-serif;
+    font-weight: 400;
+}
+.navbar{
+    background: #337ab7;
+}
+.navbar-inverse .navbar-brand{
+    color: #fff;
+}
+.sidebar{
+    background: #f2f2f2;
+}
+.nav-sidebar a{
+    color: #2678b0;
+}
+.nav-sidebar>li>a:hover{
+    background: #c8c8c8;
+}
+.nav-sidebar>.active>a, .nav-sidebar > .active > a:hover, .nav-sidebar > .active > a:focus{
+    background: #666666;
+}
+.nav-sidebar #login-btn, .nav-sidebar #register-btn, .nav-sidebar #logout-btn{
+    width: 90%;
+    margin: 10px auto;
+    color: #fff;
+}
+.nav-sidebar #login-btn:hover, .nav-sidebar #register-btn:hover, .nav-sidebar #logout-btn:hover{
+    background: #2e6da4;
+    color: #fff;
+}
+.navbar-inverse .navbar-toggle{
+    border-color: #255d91;
+}
+.navbar-inverse .navbar-toggle:focus, .navbar-inverse .navbar-toggle:hover{
+    background: #2e6da4;
+}
+.navbar-inverse .navbar-collapse, .navbar-inverse .navbar-form{
+    background: #2e6da4;
+    border-color: #255d91;
+}
+.navbar-inverse .navbar-nav>.active>a, .navbar-inverse .navbar-nav>.active>a:focus, .navbar-inverse .navbar-nav>.active>a:hover{
+    background: #2e6da4;
+}
+.navbar-inverse .navbar-nav>li>a{
+    color: rgba(255, 255, 255, .8);
+}
+.navbar-inverse .navbar-nav>.active>a, .navbar-inverse .navbar-nav>.active>a:focus, .navbar-inverse .navbar-nav>.active>a:hover{
+    background: #25557e;
+}
+.navbar-inverse .navbar-nav>li>a:hover{
+    background: #2c6190;
+}
+@media (min-width: 768px){
+    .navbar-right{
+        display: none!important;
+    }
+    .navbar-inverse .navbar-collapse, .navbar-inverse .navbar-form{
+        background: #337ab7;
+    }
+}
