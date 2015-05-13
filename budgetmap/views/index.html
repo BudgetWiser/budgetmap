@@ -133,6 +133,10 @@
                     $scope.selectedService = null;
                     $scope.closeSearch();
                     $scope.emphasize();
+
+                    //update autocomplete
+
+                    $scope.updateAutocomplete($scope.currentServices);
                 });
             }
             $scope.deselectCategory = function(category){
@@ -143,7 +147,14 @@
                     $scope.selectedService = null;
                     $scope.closeSearch();
                     $scope.emphasize();
+
+                    $scope.updateAutocomplete($scope.currentServices);
                 });
+            }
+            $scope.updateAutocomplete = function(services){
+                //update autocomplete
+                $('#search-input').typeahead('destroy')
+                $('#search-input').typeahead({source: _.map(services, function(d){ return d.name; }), highlight: true});
             }
             $scope.emphasize = function(){
                 if ($scope.selectedIssue==null)    return;
@@ -156,7 +167,7 @@
                     if (service.agree <service.disagree)    continue;
 
                     var level1 = service.categories[0];
-                    var level2 = service.categories[2];
+                    var level2 = service.categories[1];
                     $scope.visit($scope.categoryRoot, function(d){
                         if (d.depth == 2 && d.parent.name == level1 && d.name == level2){//matched
                             if (emCategories.indexOf(d)==-1)            emCategories.push(d);
@@ -254,6 +265,7 @@
                 root.size            = _.reduce(services, function(memo, d){ return memo + d.size; }, 0);
                 var firstCategory    = _.groupBy(services, function(d){ return d.categories[0]; });
                 var id = 0;
+                console.log(firstCategory)
                 for (name1 in firstCategory){
                     var cat1 = {
                         id:     id++,
@@ -263,7 +275,7 @@
                     //console.log(name1);
                     cat1.size = _.reduce(firstCategory[name1], function(memo, d){ return memo + d.size; }, 0);
                     cat1.rate = cat1.size / root.size;
-                    var secondCategory    = _.groupBy(firstCategory[name1], function(d){ return d.categories[2]; });
+                    var secondCategory    = _.groupBy(firstCategory[name1], function(d){ return d.categories[1]; });
                     for (name2 in secondCategory){
                         var cat2 = {
                             id: id++,
@@ -275,6 +287,7 @@
                         secondCategory[name2].forEach(function(d){ d.categoryID = cat2.id; })
                         cat1.children.push(cat2);
                     }
+                    console.log(secondCategory)
                     cat1.children.sort(function(a,b){ return b.size - a.size; })
                     root.children.push(cat1);
 
@@ -359,6 +372,7 @@
                     //stop progress bar
                     $interval.cancel(timer);
                     $("#progress-modal").modal("hide");
+                    $scope.updateAutocomplete($scope.currentServices);
 
                 })   
 
@@ -422,7 +436,7 @@
             <div class="col-md-9">
                 <div class="row">
                     <div id="budget-area" class="col-md-8">
-                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015)</div>
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
                         <div id="budget-chart" style="float:left"></div>
@@ -432,7 +446,7 @@
                             <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
                         </h4> 
                         <div id="service-search-group" class="input-group" style="margin-top:8px;">
-                            <input ng-model="search.query" ng-keydown="$event.keyCode==13? onClickSearch():null"type="text" class="form-control" placeholder="사업명을 입력하세요.">
+                            <input id="search-input" ng-model="search.query" ng-keydown="$event.keyCode==13? onClickSearch():null" data-provide="typeahead" type="text" class="form-control" placeholder="사업명을 입력하세요.">
                             <span class="input-group-btn">
                                 <button ng-click="onClickSearch()" class="btn btn-default" type="button">검색</button>
                             </span>
