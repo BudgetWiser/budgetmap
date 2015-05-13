@@ -267,6 +267,9 @@ var BarChart = function(config){
       d3.select(config.container).select(".barchart").select(".more").remove();
     }
   }
+  chart.data = function(){
+    return data;
+  }
   chart.emphasize = function(dl){
     if (!arguments.length) {
       effetive = [];

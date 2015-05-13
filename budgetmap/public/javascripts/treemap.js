@@ -91,9 +91,9 @@ var TreeMap = function(config){
 		this.update(config.data, w, h)
 	}	
 
-	chart.update = function(d, w, h){
-    	w = config.size.width - margin.left - margin.right;
-		h = config.size.height - margin.top - margin.bottom;
+	chart.update = function(d, nw, nh){
+    	w = nw - margin.left - margin.right;
+		h = nh - margin.top - margin.bottom;
 
 		//prevData = data;
 		node = root = data = d;
@@ -325,6 +325,9 @@ var TreeMap = function(config){
 
 		}, period);*/		
 	}
+	chart.data = function(){
+		return data;
+	}
 	chart.emphasize = function(dl){
 		// console.log("emphasize");
 		if (!arguments.length) return emList;
@@ -379,10 +382,30 @@ var TreeMap = function(config){
 			}
 			rollbackData = data;
 			chart.update(newData, w, h);
+
+			legendSVG.append("text").attr("opacity", 0.0)
+			.transition()
+			.duration(period)
+			.attr("opacity", 1.0)
+			.attr("id", "help-text")
+		    .text("↑전체 분야로 돌아가려면 여기를 클릭하세요")
+		    .attr("dy", "3em")
 		}else{//if previously selected
 			//release selection (TODO: create a new legend for seeing all)
 			legendClicked 	= null;
-			chart.update(rollbackData, w, h);
+			chart.update(rollbackData, w, h);	
+
+			legendSVG.select("#help-text").remove();
+
+			if (selected){
+				var selID = d3.select(selected).data()[0].id;
+				console.log(selID)
+				selected  = treeSVG.selectAll(".treemap-cell")
+				.filter(function(d){ return d.id == selID; })[0][0]
+				chart.enableHighlight(selected);
+			}
+
+
 		}
 	}
 	chart.legMouseOver = function (d){

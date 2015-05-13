@@ -297,7 +297,16 @@
                 root.children.sort(function(a,b){ return b.size - a.size; })
                 return root;
             }
-
+            var addEvent = function(elem, type, eventHandle) {
+                if (elem == null || typeof(elem) == 'undefined') return;
+                if ( elem.addEventListener ) {
+                    elem.addEventListener( type, eventHandle, false );
+                } else if ( elem.attachEvent ) {
+                    elem.attachEvent( "on" + type, eventHandle );
+                } else {
+                    elem["on"+type]=eventHandle;
+                }
+            };
             $("#progress-modal").modal({
                 keyboard: false,
                 backdrop: "static"
@@ -321,13 +330,22 @@
             };
             $scope.treeConfig = {
                 container : "#budget-chart",
-                size :  { width: 550, height: 700},
+                size :  { width: 555, height: 700},
                 margin : { top: 0, left: 0, bottom: 0, right: 0},
                 onSelect: $scope.selectCategory,
                 onDeselect: $scope.deselectCategory
             }
 
+            addEvent(window, "resize", function(e){
+                console.log("resize:" )
+                console.log($('#budget-area').width())
+                console.log($('#service-area').width())
 
+                $scope.treeConfig.size.width = $('#budget-area').width();
+                $scope.treemap.update($scope.treemap.data(), $scope.treeConfig.size.width, $scope.treeConfig.size.height);
+                $scope.barConfig.size.width = $('#service-area').width();
+                $scope.barchart.update($scope.barchart.data(), $scope.barConfig.size.width, $scope.barConfig.size.height);
+            });
             $http.get('/services')
             .success(function(services){
                 // load issues
@@ -441,9 +459,9 @@
                         <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
-                        <div id="budget-chart" style="float:left"></div>
+                        <div id="budget-chart" style="float:left;margin-bottom:15px;"></div>
                     </div>
-                    <div id="service-area" class="col-md-4" style="padding-left:0px;">
+                    <div id="service-area" class="col-md-4">
                         <h4 style="margin:0px;">
                             <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
                         </h4> 
@@ -463,7 +481,7 @@
                         <blockquote id="issue-service-result" ng-show="selectedIssue!=null" style="margin:5px; 0px;">
                             <h5 id="issue-service-text" class="text-danger"><mark><strong><% selectedIssue.keyword + "관련 사업: " + barchart.emphasize().length + "개" %></strong></mark></h5>
                         </blockquote>
-                        <div id="service-chart" style="width:280px;height:600px;overflow: auto;"></div>
+                        <div id="service-chart" style="height:600px;overflow: auto;"></div>
                     </div>  
                 </div>
             </div>             
