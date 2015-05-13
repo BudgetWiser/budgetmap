@@ -253,6 +253,7 @@
                 //groupby first level
                 root.size            = _.reduce(services, function(memo, d){ return memo + d.size; }, 0);
                 var firstCategory    = _.groupBy(services, function(d){ return d.categories[0]; });
+                console.log(firstCategory);
                 var id = 0;
                 for (name1 in firstCategory){
                     var cat1 = {
@@ -264,6 +265,7 @@
                     cat1.size = _.reduce(firstCategory[name1], function(memo, d){ return memo + d.size; }, 0);
                     cat1.rate = cat1.size / root.size;
                     var secondCategory    = _.groupBy(firstCategory[name1], function(d){ return d.categories[2]; });
+                    console.log(secondCategory);
                     for (name2 in secondCategory){
                         var cat2 = {
                             id: id++,
