@@ -162,9 +162,10 @@
                 var emCategories    = [];
                 var emServices      = [];
                 var exists = {};
+
                 for (var i in $scope.selectedIssue.services){
                     var service =  $scope.selectedIssue.services[i];
-                    if (service.agree <service.disagree)    continue;
+                    if (service.agree <=service.disagree)    continue;
 
                     var level1 = service.categories[0];
                     var level2 = service.categories[1];
@@ -177,9 +178,10 @@
                     
                     emServices.push(_.find($scope.currentServices, function(d){ return d._id==service._id}));
                 }
-                emServices.sort(function(a, b){
-                    return b.sum - a.sum;
-                });
+                emServices.sort(function(a,b){ return b.size - a.size; })
+                console.log($scope.selectedIssue.services)
+                console.log("emServices: ");
+                console.log(emServices);
                 $scope.treemap.emphasize(emCategories);
                 $scope.barchart.emphasize(emServices);  
                 // $("#issue-service-result").show();
@@ -236,7 +238,7 @@
                 
             }
             $scope.countRelatedServices = function (issue){
-                return issue.services.length;
+                return _.filter(issue.services, function(d){ return d.agree>d.disagree}).length;
             }
 
             $scope.calcIssueBudget = function (issue){
@@ -451,7 +453,7 @@
                                 <button ng-click="onClickSearch()" class="btn btn-default" type="button">검색</button>
                             </span>
                         </div>
-                        <div class="well" ng-show="selectedService!=null">
+                        <div class="well" ng-show="selectedService!=null" style="margin:2px;">
                             <a ng-click="moreServiceInfo()" class="text-right" href="#"><% selectedService.name %> 사업 더 알아보기 ...</a>
                         </div>
                         <div ng-show="search.filtered!=null" style="padding: 5px; margin-bottom:5px;" class="alert alert-success" role="alert">
@@ -461,7 +463,7 @@
                         <blockquote id="issue-service-result" ng-show="selectedIssue!=null" style="margin:5px; 0px;">
                             <h5 id="issue-service-text" class="text-danger"><mark><strong><% selectedIssue.keyword + "관련 사업: " + barchart.emphasize().length + "개" %></strong></mark></h5>
                         </blockquote>
-                        <div id="service-chart" style="width:280px;height:700px;overflow: auto;"></div>
+                        <div id="service-chart" style="width:280px;height:600px;overflow: auto;"></div>
                     </div>  
                 </div>
             </div>             

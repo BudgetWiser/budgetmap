@@ -326,7 +326,7 @@ var TreeMap = function(config){
 		}, period);*/		
 	}
 	chart.emphasize = function(dl){
-		console.log("emphasize");
+		// console.log("emphasize");
 		if (!arguments.length) return emList;
 		if (dl==null) return;
 		emList = dl;
@@ -358,7 +358,7 @@ var TreeMap = function(config){
 	chart.legClick = function (d){
 		chart.disableHighlight(this);     
 		legendTip.hide(d, this);
-		console.log("legClick: "+(legendClicked==null))
+		// console.log("legClick: "+(legendClicked==null))
 		//chart.legMouseOut.call(this, d);
 		//filter data by selected category
 		//get category name
@@ -386,7 +386,7 @@ var TreeMap = function(config){
 		}
 	}
 	chart.legMouseOver = function (d){
-  		console.log("legMouseOver");
+  		// console.log("legMouseOver");
 
   		//highlight budgets within this category
   		emCategory = d3.select(this).select(".treemap-legend-text").text();
@@ -408,7 +408,7 @@ var TreeMap = function(config){
 
   	}
     chart.legMouseOut = function (d){
-  		console.log("legMouseOut:" + (emList==null));
+  		// console.log("legMouseOut:" + (emList==null));
   		// rollback to previous state
   		chart.disableHighlight(this);     
   		legendTip.hide(d, this);
@@ -435,17 +435,17 @@ var TreeMap = function(config){
 		*/
   	}
 	chart.cellMouseOver = function (d){
-		console.log("cellMouseOver");
+		// console.log("cellMouseOver");
   		if (this!= selected) chart.enableHighlight(this);		  		
   		tip.show(d, this);
   	}
 	chart.cellMouseOut = function (d){
-		console.log("cellMouseOut");
+		// console.log("cellMouseOut");
   		if (this!= selected) chart.disableHighlight(this);
   		tip.hide(d, this);
   	}	  	 
 	chart.cellClick = function(d) { 
-		console.log("cellClick");
+		// console.log("cellClick");
   		//d3.event.stopPropagation();
   		
 		if (selected) {
