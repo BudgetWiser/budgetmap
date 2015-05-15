@@ -394,6 +394,15 @@
                     $("#progress-modal").modal("hide");
                     $scope.updateAutocomplete($scope.currentServices);
 
+                    {{#show_issue}}
+                    console.log(issues);
+                    issues.map(function(_issue){
+                        if(_issue.keyword == "{{show_issue}}"){
+                            $scope.onClickIssue(_issue);
+                        }
+                    });
+                    {{/show_issue}}
+
                 })   
 
             })
