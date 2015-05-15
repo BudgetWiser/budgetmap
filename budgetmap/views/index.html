@@ -120,7 +120,7 @@
                 }
                 //console.log(issue);
                 $scope.selectedIssue = issue;
-                
+                writeLog("issue", "click", issue.name);
                 //emphasize issue-related budgets
                 $scope.emphasize();
 
@@ -144,7 +144,7 @@
             $scope.deselectCategory = function(category){
                 $scope.$apply(function(){
                     console.log("예산 해제: " + category.name)
-                    writeLog("category", "deselect", category.name);
+                    // writeLog("category", "deselect", category.name);
                     $scope.currentServices = $scope.services;
                     $scope.selectedCategory = null;
                     $scope.selectedService = null;
@@ -231,7 +231,7 @@
             $scope.selectService = function(d){
                 $scope.$apply(function(){
                     $scope.selectedService = d;
-                    writeLog("service", "more-info", d.name);
+                    writeLog("service", "select", d.name);
                     
                 });
                 return false;
