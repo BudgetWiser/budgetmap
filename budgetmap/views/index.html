@@ -97,7 +97,7 @@
             function writeLog(tag, action, target){
 
                 console.log(tag+", "+action+", "+target);
-                $.post("log", {
+                $http.post("/log", {
                     tag: tag,
                     action: action,
                     target: target
