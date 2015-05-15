@@ -91,9 +91,9 @@ var TreeMap = function(config){
 		this.update(config.data, w, h)
 	}	
 
-	chart.update = function(d, w, h){
-    	w = config.size.width - margin.left - margin.right;
-		h = config.size.height - margin.top - margin.bottom;
+	chart.update = function(d, nw, nh){
+    	w = nw - margin.left - margin.right;
+		h = nh - margin.top - margin.bottom;
 
 		//prevData = data;
 		node = root = data = d;
@@ -325,8 +325,11 @@ var TreeMap = function(config){
 
 		}, period);*/		
 	}
+	chart.data = function(){
+		return data;
+	}
 	chart.emphasize = function(dl){
-		console.log("emphasize");
+		// console.log("emphasize");
 		if (!arguments.length) return emList;
 		if (dl==null) return;
 		emList = dl;
@@ -358,7 +361,7 @@ var TreeMap = function(config){
 	chart.legClick = function (d){
 		chart.disableHighlight(this);     
 		legendTip.hide(d, this);
-		console.log("legClick: "+(legendClicked==null))
+		// console.log("legClick: "+(legendClicked==null))
 		//chart.legMouseOut.call(this, d);
 		//filter data by selected category
 		//get category name
@@ -379,14 +382,34 @@ var TreeMap = function(config){
 			}
 			rollbackData = data;
 			chart.update(newData, w, h);
+
+			legendSVG.append("text").attr("opacity", 0.0)
+			.transition()
+			.duration(period)
+			.attr("opacity", 1.0)
+			.attr("id", "help-text")
+		    .text("↑전체 분야로 돌아가려면 여기를 클릭하세요")
+		    .attr("dy", "3em")
 		}else{//if previously selected
 			//release selection (TODO: create a new legend for seeing all)
 			legendClicked 	= null;
-			chart.update(rollbackData, w, h);
+			chart.update(rollbackData, w, h);	
+
+			legendSVG.select("#help-text").remove();
+
+			if (selected){
+				var selID = d3.select(selected).data()[0].id;
+				console.log(selID)
+				selected  = treeSVG.selectAll(".treemap-cell")
+				.filter(function(d){ return d.id == selID; })[0][0]
+				chart.enableHighlight(selected);
+			}
+
+
 		}
 	}
 	chart.legMouseOver = function (d){
-  		console.log("legMouseOver");
+  		// console.log("legMouseOver");
 
   		//highlight budgets within this category
   		emCategory = d3.select(this).select(".treemap-legend-text").text();
@@ -408,7 +431,7 @@ var TreeMap = function(config){
 
   	}
     chart.legMouseOut = function (d){
-  		console.log("legMouseOut:" + (emList==null));
+  		// console.log("legMouseOut:" + (emList==null));
   		// rollback to previous state
   		chart.disableHighlight(this);     
   		legendTip.hide(d, this);
@@ -435,17 +458,17 @@ var TreeMap = function(config){
 		*/
   	}
 	chart.cellMouseOver = function (d){
-		console.log("cellMouseOver");
+		// console.log("cellMouseOver");
   		if (this!= selected) chart.enableHighlight(this);		  		
   		tip.show(d, this);
   	}
 	chart.cellMouseOut = function (d){
-		console.log("cellMouseOut");
+		// console.log("cellMouseOut");
   		if (this!= selected) chart.disableHighlight(this);
   		tip.hide(d, this);
   	}	  	 
 	chart.cellClick = function(d) { 
-		console.log("cellClick");
+		// console.log("cellClick");
   		//d3.event.stopPropagation();
   		
 		if (selected) {
@@ -567,7 +590,7 @@ var TreeMap = function(config){
 		  	var rest = budget-val*10000000; 
 		  	return format(val) + "천만 " + chart.format(rest, depth);
 		}
-		return budget==0? "": format(Math.floor(budget/10000)) + "만원";; 
+		return budget==0? "0 원": format(Math.floor(budget/10000)) + "만원";; 
 
 	} 
 	return chart;   

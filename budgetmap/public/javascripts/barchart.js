@@ -61,7 +61,7 @@ var BarChart = function(config){
   var pageIdx = 0;
   var MAX_PAGE = 500;
   chart.update = function(d, w, h){
-    console.log("update barchart");
+    // console.log("update barchart");
     data = d;
     if (emList!=null){
       newData = [];
@@ -87,8 +87,8 @@ var BarChart = function(config){
       }
     }
     if (data.length%MAX_PAGE!=0)  pages.push(page);
-    console.log(emList);
-    console.log(pages);
+    // console.log(emList);
+    // console.log(pages);
     pageIdx = 0;
     curPage = pages[pageIdx]; //draw page 1 first
 
@@ -210,7 +210,7 @@ var BarChart = function(config){
     //}, transPeriod);    
   }  
   chart.loadMorePage = function(){
-    console.log('loadMorePage');
+    // console.log('loadMorePage');
     pageIdx++;
     if (pageIdx>=pages.length) return;
 
@@ -218,8 +218,8 @@ var BarChart = function(config){
     var pageHeight = outerPadding*2 + (barPadding + barSize)*curPage.length;
     var chartHeight = parseInt(d3.select(config.container).select(".barchart").style("height")) + pageHeight;
     var svgHeight = parseInt(d3.select(config.container).select("svg").attr("height")) + pageHeight;
-    console.log(chartHeight);
-    console.log(svgHeight)
+    // console.log(chartHeight);
+    // console.log(svgHeight)
     d3.select(config.container).select(".barchart").style("height", chartHeight + "px");
     d3.select(config.container).select("svg").attr("height", svgHeight);
 
@@ -266,6 +266,9 @@ var BarChart = function(config){
     }else{
       d3.select(config.container).select(".barchart").select(".more").remove();
     }
+  }
+  chart.data = function(){
+    return data;
   }
   chart.emphasize = function(dl){
     if (!arguments.length) {
@@ -325,7 +328,7 @@ var BarChart = function(config){
     if (selected) {
       chart.disableHighlight(selected);
     }
-    console.log(selected);
+    // console.log(selected);
 
     if (selected==this) { //no selection if click the existing selection
       if (config.onDeselect(d)){ // call de-selection callback)
@@ -347,7 +350,7 @@ var BarChart = function(config){
   chart.select = function(selectData){
     var selectItem = focus.selectAll(".barchart-bar")
       .filter(function(d){  return (d.name == selectData.name); });
-    console.log(selectItem);
+    // console.log(selectItem);
     var selectElem = selectItem[0][0];
     chart.mouseClick.call(selectElem, selectData);
   }
@@ -389,7 +392,7 @@ var BarChart = function(config){
         var rest = budget-val*10000000; 
         return format(val) + "천만 " + chart.format(rest, depth);
     }
-    return budget==0? "": format(Math.floor(budget/10000)) + "만원";; 
+    return budget==0? "0 원": format(Math.floor(budget/10000)) + "만원";; 
 
   } 
   return chart;

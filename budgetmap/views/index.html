@@ -135,6 +135,10 @@
                     $scope.selectedService = null;
                     $scope.closeSearch();
                     $scope.emphasize();
+
+                    //update autocomplete
+
+                    $scope.updateAutocomplete($scope.currentServices);
                 });
             }
             $scope.deselectCategory = function(category){
@@ -146,7 +150,14 @@
                     $scope.selectedService = null;
                     $scope.closeSearch();
                     $scope.emphasize();
+
+                    $scope.updateAutocomplete($scope.currentServices);
                 });
+            }
+            $scope.updateAutocomplete = function(services){
+                //update autocomplete
+                $('#search-input').typeahead('destroy')
+                $('#search-input').typeahead({source: _.map(services, function(d){ return d.name; }), highlight: true});
             }
             $scope.emphasize = function(){
                 if ($scope.selectedIssue==null)    return;
@@ -154,12 +165,13 @@
                 var emCategories    = [];
                 var emServices      = [];
                 var exists = {};
+
                 for (var i in $scope.selectedIssue.services){
                     var service =  $scope.selectedIssue.services[i];
-                    if (service.agree <service.disagree)    continue;
+                    if (service.agree <=service.disagree)    continue;
 
                     var level1 = service.categories[0];
-                    var level2 = service.categories[2];
+                    var level2 = service.categories[1];
                     $scope.visit($scope.categoryRoot, function(d){
                         if (d.depth == 2 && d.parent.name == level1 && d.name == level2){//matched
                             if (emCategories.indexOf(d)==-1)            emCategories.push(d);
@@ -169,9 +181,10 @@
                     
                     emServices.push(_.find($scope.currentServices, function(d){ return d._id==service._id}));
                 }
-                emServices.sort(function(a, b){
-                    return b.sum - a.sum;
-                });
+                emServices.sort(function(a,b){ return b.size - a.size; })
+                console.log($scope.selectedIssue.services)
+                console.log("emServices: ");
+                console.log(emServices);
                 $scope.treemap.emphasize(emCategories);
                 $scope.barchart.emphasize(emServices);  
                 // $("#issue-service-result").show();
@@ -231,7 +244,7 @@
                 
             }
             $scope.countRelatedServices = function (issue){
-                return issue.services.length;
+                return _.filter(issue.services, function(d){ return d.agree>d.disagree}).length;
             }
 
             $scope.calcIssueBudget = function (issue){
@@ -261,6 +274,7 @@
                 var firstCategory    = _.groupBy(services, function(d){ return d.categories[0]; });
                 console.log(firstCategory);
                 var id = 0;
+                console.log(firstCategory)
                 for (name1 in firstCategory){
                     var cat1 = {
                         id:     id++,
@@ -270,8 +284,7 @@
                     //console.log(name1);
                     cat1.size = _.reduce(firstCategory[name1], function(memo, d){ return memo + d.size; }, 0);
                     cat1.rate = cat1.size / root.size;
-                    var secondCategory    = _.groupBy(firstCategory[name1], function(d){ return d.categories[2]; });
-                    console.log(secondCategory);
+                    var secondCategory    = _.groupBy(firstCategory[name1], function(d){ return d.categories[1]; });
                     for (name2 in secondCategory){
                         var cat2 = {
                             id: id++,
@@ -283,6 +296,7 @@
                         secondCategory[name2].forEach(function(d){ d.categoryID = cat2.id; })
                         cat1.children.push(cat2);
                     }
+                    console.log(secondCategory)
                     cat1.children.sort(function(a,b){ return b.size - a.size; })
                     root.children.push(cat1);
 
@@ -290,7 +304,16 @@
                 root.children.sort(function(a,b){ return b.size - a.size; })
                 return root;
             }
-
+            var addEvent = function(elem, type, eventHandle) {
+                if (elem == null || typeof(elem) == 'undefined') return;
+                if ( elem.addEventListener ) {
+                    elem.addEventListener( type, eventHandle, false );
+                } else if ( elem.attachEvent ) {
+                    elem.attachEvent( "on" + type, eventHandle );
+                } else {
+                    elem["on"+type]=eventHandle;
+                }
+            };
             $("#progress-modal").modal({
                 keyboard: false,
                 backdrop: "static"
@@ -305,7 +328,7 @@
             //visualization configuration
             $scope.barConfig = {
                 container : "#service-chart",
-                size :  { width: 250, height: 700},
+                size :  { width: $('#service-area').width(), height: 700},
                 margin: {top: 0, right: 0, bottom: 0, left: 0},
                 onSelect: $scope.selectService,
                 onDeselect: $scope.deselectService,
@@ -314,13 +337,22 @@
             };
             $scope.treeConfig = {
                 container : "#budget-chart",
-                size :  { width: 550, height: 700},
+                size :  { width: $('#budget-area').width(), height: 700},
                 margin : { top: 0, left: 0, bottom: 0, right: 0},
                 onSelect: $scope.selectCategory,
                 onDeselect: $scope.deselectCategory
             }
 
+            addEvent(window, "resize", function(e){
+                console.log("resize:" )
+                console.log($('#budget-area').width())
+                console.log($('#service-area').width())
 
+                $scope.treeConfig.size.width = $('#budget-area').width();
+                $scope.treemap.update($scope.treemap.data(), $scope.treeConfig.size.width, $scope.treeConfig.size.height);
+                $scope.barConfig.size.width = $('#service-area').width();
+                $scope.barchart.update($scope.barchart.data(), $scope.barConfig.size.width, $scope.barConfig.size.height);
+            });
             $http.get('/services')
             .success(function(services){
                 // load issues
@@ -367,6 +399,16 @@
                     //stop progress bar
                     $interval.cancel(timer);
                     $("#progress-modal").modal("hide");
+                    $scope.updateAutocomplete($scope.currentServices);
+
+                    {{#show_issue}}
+                    console.log(issues);
+                    issues.map(function(_issue){
+                        if(_issue.keyword == "{{show_issue}}"){
+                            $scope.onClickIssue(_issue);
+                        }
+                    });
+                    {{/show_issue}}
 
                 })   
 
@@ -427,25 +469,25 @@
 
             </div>
             <!-- VISUALIZATION -->
-            <div class="col-md-9">
-                <div class="row">
-                    <div id="budget-area" class="col-md-8">
-                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015)</div>
+           <!--  <div class="col-md-9">
+                <div class="row"> -->
+                    <div id="budget-area" class="col-md-6">
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
-                        <div id="budget-chart" style="float:left"></div>
+                        <div id="budget-chart" style="float:left;margin-bottom:15px;"></div>
                     </div>
-                    <div id="service-area" class="col-md-4" style="padding-left:0px;">
+                    <div id="service-area" class="col-md-3">
                         <h4 style="margin:0px;">
                             <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
                         </h4> 
                         <div id="service-search-group" class="input-group" style="margin-top:8px;">
-                            <input ng-model="search.query" ng-keydown="$event.keyCode==13? onClickSearch():null"type="text" class="form-control" placeholder="사업명을 입력하세요.">
+                            <input id="search-input" ng-model="search.query" ng-keydown="$event.keyCode==13? onClickSearch():null" data-provide="typeahead" type="text" class="form-control" placeholder="사업명을 입력하세요.">
                             <span class="input-group-btn">
                                 <button ng-click="onClickSearch()" class="btn btn-default" type="button">검색</button>
                             </span>
                         </div>
-                        <div class="well" ng-show="selectedService!=null">
+                        <div class="well" ng-show="selectedService!=null" style="margin:2px;">
                             <a ng-click="moreServiceInfo()" class="text-right" href="#"><% selectedService.name %> 사업 더 알아보기 ...</a>
                         </div>
                         <div ng-show="search.filtered!=null" style="padding: 5px; margin-bottom:5px;" class="alert alert-success" role="alert">
@@ -455,10 +497,10 @@
                         <blockquote id="issue-service-result" ng-show="selectedIssue!=null" style="margin:5px; 0px;">
                             <h5 id="issue-service-text" class="text-danger"><mark><strong><% selectedIssue.keyword + "관련 사업: " + barchart.emphasize().length + "개" %></strong></mark></h5>
                         </blockquote>
-                        <div id="service-chart" style="width:280px;height:700px;overflow: auto;"></div>
+                        <div id="service-chart" style="height:600px;overflow: auto;"></div>
                     </div>  
-                </div>
-            </div>             
+         <!--        </div>
+            </div>       -->       
 
         </div>
     </div>
