@@ -126,8 +126,10 @@
 
             }   
             $scope.selectCategory = function(category){
+
                 $scope.$apply(function(){
-                    console.log("예산 선: " + category.name)
+                    console.log("예산 선택: " + category.name)
+                    writeLog("category", "select", category.name);
                     $scope.currentServices = _.filter($scope.services, function(d) { return category.id == d.categoryID})
                     $scope.selectedCategory = category;
                     $scope.selectedService = null;
@@ -138,6 +140,7 @@
             $scope.deselectCategory = function(category){
                 $scope.$apply(function(){
                     console.log("예산 해제: " + category.name)
+                    writeLog("category", "deselect", category.name);
                     $scope.currentServices = $scope.services;
                     $scope.selectedCategory = null;
                     $scope.selectedService = null;
@@ -176,7 +179,7 @@
             }
             $scope.onClickSearch = function(){
                 if ($scope.services==null) return;
-
+                writeLog("service", "search", $scope.search.query);
                 //var query =  $('#service-search').val(); 
                 //writeLog("service", "search", query);
                 $scope.search.filtered = [];
@@ -191,6 +194,7 @@
 
             }
             $scope.closeSearch = function(){
+                writeLog("service", "close-search", null);
                 //update bar chart
                 $scope.barchart.update($scope.currentServices, $scope.barConfig.width, $scope.barConfig.height);
                 //initialize search query
@@ -199,6 +203,7 @@
             }
             $scope.moreServiceInfo = function(){
                 if ($scope.selectedService==null) return;
+                writeLog("service", "more-info", $scope.selectedService.name);
                 var url = constructSearchUrl($scope.selectedService.name);
                 window.open(url, '_blank');
             }
@@ -213,6 +218,7 @@
             $scope.selectService = function(d){
                 $scope.$apply(function(){
                     $scope.selectedService = d;
+                    writeLog("service", "more-info", d.name);
                     
                 });
                 return false;
