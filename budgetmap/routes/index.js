@@ -8,6 +8,10 @@ router.get('/', function(req, res) {
     console.log(req.session.useremail, 'START treemap');
     res.render('index', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null", show_issue: req.query.issue });  
 });
+router.get('/admin', function(req, res) {
+    console.log(req.session.useremail, 'START treemap');
+    res.render('admin', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null", show_issue: req.query.issue });  
+});
 router.get('/services', function(req, res){
     var db = req.db;
     db.collection('services').find().toArray(function(err, data){
