@@ -436,7 +436,7 @@
     <div class="container">
         <div class="row">
             <!-- ISSUE AREA -->
-            <div class="col-md-3">
+            <div class="col-xs-12 col-sm-12 col-md-3">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
                         <h3 class="panel-title text-center">
@@ -461,13 +461,13 @@
             <!-- VISUALIZATION -->
            <!--  <div class="col-md-9">
                 <div class="row"> -->
-                    <div id="budget-area" class="col-md-6">
+                    <div id="budget-area" class="col-xs-12 col-sm-12 col-md-6">
                         <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
                         <div id="budget-chart" style="float:left;margin-bottom:15px;"></div>
                     </div>
-                    <div id="service-area" class="col-md-3">
+                    <div id="service-area" class="col-xs-12 col-sm-12 col-md-3">
                         <h4 style="margin:0px;">
                             <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
                         </h4> 
