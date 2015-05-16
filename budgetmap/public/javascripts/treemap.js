@@ -135,7 +135,8 @@ var TreeMap = function(config){
 		var cell = treeSVG.selectAll(".treemap-cell")
 		  	.data(nodes, function(d) { return d.id }); //return update selection
 
-	    cell.on("click", chart.cellClick)	  	
+	    cell.on("click", chart.cellClick)	
+	    	.on("touchstart", chart.cellClick)  	
 		  	.on('mouseover', chart.cellMouseOver)
 	      	.on('mouseout', chart.cellMouseOut);
 
