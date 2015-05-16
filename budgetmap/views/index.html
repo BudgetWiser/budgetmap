@@ -322,7 +322,7 @@
             });
             var timer = $interval(function(){
 
-                $scope.loadProgress += 10;
+                $scope.loadProgress += 5;
                 $("#progress-bar").css('width', $scope.loadProgress+'%').attr('aria-valuenow', $scope.loadProgress); 
                 console.log('timer...' + $scope.loadProgress)
             }, 500);
