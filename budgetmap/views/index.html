@@ -375,7 +375,7 @@
                         if (temp[name].length>1){
                             console.log("duplcate found: " + name)
                             temp[name].forEach(function(d, i){
-                                d.name = d.name + " " + i;
+                                d.name = d.name + " (" + d.sections[0] + d.sections[1] + ")";
                             })
                         }
                     }
