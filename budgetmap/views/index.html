@@ -246,7 +246,7 @@
                 
             }
             $scope.countRelatedServices = function (issue){
-                return _.filter(issue.services, function(d){ return d.agree>d.disagree}).length;
+                return _.filter(issue.services, function(d){ return d.agree>(d.disagree+3)}).length;
             }
 
             $scope.calcIssueBudget = function (issue){
@@ -535,7 +535,7 @@
     </div>
 </div>
 <!-- Progress Modal -->
-<div class="modal-dialog">
+<!-- <div class="modal-dialog">
     <div class="modal-content">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
@@ -550,7 +550,7 @@
             </div>
         </div>
     </div>
-</div> 
+</div>  -->
 <div id="user" style="display:none">{{user}}</div>
 </body>
 </html>
