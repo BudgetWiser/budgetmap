@@ -170,7 +170,7 @@
 
                 for (var i in $scope.selectedIssue.services){
                     var service =  $scope.selectedIssue.services[i];
-                    if (service.agree <=service.disagree)    continue;
+                    if (service.agree <=(service.disagree+3))    continue;
 
                     var level1 = service.categories[0];
                     var level2 = service.categories[1];
@@ -455,6 +455,14 @@
                             우리 사회 이슈
                         </h3>   
                     </div>
+                    
+                    <div class="btn-group btn-group-justified"><!-- data-toggle="tooltip" data-placement="left" title="지금은 지원하지 않는 기능입니다.">-->
+                        <div class="btn-group">
+                            <button id="btn-new-issue" type="button" class="btn btn-info" disabled="disabled">
+                                <span class="glyphicon glyphicon-plus"></span>  이슈 더하기
+                            </button> 
+                         </div>
+                    </div>
                     <!-- <div class="panel-body">
                     </div> -->
                     <!--<div  style="height:530px;; overflow-y:auto;">-->
@@ -526,8 +534,23 @@
         </div>
     </div>
 </div>
-
-
+<!-- Progress Modal -->
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 id="service-modal-title" class="modal-title" id="serviceModelLabel">새로운 이슈 더하기</h4>
+        </div>
+        <div class="modal-body">
+            <p id="service-modal-info"></p> 
+        </div>
+        <div class="modal-footer">
+            <button id="service-modal-cancel" type="button" class="btn btn-default" data-dismiss="modal">취소</button>
+            <button id="service-modal-confirm" type="button" class="btn btn-primary">확인</button>
+            </div>
+        </div>
+    </div>
+</div> 
 <div id="user" style="display:none">{{user}}</div>
 </body>
 </html>
