@@ -250,7 +250,13 @@
             }
 
             $scope.calcIssueBudget = function (issue){
-                return (issue.sum==0? "0원": $scope.treemap.format(issue.sum));
+                var sum = 0;
+                for (var i in issue.services){
+                    if (issue.services[i].agree>(issue.services[i].disagree+3)){
+                        sum += issue.services[i].sum    
+                    }                    
+                }
+                return (sum==0? "0원": $scope.treemap.format(sum));
             }
             $scope.visit = function(root, callback){
                 var nodes = [ root ];
