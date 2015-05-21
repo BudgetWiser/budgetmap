@@ -170,7 +170,7 @@
 
                 for (var i in $scope.selectedIssue.services){
                     var service =  $scope.selectedIssue.services[i];
-                    if (service.agree <=(service.disagree+2))    continue;
+                    if (service.agree <=(service.disagree+3))    continue;
 
                     var level1 = service.categories[0];
                     var level2 = service.categories[1];
@@ -246,7 +246,7 @@
                 
             }
             $scope.countRelatedServices = function (issue){
-                return _.filter(issue.services, function(d){ return d.agree>(d.disagree+2)}).length;
+                return _.filter(issue.services, function(d){ return d.agree>(d.disagree+3)}).length;
             }
 
             $scope.calcIssueBudget = function (issue){
