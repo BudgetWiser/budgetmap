@@ -45,8 +45,8 @@
     <script src="/bower_components/bootstrap3-typeahead/bootstrap3-typeahead.min.js"></script>
     <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
     <!--Main Javascripts-->
-    <script type="text/javascript" src="/javascripts/treemap.js"></script>
-    <script type="text/javascript" src="/javascripts/barchart.js"></script>
+    <script type="text/javascript" src="/javascripts/treemap_en.js"></script>
+    <script type="text/javascript" src="/javascripts/barchart_en.js"></script>
     <script type="text/javascript" src="/javascripts/recommend.js"></script>
     <!--Browser Update-->
     <script> 
@@ -132,7 +132,7 @@
 	    /** Selecting categories in TreeMap */
             $scope.selectCategory = function(category){
                 $scope.$apply(function(){
-                    console.log("예산 선택: " + category.name)
+                    console.log("Select Category: " + category.name)
                     writeLog("category", "select", category.name);
                     $scope.currentServices = _.filter($scope.services, function(d) { return category.id == d.categoryID})
                     $scope.selectedCategory = category;
@@ -147,7 +147,7 @@
 	    /** Deselecting categories in tree map */
             $scope.deselectCategory = function(category){
                 $scope.$apply(function(){
-                    console.log("예산 해제: " + category.name)
+                    console.log("Deselect Category: " + category.name)
                     // writeLog("category", "deselect", category.name);
                     $scope.currentServices = $scope.services;
                     $scope.selectedCategory = null;
@@ -272,7 +272,7 @@
                         sum += issue.services[i].sum    
                     }                    
                 }
-                return (sum==0? "0원": $scope.treemap.format(sum));
+                return (sum==0? "0 won": $scope.treemap.format(sum));
             }
 	    /** visit every node in a tree given root */
             $scope.visit = function(root, callback){
@@ -289,7 +289,7 @@
             $scope.buildHierarchy = function(services){
                 // Define root
 		var root = {
-                    name: "서울시 2015 년도 예산",
+                    name: "2015 Seoul Budget",
                     size: 0,           
                     children: []
                 };
@@ -382,10 +382,10 @@
                 $scope.barchart.update($scope.barchart.data(), $scope.barConfig.size.width, $scope.barConfig.size.height);
             });
 	    // load services
-            $http.get('/services')
+            $http.get('/services_en')
             .success(function(services){
                 // load issues
-                $http.get('/issues')
+                $http.get('/issues_en')
                 .success(function(issues){
                     $scope.issues = issues;
                     console.log($scope.issues);
@@ -466,7 +466,7 @@
                 <div class="panel panel-primary">
                     <div class="panel-heading">
                         <h3 class="panel-title text-center">
-                            우리 사회 이슈
+                            Seoul's Social Issues
                         </h3>   
                     </div>
                     
@@ -483,9 +483,9 @@
                     <div class="list-group">
                         <a ng-repeat="x in issues" ng-click="onClickIssue(x)" ng-class="{ 'list-group-item-info' : x==selectedIssue }" href="javaScript:void(0);" class="list-group-item issue-item" data-toggle="tooltip" data-placement="left" >
                             <strong><% x.keyword %> </strong>
-                            <span style="font-size:10px;" class="badge">연관사업: <% countRelatedServices(x) %></span>
+                            <span style="font-size:10px;" class="badge">Related Services: <% countRelatedServices(x) %></span>
                             <br>
-                            <span class="text-muted">현재까지: <% calcIssueBudget(x) %></span>
+                            <span class="text-muted">Budget: <% calcIssueBudget(x) %></span>
                         </a>
                     </div>
                     
@@ -497,7 +497,7 @@
                 <div class="row"> -->
 		<!-- BUDGET AREA -->
                     <div id="budget-area" class="col-xs-12 col-sm-12 col-md-6">
-                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
+                        <h4 style="margin-top:0px;"><div>Seoul's Budget Categories (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
                         <div id="budget-chart" style="float:left;margin-bottom:15px;"></div>
@@ -505,26 +505,26 @@
 		<!-- SERVICE AREA -->
                     <div id="service-area" class="col-xs-12 col-sm-12 col-md-3">
                         <h4 style="margin:0px;">
-                            <% (selectedCategory!=null? selectedCategory.name +" 관련 사업 목록" : "전체 사업 목록") + " (" + currentServices.length + ")" %>
+                            <% (selectedCategory!=null? "Services related to '" + selectedCategory.name + "'": "All Services") + " (" + currentServices.length + ")" %>
                         </h4> 
 			<!-- Search Service -->
                         <div id="service-search-group" class="input-group" style="margin-top:8px;">
-                            <input id="search-input" ng-model="search.query" ng-keydown="$event.keyCode==13? onClickSearch():null" data-provide="typeahead" type="text" class="form-control" placeholder="사업명을 입력하세요.">
+                            <input id="search-input" ng-model="search.query" ng-keydown="$event.keyCode==13? onClickSearch():null" data-provide="typeahead" type="text" class="form-control" placeholder="Enter the service name.">
                             <span class="input-group-btn">
-                                <button ng-click="onClickSearch()" class="btn btn-default" type="button">검색</button>
+                                <button ng-click="onClickSearch()" class="btn btn-default" type="button">Search</button>
                             </span>
                         </div>
 			<!-- Selected Service -->
                         <div class="well" ng-show="selectedService!=null" style="margin:2px;">
-                            <a ng-click="moreServiceInfo()" class="text-right" href="#"><% selectedService.name %> 사업 더 알아보기 ...</a>
+                            <a ng-click="moreServiceInfo()" class="text-right" href="#">More about <% selectedService.name %>...</a>
                         </div>
 			<!-- Search Results -->
                         <div ng-show="search.filtered!=null" style="padding: 5px; margin-bottom:5px;" class="alert alert-success" role="alert">
                           <button ng-click="closeSearch()" type="button" class="close"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                          <p id="service-search-text"><% search.filtered.length + " 개 사업이 검색됨" %></p>
+                          <p id="service-search-text"><% search.filtered.length + " services searched" %></p>
                         </div>
                         <blockquote id="issue-service-result" ng-show="selectedIssue!=null" style="margin:5px; 0px;">
-                            <h5 id="issue-service-text" class="text-danger"><mark><strong><% selectedIssue.keyword + "관련 사업: " + barchart.emphasize().length + "개" %></strong></mark></h5>
+                            <h5 id="issue-service-text" class="text-danger"><mark><strong><% "Services related to '" + selectedIssue.keyword + "': " + barchart.emphasize().length + " services" %></strong></mark></h5>
                         </blockquote>
                         <div id="service-chart" style="height:600px;overflow: auto;"></div>
                     </div>  
@@ -535,7 +535,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="progress-modal-label">서울시 예산 정보를 로딩 중입니다...</h4>
+                <h4 class="modal-title" id="progress-modal-label">Loading Seoul's budget data...</h4>
             </div>
             <div class="modal-body">
                 <div class="progress">

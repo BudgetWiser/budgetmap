@@ -1,6 +1,6 @@
 /** TreeMap functions and attributes defined */
 var TreeMap = function(config){
-	var legendSize = {width: config.size.width, height: 85};
+	var legendSize = {width: config.size.width, height: 145};
 	var margin = config.margin,
 		//color = d3.scale.category10(),
 		color = d3.scale.ordinal().range( ["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]),// ['#b15928', '#6a3d9a', '#ff7f00', '#e31a1c', '#1f78b4','#ffff99', '#cab2d6', '#fdbf6f', '#fb9a99', '#a6cee3', '#4169E1', '#20B2AA', '#DB7093']),//)colorbrewer.Paired[12] //['#80cdc1','#33a02c', '#fb9a99','#a6cee3', '#e31a1c','#1f78b4' , '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a', '#ef6548'] 
@@ -42,7 +42,7 @@ var TreeMap = function(config){
 	  .offset([-10, 0])
 	  .html(function(d) {
 	    return "<span style='color:lightsteelblue;font-size:12px'>" + d.name + ": "+chart.format(d.size)+" ("+d3.format('.2%')(d.size/root.size)+")</span><br/><br/>" +
-	    		"<span style='color:lightgray'>분류: "+d.parent.name+ "</span>";
+	    		"<span style='color:lightgray'>Category: "+d.parent.name+ "</span>";
 	  })
 	treeSVG.call(tip);	
 
@@ -53,7 +53,7 @@ var TreeMap = function(config){
 	  		return [-10, 0];
 	  	})
 	  	.html(function(d) {
-	    	var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.name+" 전체예산: " + chart.format(d.size) + "</span>";
+	    	var html =  "<span style='color:lightsteelblue;font-size:12px'>"+d.name+" Total Budget: " + chart.format(d.size) + "</span>";
 	    	/*for (var i in d.children){
 	    		var c = d.children[i];
 	    		html += "<span style='color:lightgray'>" + c.name + ": "+chart.format(c.size)+" ("+d3.format('.2%')(c.size/d.parent.size)+")</span><br/><br/>";
@@ -227,14 +227,14 @@ var TreeMap = function(config){
 			.attr("text-anchor", "end")
 			.attr("dy", "-.35em")
 			.attr("dx", "-.35em")
-			.text(function(d) { return "사업:" + d.services.length; }) // "이슈:"+d.issue_size + "/사업:" + d.serv_size; })
+			.text(function(d) { return "Services:" + d.services.length; }) // "이슈:"+d.issue_size + "/사업:" + d.serv_size; })
 			.style("opacity", 0.0)
 		.transition().duration(period)
 			.style("opacity", function(d) { d.w = this.getComputedTextLength()+4; return d.dx > d.w ? (d.dy>24? 1:0) : 0; });
 		// *************** Draw Legends **************************************************************** //
 
 		//Add Legend Elements
-		var legendWidth = w/4;
+		var legendWidth = w/2;
 		var legendHeight = 20;
 		var legendElemSize = 20;
 
@@ -262,14 +262,14 @@ var TreeMap = function(config){
 		legend.attr("pointer-events", "none")
 			.transition()
 			.duration(period)
-			.attr("transform", function(d, i) { return "translate(" + (i%4*legendWidth) + "," + (Math.floor(i/4)*legendHeight) + ")"; })
+			.attr("transform", function(d, i) { return "translate(" + (i%2*legendWidth) + "," + (Math.floor(i/2)*legendHeight) + ")"; })
 			.each("end", function() { d3.select(this).attr("pointer-events", null); });
 		
 		// Create new elements as needed.  
 
 		var legEntered = legend.enter().append("g")
 			.attr("class", "treemap-legend")
-			.attr("transform", function(d, i) { return "translate(" + (i%4*legendWidth) + "," + (Math.floor(i/4)*legendHeight) + ")"; });
+			.attr("transform", function(d, i) { return "translate(" + (i%2*legendWidth) + "," + (Math.floor(i/2)*legendHeight) + ")"; });
 		
 		legEntered.on('mouseover', chart.legMouseOver)
 	      	.on('mouseout', chart.legMouseOut)
@@ -391,7 +391,7 @@ var TreeMap = function(config){
 			.duration(period)
 			.attr("opacity", 1.0)
 			.attr("id", "help-text")
-		    .text("↑전체 분야로 돌아가려면 여기를 클릭하세요")
+		    .text("↑ Click here to show all categories")
 		    .attr("dy", "3em")
 		}else{//if previously selected
 			//release selection (TODO: create a new legend for seeing all)
@@ -512,13 +512,13 @@ var TreeMap = function(config){
 			.filter(function(d){	return (d.name == budgetName);	})
 			.text(function(d) { 
 				d.issue_size+=1;
-			 	return "사업:" + d.services.length;//"이슈:"+d.issue_size + "/사업:" + d.serv_size; 
+			 	return "Services:" + d.services.length;//"이슈:"+d.issue_size + "/사업:" + d.serv_size; 
 			})
   	}
   	chart.updateIssueCnt = function(){
  		treeSVG.selectAll(".treemap-sub-text")
 			.text(function(d) { 
-			 	return "사업:" + d.services.length;//"이슈:"+d.issue_size + "/사업:" + d.serv_size; 
+			 	return "Services:" + d.services.length;//"이슈:"+d.issue_size + "/사업:" + d.serv_size; 
 			}) 		
   	}
 
@@ -576,9 +576,11 @@ var TreeMap = function(config){
     };
 
 	chart.format = function(budget, depth){
-		if (arguments.length==1)	depth = 2;
+		var format = d3.format(",");
+		return "₩ " + format(budget);
+/*		if (arguments.length==1)	depth = 2;
 		depth--;
-		if (depth<0)	return "원";
+		if (depth<0)	return "won";
 		var val;
 		var format = d3.format(",");
 		if ((val = Math.floor(budget/1000000000000))>0){ //1조
@@ -593,8 +595,8 @@ var TreeMap = function(config){
 		  	var rest = budget-val*10000000; 
 		  	return format(val) + "천만 " + chart.format(rest, depth);
 		}
-		return budget==0? "0 원": format(Math.floor(budget/10000)) + "만원";; 
-
+		return budget==0? "0 won": format(Math.floor(budget/10000)) + "만원";; 
+*/
 	} 
 	return chart;   
 };

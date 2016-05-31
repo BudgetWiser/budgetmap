@@ -11,11 +11,22 @@ var users = require('./routes/users');
 // mongodb settings
 var mongo = require('mongoskin');
 
+// Private config
+var config = require('./config');
+
 //var db = mongo.db("mongodb://143.248.234.88:17027/budgetmap_proto", {native_parser: true});
 //var db = mongo.db("mongodb://143.248.234.88:27017/budgetmap_live", {native_parser: true});
-var db = mongo.db("mongodb://localhost:38716/budgeTag", {native_parser: true});
-var session = require('express-session');
+// Creates an instance 'db' of a connection to MongoDB
 
+var url = "mongodb://" + config.mongo.username + ":" + config.mongo.password
+			+ "@localhost:" + config.mongo.port + "/" + config.mongo.db_name;
+var url_en = "mongodb://" + config.mongo.username + ":" + config.mongo.password
+			+ "@localhost:" + config.mongo.port + "/" + config.mongo.db_name_en;
+
+var db = mongo.db(url, {native_parser: true});
+var db_en = mongo.db(url_en, {native_parser: true});
+
+var session = require('express-session');
 var app = express();
 
 //socket.io
@@ -43,8 +54,11 @@ app.use(session({secret: 'budgetmap super secret',
 app.use(express.static(path.join(__dirname, 'public')));
 
 // db settings
+// adding the 'db' object defined above to every HTTP request(i.e. "req") the app makes
+// Allows db accessible to router
 app.use(function(req, res, next){
     req.db = db;
+    req.db_en = db_en;
     req.toObjectID = mongo.helper.toObjectID;
     next();
 });

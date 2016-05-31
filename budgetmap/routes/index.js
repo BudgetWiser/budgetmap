@@ -4,14 +4,29 @@ var _       = require('underscore');
 var router  = express.Router();
 
 /* GET web pages. */
+// budgetmap.budgetwiser.org/
+// renders index.html
 router.get('/', function(req, res) {
     console.log(req.session.useremail, 'START treemap');
     res.render('index', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null", show_issue: req.query.issue });  
 });
+
+// budgetmap.budgetwiser.org/en
+// renders index_en.html
+router.get('/en', function(req, res) {
+	console.log(req.session.useremail, 'START treemap');
+	res.render('index_en', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null", show_issue: req.query.issue });
+});
+
+// budgetmap.budgetwiser.org/admin
+// renders admin.html
 router.get('/admin', function(req, res) {
     console.log(req.session.useremail, 'START treemap');
     res.render('admin', { title: 'BudgetMap', user: req.session.user? JSON.stringify(req.session.user):"null", show_issue: req.query.issue });  
 });
+
+// budgetmap.budgetwiser.org/services
+// finds all services from db('services' table in 'budgeTag') and passes it as a JSON object
 router.get('/services', function(req, res){
     var db = req.db;
     db.collection('services').find().toArray(function(err, data){
@@ -22,8 +37,10 @@ router.get('/services', function(req, res){
 
         res.json(data);
     });
-
 });
+
+// budgetmap.budgetwiser.org/issues
+// finds all issues from db('issues' table in 'budgeTag') and passes it as a JSON object
 router.get('/issues', function(req, res){
     var db = req.db;
     db.collection('issues').find().toArray(function(err, issues){
@@ -33,7 +50,31 @@ router.get('/issues', function(req, res){
         
         res.json(issues);
     });
-})
+});
+
+router.get('/services_en', function(req, res){
+	var db = req.db_en;
+	db.collection('services').find().toArray(function(err, data){
+		if (err) {
+			return console.log(new Date(), 'insert error', err);
+		}
+		console.log(new Date(), data.length + ' budget records returned');
+		res.json(data);
+	});
+});
+
+router.get('/issues_en', function(req, res){
+	var db = req.db_en;
+	db.collection('issues').find().toArray(function(err, issues){
+		issues.sort(function(a, b){
+			return b.sum - a.sum;
+		});
+		res.json(issues);
+	});	
+});
+
+// budgetmap.budgetwiser.org/log
+// writes log to db('log' table in 'budgeTag') and passes the result as a JSON object
 router.post('/log', function(req, res){
     writeLog(req.db, req.ip, req.body.tag, req.body.action, req.body.target, function(err, result){
        if (err) {
@@ -46,6 +87,7 @@ router.post('/log', function(req, res){
     });
 });
 
+// Writes log to console and inserts it into DB
 function writeLog(db, ip, tag, action, target, callback){
     console.log(ip+", " + tag + ", " + action + ", " + target);
     //if (session.useremail==null)    return;

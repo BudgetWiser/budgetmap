@@ -2,7 +2,7 @@
 var debug = require('debug')('budgetmap');
 var server = require('../app');
 
-var port = process.env.PORT || 02138;
+var port = process.env.PORT || 2138;
 
 server.listen(port, function() {
 	console.log('Express server listening on port ' + port);
