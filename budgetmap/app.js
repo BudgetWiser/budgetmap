@@ -19,9 +19,9 @@ var config = require('./config');
 // Creates an instance 'db' of a connection to MongoDB
 
 var url = "mongodb://" + config.mongo.username + ":" + config.mongo.password
-			+ "@localhost:" + config.mongo.port + "/" + config.mongo.db_name;
+            + "@"+ (config.mongo.host || "localhost") +":" + config.mongo.port + "/" + config.mongo.db_name;
 var url_en = "mongodb://" + config.mongo.username + ":" + config.mongo.password
-			+ "@localhost:" + config.mongo.port + "/" + config.mongo.db_name_en;
+			+ "@"+ (config.mongo.host || "localhost") +":" + config.mongo.port + "/" + config.mongo.db_name_en;
 
 var db = mongo.db(url, {native_parser: true});
 var db_en = mongo.db(url_en, {native_parser: true});
