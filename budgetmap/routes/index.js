@@ -2,6 +2,8 @@ var express = require('express');
 var bcrypt  = require('bcrypt');
 var _       = require('underscore');
 var router  = express.Router();
+var async = require('async');
+var ObjectId = require('mongodb').ObjectID;
 
 /* GET web pages. */
 // budgetmap.budgetwiser.org/
@@ -36,6 +38,89 @@ router.get('/services', function(req, res){
         console.log(new Date(), data.length + ' budget records returned');
 
         res.json(data);
+    });
+});
+
+router.get('/services2', function (req, res) {
+    //var db = req.db;
+    var bdb = req.db_budgetData;
+
+    function getCategories(catKey, catList, callback) {
+        if (!catList) catList = [];
+        bdb.collection("category").findOne({ "_id": ObjectId(catKey) }, function (err, aCategory) {
+            if (err) {
+                return callback(err);
+            }
+            if (!aCategory){
+                callback(null, catList);
+                return;
+            }
+            catList.push(aCategory.name);
+
+            if (aCategory.parent) {
+                getCategories(aCategory.parent, catList, callback);
+            } else {
+                callback(null, catList);
+            }
+        });
+    }
+
+    function getDepartments(catKey, catList, callback) {
+        if (!catList) catList = [];
+        bdb.collection("department").findOne({ "_id": ObjectId(catKey) }, function (err, aDepartment) {
+            if (err) {
+                return callback(err);
+            }
+            catList.push(aDepartment.name);
+
+            if (aDepartment.parent) {
+                getDepartments(aDepartment.parent, catList, callback);
+            } else {
+                callback(null, catList);
+            }
+        });
+    }
+
+    bdb.collection("program").find().toArray(function(err, data){
+        if (err) {
+            return console.log(new Date(), 'insert error', err);
+        }
+
+        function ts(aData, cb){
+            var row = {};
+            row["_id"] = aData["_id"];
+            row["name"] = aData["name"];
+            row["sections"] = [];
+            row["categories"] = [];
+            row["sum"] = [];
+            row.sum.push(aData.value * 1000);
+            row.sum.push(aData.value * 1000);
+            row["__v"] = 0;
+
+            async.waterfall([
+                function(callb){
+                    getCategories(aData.category, [], function (err, list) {
+                        row["categories"] = list.reverse();
+                        callb(null);
+                    });
+                },
+                function (callb) {
+                    getDepartments(aData.department, [], function (err, list) {
+                        row["sections"] = list.reverse();
+                        callb(null);
+                    });
+                }
+            ], function(err, result){
+                cb(null, row);
+            });
+        }
+
+        async.map(data, ts, function(err, results){
+            res.json(results);
+        });
+
+        console.log(new Date(), data.length + ' budget records returned');
+        
     });
 });
 

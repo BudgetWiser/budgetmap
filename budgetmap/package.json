@@ -20,6 +20,7 @@
     "socket.io": "^1.1.0",
     "static-favicon": "~1.0.0",
     "supervisor": "*",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "async": "*"
   }
 }

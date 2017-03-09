@@ -382,7 +382,7 @@
                 $scope.barchart.update($scope.barchart.data(), $scope.barConfig.size.width, $scope.barConfig.size.height);
             });
 	    // load services
-            $http.get('/services')
+            $http.get('/services2')
             .success(function(services){
                 // load issues
                 $http.get('/issues')
@@ -497,7 +497,7 @@
                 <div class="row"> -->
 		<!-- BUDGET AREA -->
                     <div id="budget-area" class="col-xs-12 col-sm-12 col-md-6">
-                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2015) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
+                        <h4 style="margin-top:0px;"><div>서울시 예산 분야 (2016) : <% categoryRoot? treemap.format(categoryRoot.size) : "0원" %></div>
                            <!-- <div style="padding-top:4px;"><small>* 선택된 '분야', '사업', 혹은 '이슈'는 다시 한번 클릭하면 해제가 됩니다.</small></div>-->
                         </h4>
                         <div id="budget-chart" style="float:left;margin-bottom:15px;"></div>

@@ -22,9 +22,15 @@ var url = "mongodb://" + config.mongo.username + ":" + config.mongo.password
             + "@"+ (config.mongo.host || "localhost") +":" + config.mongo.port + "/" + config.mongo.db_name;
 var url_en = "mongodb://" + config.mongo.username + ":" + config.mongo.password
 			+ "@"+ (config.mongo.host || "localhost") +":" + config.mongo.port + "/" + config.mongo.db_name_en;
+var urlBudgetData = "mongodb://" + config.mongo.username + ":" + config.mongo.password
+    + "@" + (config.mongo.host || "localhost") + ":" + config.mongo.port + "/" + config.mongo.db_name_budget_data + "?authSource=admin";
+
+console.log(url);
+console.log(urlBudgetData);
 
 var db = mongo.db(url, {native_parser: true});
 var db_en = mongo.db(url_en, {native_parser: true});
+var db_budgetData = mongo.db(urlBudgetData, { native_parser: true });
 
 var session = require('express-session');
 var app = express();
@@ -59,6 +65,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(function(req, res, next){
     req.db = db;
     req.db_en = db_en;
+    req.db_budgetData = db_budgetData;
     req.toObjectID = mongo.helper.toObjectID;
     next();
 });
